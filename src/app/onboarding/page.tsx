@@ -9,52 +9,62 @@ import { syncUserAccount, updateProfile } from "@/actions/user";
 import { getTrendingMovies, Movie } from "@/lib/tmdb";
 import { useAuth, useUser } from "@clerk/nextjs";
 
+// Helper to generate a reliable illustrated avatar
+const av = (seed: string, bg: string, style = "adventurer") =>
+  `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(seed)}&backgroundColor=${bg}`;
+
 const CHARACTER_AVATARS = [
-  // Hollywood
-  { name: "Batman", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Batman&background=000&color=fff&size=120" },
-  { name: "Joker", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Joker&background=4c1d95&color=fff&size=120" },
-  { name: "Iron Man", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Iron+Man&background=b91c1c&color=fff&size=120" },
-  { name: "Spider-Man", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Spider+Man&background=dc2626&color=fff&size=120" },
-  { name: "Captain America", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Captain+America&background=1d4ed8&color=fff&size=120" },
-  { name: "Deadpool", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Deadpool&background=ef4444&color=fff&size=120" },
-  { name: "John Wick", category: "Hollywood", url: "https://ui-avatars.com/api/?name=John+Wick&background=111&color=fff&size=120" },
-  { name: "Harry Potter", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Harry+Potter&background=7f1d1d&color=fff&size=120" },
-  { name: "Hermione", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Hermione&background=9a3412&color=fff&size=120" },
-  { name: "Darth Vader", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Darth+Vader&background=000&color=ef4444&size=120" },
-  { name: "Luke Skywalker", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Luke+Skywalker&background=047857&color=fff&size=120" },
-  { name: "Indiana Jones", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Indiana+Jones&background=78350f&color=fff&size=120" },
-  { name: "Neo", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Neo&background=064e3b&color=34d399&size=120" },
-  { name: "Jack Sparrow", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Jack+Sparrow&background=451a03&color=fff&size=120" },
-  { name: "Sherlock Holmes", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Sherlock+Holmes&background=1e3a8a&color=fff&size=120" },
-  { name: "Rocky", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Rocky&background=b91c1c&color=fff&size=120" },
-  { name: "Rambo", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Rambo&background=064e3b&color=fff&size=120" },
-  { name: "Terminator", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Terminator&background=374151&color=ef4444&size=120" },
+  // Hollywood Heroes & Villains
+  { name: "Batman", category: "Hollywood", url: av("batman-dark-knight", "0a0a0a") },
+  { name: "Joker", category: "Hollywood", url: av("joker-chaos", "4c1d95") },
+  { name: "Superman", category: "Hollywood", url: av("superman-krypton", "1d4ed8") },
+  { name: "Iron Man", category: "Hollywood", url: av("ironman-stark", "7f1d1d") },
+  { name: "Spider-Man", category: "Hollywood", url: av("spiderman-web", "dc2626") },
+  { name: "Thor", category: "Hollywood", url: av("thor-asgard", "1e40af") },
+  { name: "Captain America", category: "Hollywood", url: av("captain-america", "1d4ed8") },
+  { name: "Black Panther", category: "Hollywood", url: av("black-panther-wakanda", "111827") },
+  { name: "Wonder Woman", category: "Hollywood", url: av("wonder-woman-diana", "b45309") },
+  { name: "Deadpool", category: "Hollywood", url: av("deadpool-mercenary", "991b1b") },
+  { name: "John Wick", category: "Hollywood", url: av("john-wick-baba-yaga", "111827") },
+  { name: "Thanos", category: "Hollywood", url: av("thanos-infinity", "312e81") },
+  { name: "Harry Potter", category: "Hollywood", url: av("harry-potter-wizard", "7f1d1d") },
+  { name: "Hermione", category: "Hollywood", url: av("hermione-granger", "92400e") },
+  { name: "Darth Vader", category: "Hollywood", url: av("darth-vader-sith", "0a0a0a") },
+  { name: "Luke Skywalker", category: "Hollywood", url: av("luke-skywalker-jedi", "14532d") },
+  { name: "Indiana Jones", category: "Hollywood", url: av("indiana-jones-archaeologist", "78350f") },
+  { name: "Neo", category: "Hollywood", url: av("neo-matrix-chosen", "064e3b") },
+  { name: "Jack Sparrow", category: "Hollywood", url: av("jack-sparrow-pirate", "451a03") },
+  { name: "The Mandalorian", category: "Hollywood", url: av("mandalorian-beskar", "1f2937") },
+  { name: "Wolverine", category: "Hollywood", url: av("wolverine-mutant-xmen", "78350f") },
+  { name: "Hulk", category: "Hollywood", url: av("hulk-banner-gamma", "14532d") },
 
   // Bollywood
-  { name: "Kabir Singh", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Kabir+Singh&background=b91c1c&color=fff&size=120" },
-  { name: "Rancho", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Rancho&background=047857&color=fff&size=120" },
-  { name: "Munna Bhai", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Munna+Bhai&background=d97706&color=fff&size=120" },
-  { name: "Circuit", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Circuit&background=0f766e&color=fff&size=120" },
-  { name: "Bunny", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Bunny&background=4338ca&color=fff&size=120" },
-  { name: "Veer", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Veer&background=be123c&color=fff&size=120" },
-  { name: "Sultan", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Sultan&background=b45309&color=fff&size=120" },
-  { name: "Pushpa", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Pushpa&background=78350f&color=fff&size=120" },
-  { name: "Rocky (KGF)", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Rocky&background=111&color=fbbf24&size=120" },
-  { name: "RRR Characters", category: "Bollywood", url: "https://ui-avatars.com/api/?name=RRR&background=b91c1c&color=fff&size=120" },
-  { name: "Bajirao", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Bajirao&background=9a3412&color=fff&size=120" },
-  { name: "Chulbul Pandey", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Chulbul+Pandey&background=047857&color=fff&size=120" },
-  { name: "Don", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Don&background=000&color=fff&size=120" },
-  { name: "Mogambo", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Mogambo&background=312e81&color=fff&size=120" },
-  { name: "Gabbar Singh", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Gabbar+Singh&background=3f3f46&color=fff&size=120" },
+  { name: "Kabir Singh", category: "Bollywood", url: av("kabir-singh-patel", "7f1d1d") },
+  { name: "Rancho", category: "Bollywood", url: av("rancho-3-idiots", "047857") },
+  { name: "Munna Bhai", category: "Bollywood", url: av("munna-bhai-mbbs", "b45309") },
+  { name: "Prem", category: "Bollywood", url: av("prem-ddlj-romance", "4338ca") },
+  { name: "Don", category: "Bollywood", url: av("don-bollywood-gangster", "111827") },
+  { name: "Pushpa Raj", category: "Bollywood", url: av("pushpa-raj-allu", "78350f") },
+  { name: "Rocky (KGF)", category: "Bollywood", url: av("rocky-kgf-yash", "111827") },
+  { name: "Baahubali", category: "Bollywood", url: av("baahubali-amarendra", "92400e") },
+  { name: "Bajirao", category: "Bollywood", url: av("bajirao-mastani-peshwa", "9a3412") },
+  { name: "Chulbul Pandey", category: "Bollywood", url: av("chulbul-pandey-dabangg", "047857") },
+  { name: "Gabbar Singh", category: "Bollywood", url: av("gabbar-singh-sholay", "374151") },
+  { name: "Mogambo", category: "Bollywood", url: av("mogambo-mrgm", "312e81") },
 
-  // Anime
-  { name: "Luffy", category: "Anime", url: "https://ui-avatars.com/api/?name=Luffy&background=b91c1c&color=fff&size=120" },
-  { name: "Naruto", category: "Anime", url: "https://ui-avatars.com/api/?name=Naruto&background=d97706&color=fff&size=120" },
-  { name: "Itachi", category: "Anime", url: "https://ui-avatars.com/api/?name=Itachi&background=000&color=ef4444&size=120" },
-  { name: "Gojo", category: "Anime", url: "https://ui-avatars.com/api/?name=Gojo&background=1e3a8a&color=fff&size=120" },
-  { name: "Levi", category: "Anime", url: "https://ui-avatars.com/api/?name=Levi&background=064e3b&color=fff&size=120" },
-  { name: "Eren", category: "Anime", url: "https://ui-avatars.com/api/?name=Eren&background=451a03&color=fff&size=120" },
-  { name: "Tanjiro", category: "Anime", url: "https://ui-avatars.com/api/?name=Tanjiro&background=047857&color=fff&size=120" },
+  // Anime — pixel-art style for that anime feel
+  { name: "Monkey D. Luffy", category: "Anime", url: av("luffy-onepiece-straw-hat", "991b1b", "pixel-art") },
+  { name: "Naruto Uzumaki", category: "Anime", url: av("naruto-uzumaki-konoha", "b45309", "pixel-art") },
+  { name: "Gojo Satoru", category: "Anime", url: av("gojo-satoru-jjk", "1e40af", "pixel-art") },
+  { name: "Levi Ackerman", category: "Anime", url: av("levi-ackerman-aot", "064e3b", "pixel-art") },
+  { name: "Itachi Uchiha", category: "Anime", url: av("itachi-uchiha-sharingan", "0a0a0a", "pixel-art") },
+  { name: "Light Yagami", category: "Anime", url: av("light-yagami-deathnote", "1f2937", "pixel-art") },
+  { name: "Tanjiro Kamado", category: "Anime", url: av("tanjiro-demon-slayer", "047857", "pixel-art") },
+  { name: "Eren Yeager", category: "Anime", url: av("eren-yeager-titan", "451a03", "pixel-art") },
+  { name: "Saitama", category: "Anime", url: av("saitama-one-punch-man", "1d4ed8", "pixel-art") },
+  { name: "Zoro", category: "Anime", url: av("roronoa-zoro-swordsman", "14532d", "pixel-art") },
+  { name: "Sukuna", category: "Anime", url: av("sukuna-ryomen-cursed", "7f1d1d", "pixel-art") },
+  { name: "All Might", category: "Anime", url: av("all-might-symbol-peace", "1d4ed8", "pixel-art") },
 ];
 
 const BANNERS = [
@@ -131,7 +141,10 @@ export default function OnboardingPage() {
     }
   }, [isMockSignedIn, isClerkSignedIn, isClerkLoaded, clerkUser, mockUser, router]);
 
-  const filteredAvatars = CHARACTER_AVATARS.filter(c => c.name.toLowerCase().includes(avatarSearch.toLowerCase()));
+  const filteredAvatars = CHARACTER_AVATARS.filter(c => {
+    const q = avatarSearch.toLowerCase();
+    return c.name.toLowerCase().includes(q) || c.category.toLowerCase().includes(q);
+  });
 
   const handleGenreToggle = (genre: string) => {
     setSelectedGenres((prev) =>
@@ -265,7 +278,26 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block">Choose Character Avatar</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block">Choose Character Avatar</label>
+                    {/* Category filter pills */}
+                    <div className="flex gap-1.5">
+                      {["All", "Hollywood", "Bollywood", "Anime"].map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setAvatarSearch(cat === "All" ? "" : cat)}
+                          className={`text-[9px] font-bold px-2 py-1 rounded-lg border transition ${
+                            (cat === "All" && !avatarSearch) || avatarSearch.toLowerCase() === cat.toLowerCase()
+                              ? "bg-brand-purple/20 border-brand-purple text-brand-purple"
+                              : "bg-white/5 border-white/10 text-slate-500 hover:text-white"
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <div className="relative">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
@@ -276,21 +308,48 @@ export default function OnboardingPage() {
                       className="w-full py-2 pl-9 pr-4 rounded-lg glass-input text-xs"
                     />
                   </div>
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-40 overflow-y-auto scrollbar-thin pr-1">
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-3 max-h-52 overflow-y-auto scrollbar-thin pr-1">
                     {filteredAvatars.map((c) => (
                       <button
                         key={c.name}
                         type="button"
                         onClick={() => setAvatarUrl(c.url)}
-                        title={`${c.name} (${c.category})`}
-                        className={`relative w-12 h-12 rounded-full overflow-hidden border-2 transition mx-auto ${
-                          avatarUrl === c.url ? "border-brand-purple scale-110 shadow-lg shadow-brand-purple/30" : "border-transparent opacity-50 hover:opacity-100"
+                        className={`flex flex-col items-center gap-1.5 p-1.5 rounded-xl border-2 transition group ${
+                          avatarUrl === c.url
+                            ? "border-brand-purple bg-brand-purple/10 shadow-lg shadow-brand-purple/20"
+                            : "border-transparent hover:border-white/20 hover:bg-white/5"
                         }`}
                       >
-                        <img src={c.url} alt={c.name} className="w-full h-full object-cover" />
+                        <div className="w-14 h-14 rounded-full overflow-hidden border border-white/10 bg-slate-800 group-hover:border-brand-purple/40 transition">
+                          <img
+                            src={c.url}
+                            alt={c.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            onError={(e) => {
+                              // Fallback to DiceBear if the SVG fails for some reason
+                              (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=1e293b`;
+                            }}
+                          />
+                        </div>
+                        <span className="text-[9px] font-bold text-center text-slate-400 group-hover:text-white transition leading-tight line-clamp-2 w-full px-0.5">
+                          {c.name}
+                        </span>
                       </button>
                     ))}
                   </div>
+                  {/* Preview selected avatar */}
+                  {avatarUrl && (
+                    <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl">
+                      <img src={avatarUrl} alt="Selected" className="w-10 h-10 rounded-full border-2 border-brand-purple object-cover" />
+                      <span className="text-xs font-bold text-white">
+                        {CHARACTER_AVATARS.find(c => c.url === avatarUrl)?.name || "Selected Avatar"}
+                      </span>
+                      <span className="ml-auto text-[9px] text-slate-500 font-semibold">
+                        {CHARACTER_AVATARS.find(c => c.url === avatarUrl)?.category}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2.5">

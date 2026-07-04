@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCineverseAuth } from "@/components/provider";
-import { Film, Home, Compass, Bookmark, Star, User, Settings, LogOut } from "lucide-react";
+import { Film, Home, Compass, Bookmark, Star, User, Settings, LogOut, Search, Globe, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useAuth } from "@clerk/nextjs";
@@ -17,9 +17,12 @@ export default function Sidebar() {
 
   const menuItems = [
     { name: "Home", href: "/dashboard", icon: Home },
+    { name: "Search", href: "/dashboard/search", icon: Search },
+    { name: "Communities", href: "/dashboard/community", icon: Globe },
     { name: "Discover", href: "/dashboard/discover", icon: Compass },
     { name: "Watchlist", href: "/dashboard/watchlist", icon: Bookmark },
     { name: "Reviews", href: "/dashboard/reviews", icon: Star },
+    { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
     { name: "Profile", href: "/dashboard/profile", icon: User },
   ];
 

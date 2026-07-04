@@ -4,12 +4,13 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useTrendingMovies } from "@/hooks/useMovies";
 import { useCineverseAuth } from "@/components/provider";
-import { Sparkles, Play, Plus, Send, Heart, MessageSquare, Star, Film, Bookmark, Calendar } from "lucide-react";
+import { Sparkles, Play, Star } from "lucide-react";
 import RightSidebar from "@/components/dashboard/RightSidebar";
 import GlassCard from "@/components/shared/GlassCard";
-import { MOCK_COMMUNITY_POSTS } from "@/lib/mockData";
 
-import { getFeed, createPost as createSocialPost, toggleLike as toggleSocialLike } from "@/actions/social";
+import { getFeed } from "@/actions/social";
+import PostComposer from "@/components/social/PostComposer";
+import PostCard from "@/components/social/PostCard";
 
 export default function DashboardPage() {
   const { user } = useCineverseAuth();
@@ -17,80 +18,25 @@ export default function DashboardPage() {
 
   // Social feed states
   const [feedPosts, setFeedPosts] = useState<any[]>([]);
-  const [newPostContent, setNewPostContent] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingFeed, setLoadingFeed] = useState(true);
 
   // Quick AI Companion state
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiSuggested, setAiSuggested] = useState<any>(null);
   const [aiSearching, setAiSearching] = useState(false);
 
-  // Fetch real social feed from Postgres
-  useEffect(() => {
-    getFeed().then((res) => {
-      if (res.success && res.posts) {
-        const mapped = res.posts.map((post: any) => {
-          const profile = post.user.profile;
-          const hasLiked = user && post.likes.some((l: any) => l.userId === user.id);
-          return {
-            id: post.id,
-            user: profile?.username || "cinephile",
-            userAvatar: profile?.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100",
-            userTitle: profile?.reputation || "Newbie",
-            content: post.content,
-            likes: post._count.likes,
-            commentsCount: post._count.comments,
-            timeAgo: new Date(post.createdAt).toLocaleDateString(),
-            hasLiked: !!hasLiked
-          };
-        });
-        setFeedPosts(mapped);
-      }
-    });
-  }, [user]);
-
-  const handleCreatePost = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPostContent.trim() || isSubmitting) return;
-
-    setIsSubmitting(true);
-    const res = await createSocialPost({ content: newPostContent });
-    if (res.success && res.post) {
-      const newPostMapped = {
-        id: res.post.id,
-        user: user?.username || "cinephile",
-        userAvatar: user?.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100",
-        userTitle: "Member",
-        content: newPostContent,
-        likes: 0,
-        commentsCount: 0,
-        timeAgo: "Just now",
-        hasLiked: false
-      };
-      setFeedPosts([newPostMapped, ...feedPosts]);
-      setNewPostContent("");
-    } else {
-      alert("Failed to post thread: " + res.error);
+  const fetchFeed = async () => {
+    setLoadingFeed(true);
+    const res = await getFeed();
+    if (res.success && res.posts) {
+      setFeedPosts(res.posts);
     }
-    setIsSubmitting(false);
+    setLoadingFeed(false);
   };
 
-  const handleLikePost = async (id: string) => {
-    setFeedPosts(posts =>
-      posts.map((p) => {
-        if (p.id === id) {
-          const isLiked = !p.hasLiked;
-          return {
-            ...p,
-            likes: isLiked ? p.likes + 1 : p.likes - 1,
-            hasLiked: isLiked
-          };
-        }
-        return p;
-      })
-    );
-    await toggleSocialLike(id);
-  };
+  useEffect(() => {
+    fetchFeed();
+  }, [user]);
 
   const handleQuickAiAsk = (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +46,7 @@ export default function DashboardPage() {
     setAiSuggested(null);
 
     setTimeout(() => {
-      // Return a simulated recommendation
+      // Simulated AI recommendation
       setAiSuggested({
         title: "Dune: Part Two",
         year: 2024,
@@ -122,26 +68,25 @@ export default function DashboardPage() {
           <h1 className="font-display font-extrabold text-2xl md:text-3xl text-white">
             Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-brand-purple">{user?.username || "Cinephile"}</span>
           </h1>
-          <p className="text-xs text-slate-400">Discover trending films, check your watchlists, and connect with your clubs.</p>
+          <p className="text-sm text-slate-400">Discover trending films, check your watchlists, and connect with your clubs.</p>
         </div>
 
         {/* Carousel: Trending Movies */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-display font-bold text-base text-slate-200">Trending Cinema</h2>
-            <Link href="/dashboard/discover" className="text-xs text-brand-blue hover:text-brand-purple font-semibold">
+            <h2 className="font-display font-bold text-lg text-slate-200">Trending Cinema</h2>
+            <Link href="/dashboard/discover" className="text-sm text-brand-blue hover:text-brand-purple font-semibold transition">
               Explore All
             </Link>
           </div>
 
           <div className="flex space-x-5 overflow-x-auto pb-4 no-scrollbar">
             {isLoading ? (
-              // Loading skeletons
-              Array.from({ length: 4 }).map((_, idx) => (
-                <div key={idx} className="w-[180px] flex-shrink-0 space-y-3 animate-pulse">
-                  <div className="w-full aspect-[2/3] bg-slate-900 rounded-2xl border border-white/5" />
-                  <div className="h-4 bg-slate-900 rounded w-3/4" />
-                  <div className="h-3 bg-slate-900 rounded w-1/2" />
+              Array.from({ length: 5 }).map((_, idx) => (
+                <div key={idx} className="w-[150px] flex-shrink-0 space-y-3 animate-pulse">
+                  <div className="w-full aspect-[2/3] bg-slate-800 rounded-xl border border-white/5" />
+                  <div className="h-4 bg-slate-800 rounded w-3/4" />
+                  <div className="h-3 bg-slate-800 rounded w-1/2" />
                 </div>
               ))
             ) : (
@@ -149,23 +94,23 @@ export default function DashboardPage() {
                 <Link
                   key={movie.id}
                   href={`/dashboard/movies/${movie.id}`}
-                  className="w-[170px] flex-shrink-0 space-y-2 group block"
+                  className="w-[150px] flex-shrink-0 space-y-2 group block"
                 >
-                  <div className="w-full aspect-[2/3] rounded-2xl overflow-hidden border border-white/8 relative shadow-lg group-hover:border-brand-purple/40 transition duration-300">
+                  <div className="w-full aspect-[2/3] rounded-xl overflow-hidden border border-white/10 relative shadow-lg group-hover:border-brand-purple/50 transition duration-300">
                     <img
                       src={movie.posterUrl}
                       alt={movie.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                     />
-                    <div className="absolute top-2.5 right-2.5 px-1.5 py-0.5 rounded bg-slate-950/80 border border-white/10 flex items-center text-[9px] font-bold text-brand-gold">
-                      <Star className="w-2.5 h-2.5 fill-brand-gold text-brand-gold mr-0.5" />
+                    <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-slate-900/90 border border-white/10 flex items-center text-[10px] font-bold text-brand-gold backdrop-blur-md">
+                      <Star className="w-3 h-3 fill-brand-gold text-brand-gold mr-1" />
                       <span>{movie.rating}</span>
                     </div>
                   </div>
-                  <h4 className="text-xs font-bold text-slate-200 truncate group-hover:text-white transition duration-200">
+                  <h4 className="text-sm font-bold text-slate-200 truncate group-hover:text-white transition duration-200">
                     {movie.title}
                   </h4>
-                  <span className="text-[10px] text-slate-500 font-medium block">
+                  <span className="text-[11px] text-slate-500 font-medium block">
                     {movie.releaseYear} • {movie.genres[0]}
                   </span>
                 </Link>
@@ -175,106 +120,44 @@ export default function DashboardPage() {
         </div>
 
         {/* Two Column Layout: Feed / Details */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* Left: Feed & Post Maker (8 cols) */}
-          <div className="md:col-span-8 space-y-6">
+          <div className="lg:col-span-8 space-y-6">
             
             {/* Post Creator */}
-            <GlassCard hoverGlow={false} className="p-4 border-white/10 bg-slate-950/40">
-              <form onSubmit={handleCreatePost} className="space-y-4">
-                <div className="flex items-start space-x-3.5">
-                  <img
-                    src={user?.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"}
-                    alt="avatar"
-                    className="w-9 h-9 rounded-full object-cover border border-white/10"
-                  />
-                  <textarea
-                    rows={2}
-                    value={newPostContent}
-                    onChange={(e) => setNewPostContent(e.target.value)}
-                    placeholder="Share your thoughts on a recent film, request reviews, or update your clubs..."
-                    className="w-full py-2.5 bg-transparent text-xs text-white placeholder-slate-500 outline-none resize-none"
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between border-t border-white/5 pt-3.5">
-                  <div className="flex space-x-2">
-                    <button type="button" className="p-2 bg-white/5 border border-white/5 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">
-                      <Film className="w-3.5 h-3.5" />
-                    </button>
-                    <button type="button" className="p-2 bg-white/5 border border-white/5 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">
-                      <Star className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  
-                  <button
-                    type="submit"
-                    className="py-2 px-4 rounded-xl bg-gradient-to-r from-brand-blue to-brand-purple text-white text-xs font-semibold hover:opacity-90 active:scale-95 transition flex items-center space-x-1.5 cursor-pointer"
-                  >
-                    <span>Post Thread</span>
-                    <Send className="w-3 h-3" />
-                  </button>
-                </div>
-              </form>
-            </GlassCard>
+            <PostComposer onPostCreated={fetchFeed} />
 
             {/* Posts Feed */}
             <div className="space-y-4">
-              {feedPosts.map((post) => (
-                <GlassCard
-                  key={post.id}
-                  hoverGlow={true}
-                  className="p-5 border-white/5 hover:border-white/8 group"
-                >
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3.5">
-                        <img
-                          src={post.userAvatar}
-                          alt={post.user}
-                          className="w-9 h-9 rounded-full object-cover border border-white/10"
-                        />
-                        <div>
-                          <div className="flex items-center space-x-1.5">
-                            <h4 className="text-xs font-bold text-white group-hover:text-brand-purple transition duration-200">{post.user}</h4>
-                            <span className="px-1.5 py-0.5 rounded text-[8px] bg-brand-purple/20 text-brand-purple border border-brand-purple/20 font-bold uppercase">
-                              {post.userTitle}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-slate-500 font-medium">{post.timeAgo}</span>
-                        </div>
-                      </div>
-                    </div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-display font-bold text-lg text-white">Your Feed</h3>
+                <div className="flex space-x-4 text-sm font-semibold text-slate-400">
+                  <button className="text-white border-b-2 border-brand-blue pb-1">Following</button>
+                  <button className="hover:text-white transition">Trending</button>
+                </div>
+              </div>
 
-                    <p className="text-xs md:text-sm text-slate-300 font-light leading-relaxed">
-                      {post.content}
-                    </p>
-
-                    <div className="flex items-center space-x-6 border-t border-white/5 pt-3 mt-1.5">
-                      <button
-                        onClick={() => handleLikePost(post.id)}
-                        className={`flex items-center space-x-1.5 text-xs font-semibold cursor-pointer transition ${
-                          post.hasLiked ? "text-red-400" : "text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        <Heart className={`w-4 h-4 ${post.hasLiked ? "fill-red-400 text-red-400" : ""}`} />
-                        <span>{post.likes}</span>
-                      </button>
-                      <div className="flex items-center space-x-1.5 text-xs font-semibold text-slate-400 hover:text-white cursor-pointer">
-                        <MessageSquare className="w-4 h-4" />
-                        <span>{post.commentsCount} Comments</span>
-                      </div>
-                    </div>
-                  </div>
-                </GlassCard>
-              ))}
+              {loadingFeed ? (
+                <div className="flex justify-center py-10">
+                  <div className="w-8 h-8 border-4 border-brand-purple border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : feedPosts.length > 0 ? (
+                feedPosts.map((post) => (
+                  <PostCard key={post.id} post={post} onUpdate={fetchFeed} />
+                ))
+              ) : (
+                <div className="text-center py-10 text-slate-500 bg-slate-900/30 rounded-2xl border border-white/5">
+                  <p>Your feed is quiet right now.</p>
+                  <p className="text-sm mt-2">Follow some users or join communities to see posts here.</p>
+                </div>
+              )}
             </div>
 
           </div>
 
           {/* Right: Continue Watching / Quick AI Ask (4 cols) */}
-          <div className="md:col-span-4 space-y-6">
+          <div className="lg:col-span-4 space-y-6">
             
             {/* Continue Watching */}
             <div className="space-y-3.5">
@@ -283,18 +166,18 @@ export default function DashboardPage() {
                 <span>Continue watching</span>
               </h3>
               
-              <GlassCard hoverGlow={true} className="p-4 border-white/5 hover:border-white/10">
+              <GlassCard hoverGlow={true} className="p-4 border-white/5 hover:border-white/10 group cursor-pointer transition-all duration-300">
                 <div className="flex items-center space-x-3.5">
                   <img
                     src="https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=100"
                     alt="Arrival"
-                    className="w-10 h-14 object-cover rounded-lg border border-white/10"
+                    className="w-12 h-16 object-cover rounded-lg border border-white/10 group-hover:border-brand-purple transition-colors"
                   />
                   <div className="space-y-1.5 w-full">
-                    <h4 className="text-xs font-bold text-white leading-none">Arrival</h4>
-                    <span className="text-[10px] text-slate-500 font-semibold block">48m left • Sci-Fi</span>
-                    <div className="w-full bg-white/5 rounded-full h-1 mt-1">
-                      <div className="bg-brand-blue h-1 rounded-full w-[70%]" />
+                    <h4 className="text-sm font-bold text-white leading-none">Arrival</h4>
+                    <span className="text-[11px] text-slate-400 font-semibold block">48m left • Sci-Fi</span>
+                    <div className="w-full bg-slate-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                      <div className="bg-gradient-to-r from-brand-blue to-brand-purple h-full w-[70%]" />
                     </div>
                   </div>
                 </div>
@@ -305,28 +188,28 @@ export default function DashboardPage() {
             <div className="space-y-3.5">
               <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center space-x-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-brand-purple" />
-                <span>Quick AI Recommendation</span>
+                <span>AI Recommendations</span>
               </h3>
               
-              <GlassCard hoverGlow={false} className="p-4 border-white/8 bg-slate-950/40">
+              <GlassCard hoverGlow={false} className="p-4 border-white/10 bg-slate-900/50">
                 <form onSubmit={handleQuickAiAsk} className="space-y-3">
                   <textarea
                     rows={2}
                     value={aiPrompt}
                     onChange={(e) => setAiPrompt(e.target.value)}
                     placeholder="Tell AI what movie vibe you are seeking..."
-                    className="w-full py-2.5 px-3 bg-white/3 border border-white/5 rounded-xl text-xs text-white placeholder-slate-500 outline-none resize-none focus:border-brand-purple/50 focus:bg-slate-950"
+                    className="w-full py-2.5 px-3 bg-slate-950 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 outline-none resize-none focus:border-brand-purple/50 transition-colors"
                   />
                   <button
                     type="submit"
                     disabled={aiSearching}
-                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-blue to-brand-purple text-white text-xs font-semibold hover:opacity-90 active:scale-95 transition flex items-center justify-center space-x-1.5"
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-blue to-brand-purple text-white text-sm font-bold hover:opacity-90 active:scale-95 transition flex items-center justify-center space-x-2"
                   >
                     {aiSearching ? (
-                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <>
-                        <Sparkles className="w-3.5 h-3.5" />
+                        <Sparkles className="w-4 h-4" />
                         <span>Query Companion</span>
                       </>
                     )}
@@ -335,22 +218,22 @@ export default function DashboardPage() {
 
                 {/* Return values */}
                 {aiSuggested && (
-                  <div className="mt-4 p-3 bg-white/3 border border-brand-purple/20 rounded-xl space-y-2 animate-fadeIn">
+                  <div className="mt-4 p-3 bg-slate-800/50 border border-brand-purple/30 rounded-xl space-y-2 animate-in fade-in zoom-in duration-300">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-[11px] font-bold text-white truncate">{aiSuggested.title}</h4>
-                      <div className="flex items-center text-[10px] text-brand-gold font-semibold">
-                        <Star className="w-3 h-3 fill-brand-gold text-brand-gold mr-0.5" />
+                      <h4 className="text-sm font-bold text-white truncate">{aiSuggested.title}</h4>
+                      <div className="flex items-center text-xs text-brand-gold font-bold">
+                        <Star className="w-3.5 h-3.5 fill-brand-gold text-brand-gold mr-1" />
                         <span>{aiSuggested.rating}</span>
                       </div>
                     </div>
-                    <p className="text-[10px] text-slate-400 leading-normal font-light">
+                    <p className="text-xs text-slate-300 leading-relaxed font-light">
                       {aiSuggested.reason}
                     </p>
                     <Link
                       href={`/dashboard/movies/${aiSuggested.id}`}
-                      className="text-[9px] text-brand-blue hover:text-brand-purple font-bold block pt-1 hover:underline"
+                      className="text-xs text-brand-purple hover:text-brand-blue font-bold inline-block pt-1 transition-colors"
                     >
-                      View Cinematic Details →
+                      View Details →
                     </Link>
                   </div>
                 )}
@@ -358,9 +241,7 @@ export default function DashboardPage() {
             </div>
 
           </div>
-
         </div>
-
       </div>
 
       {/* Floating Right Sidebar */}

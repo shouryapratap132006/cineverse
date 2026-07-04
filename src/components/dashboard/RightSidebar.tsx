@@ -1,22 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
-import { Bell, UserPlus, Flame, Calendar, Check, X, Star } from "lucide-react";
-import GlassCard from "@/components/shared/GlassCard";
-
-const NOTIFICATIONS = [
-  { id: "n1", text: "Clara liked your review on Parasite.", time: "10m ago" },
-  { id: "n2", text: "Directing101 commented on your post.", time: "1h ago" }
-];
-
-const FRIEND_REQUESTS = [
-  { id: "fr1", name: "CinephileClara", handle: "@clara_reviews", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100" }
-];
-
-const TRENDING_CLUBS = [
-  { id: "tc1", name: "Sci-Fi Odyssey", members: "2.4K", cover: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=100" },
-  { id: "tc2", name: "Ghibli Magic", members: "1.8K", cover: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=100" }
-];
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { Bell, UserPlus, Flame, Calendar, Check, X } from "lucide-react";
+import { getSuggestedUsers } from "@/actions/profile";
+import { getNotifications, markNotificationRead } from "@/actions/notifications";
+import { formatDistanceToNow } from "date-fns";
 
 const UPCOMING_MOVIES = [
   { title: "Blade Runner 2099", date: "July 24", genre: "Sci-Fi" },
@@ -24,16 +13,23 @@ const UPCOMING_MOVIES = [
 ];
 
 export default function RightSidebar() {
-  const [requests, setRequests] = useState(FRIEND_REQUESTS);
-  const [joinedClubs, setJoinedClubs] = useState<Record<string, boolean>>({});
+  const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
-  const handleRequestResponse = (id: string, accept: boolean) => {
-    setRequests((prev) => prev.filter((r) => r.id !== id));
-    // Trigger notification or local state change
-  };
+  useEffect(() => {
+    // Fetch real data
+    getSuggestedUsers().then(res => {
+      if (res.success && res.users) setSuggestedUsers(res.users);
+    });
 
-  const toggleClub = (id: string) => {
-    setJoinedClubs((prev) => ({ ...prev, [id]: !prev[id] }));
+    getNotifications(1, 5).then(res => {
+      if (res.success && res.notifications) setNotifications(res.notifications);
+    });
+  }, []);
+
+  const handleReadNotification = async (id: string) => {
+    await markNotificationRead(id);
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
   };
 
   return (
@@ -43,83 +39,63 @@ export default function RightSidebar() {
       <div className="space-y-3.5">
         <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center space-x-2">
           <Bell className="w-3.5 h-3.5 text-brand-purple" />
-          <span>Notifications</span>
+          <span>Recent Activity</span>
         </h3>
         <div className="space-y-2">
-          {NOTIFICATIONS.map((n) => (
-            <div key={n.id} className="p-3 bg-white/3 border border-white/5 rounded-xl space-y-0.5 hover:bg-white/5 transition">
-              <p className="text-[11px] text-slate-200 leading-normal">{n.text}</p>
-              <span className="text-[9px] text-slate-500 font-semibold">{n.time}</span>
+          {notifications.length > 0 ? notifications.map((n) => (
+            <div 
+              key={n.id} 
+              onClick={() => handleReadNotification(n.id)}
+              className={`p-3 border rounded-xl space-y-0.5 transition cursor-pointer ${n.isRead ? "bg-white/3 border-white/5 hover:bg-white/5" : "bg-brand-purple/10 border-brand-purple/30 hover:bg-brand-purple/20"}`}
+            >
+              <p className="text-[11px] text-slate-200 leading-normal">
+                <span className="font-bold text-white mr-1">{n.actor?.profile?.username || "Someone"}</span>
+                {n.type === "LIKE" ? "reacted to your post." :
+                 n.type === "COMMENT" ? "commented on your post." :
+                 n.type === "MENTION" ? "mentioned you." :
+                 n.type === "FRIEND_REQUEST" ? "sent you a friend request." :
+                 n.type === "ACCEPTED" ? "accepted your friend request." : "interacted with you."}
+              </p>
+              <span className="text-[9px] text-slate-500 font-semibold">
+                {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+              </span>
             </div>
-          ))}
+          )) : (
+            <div className="p-3 bg-white/3 border border-white/5 rounded-xl text-center">
+              <span className="text-xs text-slate-500">No new notifications.</span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Friend Requests */}
-      {requests.length > 0 && (
-        <div className="space-y-3.5">
-          <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center space-x-2">
-            <UserPlus className="w-3.5 h-3.5 text-brand-blue" />
-            <span>Friend Requests</span>
-          </h3>
-          <div className="space-y-2">
-            {requests.map((r) => (
-              <div key={r.id} className="p-3.5 bg-white/3 border border-white/5 rounded-xl flex items-center justify-between">
-                <div className="flex items-center space-x-2.5">
-                  <img src={r.avatar} alt={r.name} className="w-8 h-8 rounded-full object-cover border border-white/10" />
-                  <div className="space-y-0.5 truncate max-w-[100px]">
-                    <h4 className="text-[11px] font-bold text-white truncate">{r.name}</h4>
-                    <span className="text-[9px] text-slate-500 truncate block">{r.handle}</span>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-1.5">
-                  <button
-                    onClick={() => handleRequestResponse(r.id, true)}
-                    className="p-1 rounded-md bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 transition cursor-pointer"
-                  >
-                    <Check className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleRequestResponse(r.id, false)}
-                    className="p-1 rounded-md bg-red-500/20 hover:bg-red-500/30 text-red-400 transition cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Suggested Clubs */}
+      {/* Suggested Users */}
       <div className="space-y-3.5">
         <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center space-x-2">
-          <Flame className="w-3.5 h-3.5 text-orange-400" />
-          <span>Suggested Clubs</span>
+          <UserPlus className="w-3.5 h-3.5 text-brand-blue" />
+          <span>Suggested Critics</span>
         </h3>
-        <div className="space-y-2.5">
-          {TRENDING_CLUBS.map((club) => (
-            <div key={club.id} className="flex items-center justify-between p-1 bg-white/2 border border-transparent hover:border-white/5 rounded-xl transition">
-              <div className="flex items-center space-x-2.5">
-                <img src={club.cover} alt={club.name} className="w-9 h-9 object-cover rounded-lg border border-white/10" />
-                <div>
-                  <h4 className="text-[11px] font-bold text-white">{club.name}</h4>
-                  <span className="text-[9px] text-slate-500 font-semibold">{club.members} members</span>
+        <div className="space-y-2">
+          {suggestedUsers.length > 0 ? suggestedUsers.map((u) => (
+            <div key={u.id} className="p-3 bg-white/3 border border-white/5 rounded-xl flex items-center justify-between">
+              <Link href={`/dashboard/profile/${u.id}`} className="flex items-center space-x-2.5 group">
+                <img src={u.profile?.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"} alt="avatar" className="w-8 h-8 rounded-full object-cover border border-white/10 group-hover:border-brand-purple transition" />
+                <div className="space-y-0.5 truncate max-w-[100px]">
+                  <h4 className="text-[11px] font-bold text-white truncate group-hover:text-brand-blue transition">{u.profile?.username || "Unknown"}</h4>
+                  <span className="text-[9px] text-slate-500 truncate block">{u._count?.followers || 0} followers</span>
                 </div>
-              </div>
-              <button
-                onClick={() => toggleClub(club.id)}
-                className={`py-1 px-2.5 rounded-lg text-[9px] font-bold border transition duration-200 cursor-pointer ${
-                  joinedClubs[club.id]
-                    ? "bg-emerald-500/20 border-emerald-500/20 text-emerald-400"
-                    : "bg-white/5 hover:bg-white/10 border-white/10 text-white"
-                }`}
+              </Link>
+              <Link
+                href={`/dashboard/profile/${u.id}`}
+                className="p-1.5 rounded-md bg-brand-blue/20 hover:bg-brand-blue/30 text-brand-blue transition cursor-pointer"
               >
-                {joinedClubs[club.id] ? "Joined" : "Join"}
-              </button>
+                <UserPlus className="w-3.5 h-3.5" />
+              </Link>
             </div>
-          ))}
+          )) : (
+            <div className="p-3 bg-white/3 border border-white/5 rounded-xl text-center">
+              <span className="text-xs text-slate-500">No suggestions right now.</span>
+            </div>
+          )}
         </div>
       </div>
 
