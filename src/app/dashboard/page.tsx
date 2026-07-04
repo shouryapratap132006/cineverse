@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useTrendingMovies } from "@/hooks/useMovies";
 import { useCineverseAuth } from "@/components/provider";
@@ -9,52 +9,87 @@ import RightSidebar from "@/components/dashboard/RightSidebar";
 import GlassCard from "@/components/shared/GlassCard";
 import { MOCK_COMMUNITY_POSTS } from "@/lib/mockData";
 
+import { getFeed, createPost as createSocialPost, toggleLike as toggleSocialLike } from "@/actions/social";
+
 export default function DashboardPage() {
   const { user } = useCineverseAuth();
   const { data: trendingMovies, isLoading } = useTrendingMovies();
 
   // Social feed states
-  const [feedPosts, setFeedPosts] = useState(MOCK_COMMUNITY_POSTS);
+  const [feedPosts, setFeedPosts] = useState<any[]>([]);
   const [newPostContent, setNewPostContent] = useState("");
-  const [likes, setLikes] = useState<Record<string, boolean>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Quick AI Companion state
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiSuggested, setAiSuggested] = useState<any>(null);
   const [aiSearching, setAiSearching] = useState(false);
 
-  const handleCreatePost = (e: React.FormEvent) => {
+  // Fetch real social feed from Postgres
+  useEffect(() => {
+    getFeed().then((res) => {
+      if (res.success && res.posts) {
+        const mapped = res.posts.map((post: any) => {
+          const profile = post.user.profile;
+          const hasLiked = user && post.likes.some((l: any) => l.userId === user.id);
+          return {
+            id: post.id,
+            user: profile?.username || "cinephile",
+            userAvatar: profile?.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100",
+            userTitle: profile?.reputation || "Newbie",
+            content: post.content,
+            likes: post._count.likes,
+            commentsCount: post._count.comments,
+            timeAgo: new Date(post.createdAt).toLocaleDateString(),
+            hasLiked: !!hasLiked
+          };
+        });
+        setFeedPosts(mapped);
+      }
+    });
+  }, [user]);
+
+  const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPostContent.trim()) return;
+    if (!newPostContent.trim() || isSubmitting) return;
 
-    const newPost = {
-      id: `post_${Date.now()}`,
-      user: user?.username || "cinephile",
-      userAvatar: user?.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100",
-      userTitle: "Member",
-      content: newPostContent,
-      likes: 0,
-      commentsCount: 0,
-      timeAgo: "Just now"
-    };
-
-    setFeedPosts([newPost, ...feedPosts]);
-    setNewPostContent("");
+    setIsSubmitting(true);
+    const res = await createSocialPost({ content: newPostContent });
+    if (res.success && res.post) {
+      const newPostMapped = {
+        id: res.post.id,
+        user: user?.username || "cinephile",
+        userAvatar: user?.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100",
+        userTitle: "Member",
+        content: newPostContent,
+        likes: 0,
+        commentsCount: 0,
+        timeAgo: "Just now",
+        hasLiked: false
+      };
+      setFeedPosts([newPostMapped, ...feedPosts]);
+      setNewPostContent("");
+    } else {
+      alert("Failed to post thread: " + res.error);
+    }
+    setIsSubmitting(false);
   };
 
-  const handleLikePost = (id: string) => {
-    setLikes((prev) => {
-      const isLiked = !prev[id];
-      setFeedPosts((posts) =>
-        posts.map((p) => {
-          if (p.id === id) {
-            return { ...p, likes: isLiked ? p.likes + 1 : p.likes - 1 };
-          }
-          return p;
-        })
-      );
-      return { ...prev, [id]: isLiked };
-    });
+  const handleLikePost = async (id: string) => {
+    setFeedPosts(posts =>
+      posts.map((p) => {
+        if (p.id === id) {
+          const isLiked = !p.hasLiked;
+          return {
+            ...p,
+            likes: isLiked ? p.likes + 1 : p.likes - 1,
+            hasLiked: isLiked
+          };
+        }
+        return p;
+      })
+    );
+    await toggleSocialLike(id);
   };
 
   const handleQuickAiAsk = (e: React.FormEvent) => {
@@ -220,10 +255,10 @@ export default function DashboardPage() {
                       <button
                         onClick={() => handleLikePost(post.id)}
                         className={`flex items-center space-x-1.5 text-xs font-semibold cursor-pointer transition ${
-                          likes[post.id] ? "text-red-400" : "text-slate-400 hover:text-white"
+                          post.hasLiked ? "text-red-400" : "text-slate-400 hover:text-white"
                         }`}
                       >
-                        <Heart className={`w-4 h-4 ${likes[post.id] ? "fill-red-400 text-red-400" : ""}`} />
+                        <Heart className={`w-4 h-4 ${post.hasLiked ? "fill-red-400 text-red-400" : ""}`} />
                         <span>{post.likes}</span>
                       </button>
                       <div className="flex items-center space-x-1.5 text-xs font-semibold text-slate-400 hover:text-white cursor-pointer">

@@ -1,0 +1,295 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String            @id // Matches Clerk User ID (e.g. user_...)
+  email        String            @unique
+  createdAt    DateTime          @default(now())
+  profile      Profile?
+  watchlists   Watchlist[]
+  favorites    Favorite[]
+  reviews      Review[]
+  posts        Post[]
+  comments     Comment[]
+  likes        Like[]
+  followers    Follow[]          @relation("Followers")
+  following    Follow[]          @relation("Following")
+  memberships  CommunityMember[]
+  votes        Vote[]
+  messages     Message[]
+  stories      Story[]
+  activities   Activity[]
+  achievements Achievement[]
+  conversations Conversation[]
+}
+
+model Profile {
+  id                String   @id // Matches User.id
+  user              User     @relation(fields: [id], references: [id], onDelete: Cascade)
+  username          String   @unique
+  bio               String?  @db.Text
+  avatarUrl         String?
+  bannerUrl         String?
+  favoriteGenres    String[]
+  favoriteMovies    String[]
+  favoriteActors    String[]
+  favoriteDirectors String[]
+  language          String   @default("English")
+  country           String   @default("United States")
+  reputation        String   @default("Bronze Star")
+  updatedAt         DateTime @updatedAt
+}
+
+model Movie {
+  id          String      @id // TMDB Movie ID
+  title       String
+  posterPath  String?
+  releaseDate String?
+  watchlists  Watchlist[]
+  favorites   Favorite[]
+  reviews     Review[]
+  posts       Post[]
+  stories     Story[]
+}
+
+model Watchlist {
+  id      String @id @default(uuid())
+  userId  String
+  movieId String
+  status  String // WANT_TO_WATCH, WATCHED
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie   Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, movieId])
+  @@index([userId])
+  @@index([movieId])
+}
+
+model Favorite {
+  id      String @id @default(uuid())
+  userId  String
+  movieId String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie   Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, movieId])
+  @@index([userId])
+  @@index([movieId])
+}
+
+model Review {
+  id        String    @id @default(uuid())
+  userId    String
+  movieId   String
+  rating    Int // Out of 10
+  content   String    @db.Text
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie     Movie     @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+  likes     Like[]
+
+  @@index([userId])
+  @@index([movieId])
+}
+
+model Post {
+  id             String          @id @default(uuid())
+  userId         String
+  content        String          @db.Text
+  imageUrl       String?
+  gifUrl         String?
+  movieId        String?
+  createdAt      DateTime        @default(now())
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie          Movie?          @relation(fields: [movieId], references: [id], onDelete: SetNull)
+  comments       Comment[]
+  likes          Like[]
+  communityPosts CommunityPost[]
+  poll           Poll?
+
+  @@index([userId])
+  @@index([movieId])
+}
+
+model Comment {
+  id        String    @id @default(uuid())
+  userId    String
+  postId    String?
+  reviewId  String?
+  parentId  String?
+  content   String    @db.Text
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  review    Review?   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  likes     Like[]
+
+  @@index([userId])
+  @@index([postId])
+  @@index([reviewId])
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String?
+  commentId String?
+  reviewId  String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  review    Review?  @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([postId])
+  @@index([commentId])
+  @@index([reviewId])
+}
+
+model Follow {
+  id          String @id @default(uuid())
+  followerId  String
+  followingId String
+  follower    User   @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User   @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Community {
+  id             String            @id @default(uuid())
+  name           String            @unique
+  slug           String            @unique
+  description    String            @db.Text
+  bannerUrl      String?
+  avatarUrl      String?
+  createdAt      DateTime          @default(now())
+  rules          String[]
+  events         String[]
+  members        CommunityMember[]
+  communityPosts CommunityPost[]
+}
+
+model CommunityMember {
+  id          String    @id @default(uuid())
+  communityId String
+  userId      String
+  role        String    @default("MEMBER") // ADMIN, MODERATOR, MEMBER
+  joinedAt    DateTime  @default(now())
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+  @@index([communityId])
+  @@index([userId])
+}
+
+model CommunityPost {
+  id          String    @id @default(uuid())
+  communityId String
+  postId      String
+  isPinned    Boolean   @default(false)
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  post        Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, postId])
+  @@index([communityId])
+  @@index([postId])
+}
+
+model Poll {
+  id       String   @id @default(uuid())
+  postId   String   @unique
+  question String
+  options  String[]
+  post     Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  votes    Vote[]
+}
+
+model Vote {
+  id          String   @id @default(uuid())
+  pollId      String
+  userId      String
+  optionIndex Int
+  poll        Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId])
+  @@index([pollId])
+  @@index([userId])
+}
+
+model Conversation {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  messages  Message[]
+  users     User[]
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String       @db.Text
+  sentAt         DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+}
+
+model Story {
+  id        String   @id @default(uuid())
+  userId    String
+  movieId   String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie     Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Activity {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String // POST, REVIEW, WATCHLIST, FOLLOW
+  description String   @db.Text
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Badge {
+  id           String        @id @default(uuid())
+  name         String        @unique
+  description  String
+  icon         String
+  achievements Achievement[]
+}
+
+model Achievement {
+  id       String   @id @default(uuid())
+  userId   String
+  badgeId  String
+  earnedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([badgeId])
+}

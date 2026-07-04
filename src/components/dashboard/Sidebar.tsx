@@ -7,10 +7,13 @@ import { useCineverseAuth } from "@/components/provider";
 import { Film, Home, Compass, Bookmark, Star, User, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { useAuth } from "@clerk/nextjs";
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { signOut, user } = useCineverseAuth();
+  const { signOut: mockSignOut, user } = useCineverseAuth();
+  const { signOut: clerkSignOut } = useAuth();
 
   const menuItems = [
     { name: "Home", href: "/dashboard", icon: Home },
@@ -19,6 +22,16 @@ export default function Sidebar() {
     { name: "Reviews", href: "/dashboard/reviews", icon: Star },
     { name: "Profile", href: "/dashboard/profile", icon: User },
   ];
+
+  const handleSignOut = async () => {
+    // Attempt real Clerk signout if available, fallback to mock
+    if (clerkSignOut) {
+      await clerkSignOut();
+    } else {
+      mockSignOut();
+    }
+    router.push("/");
+  };
 
   return (
     <aside className="w-64 h-screen fixed top-0 left-0 bg-slate-950/80 border-r border-white/5 backdrop-blur-xl flex flex-col justify-between p-6 z-40">
@@ -75,10 +88,7 @@ export default function Sidebar() {
         <hr className="border-white/5" />
 
         <button
-          onClick={() => {
-            signOut();
-            router.push("/");
-          }}
+          onClick={handleSignOut}
           className="flex items-center space-x-3.5 w-full px-4 py-3 rounded-xl text-sm font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 transition cursor-pointer"
         >
           <LogOut className="w-4.5 h-4.5" />

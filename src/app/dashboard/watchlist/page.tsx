@@ -2,34 +2,47 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { getUserLibrary, removeFromAllLists } from "@/actions/watchlist";
 import { Star, Bookmark, Trash2, Compass } from "lucide-react";
-import { MOCK_MOVIES, Movie } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 
 export default function WatchlistPage() {
   const [activeTab, setActiveTab] = useState<"want-to-watch" | "watched" | "favorite">("want-to-watch");
   
-  // Watchlist LocalStorage State
-  const [watchlist, setWatchlist] = useLocalStorage<Record<string, string>>("cineverse_watchlist_data", {});
-  const [moviesList, setMoviesList] = useState<Movie[]>([]);
+  const [dbWatchlist, setDbWatchlist] = useState<any[]>([]);
+  const [dbFavorites, setDbFavorites] = useState<any[]>([]);
+  const [moviesList, setMoviesList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Synchronize watchlist movies
+  const fetchLibrary = () => {
+    setLoading(true);
+    getUserLibrary().then((res) => {
+      if (res.success) {
+        setDbWatchlist(res.watchlist || []);
+        setDbFavorites(res.favorites || []);
+      }
+      setLoading(false);
+    });
+  };
+
   useEffect(() => {
-    // Collect all movies that match active tab
-    const matchedMovieIds = Object.keys(watchlist).filter(
-      (id) => watchlist[id] === activeTab
-    );
-    
-    // In a real app we'd fetch from TMDB. In sandbox we match against MOCK_MOVIES.
-    const filtered = MOCK_MOVIES.filter((movie) => matchedMovieIds.includes(movie.id));
-    setMoviesList(filtered);
-  }, [watchlist, activeTab]);
+    fetchLibrary();
+  }, []);
 
-  const handleRemove = (id: string) => {
-    const updated = { ...watchlist };
-    delete updated[id];
-    setWatchlist(updated);
+  useEffect(() => {
+    if (activeTab === "favorite") {
+      setMoviesList(dbFavorites);
+    } else {
+      setMoviesList(dbWatchlist.filter(m => m.status === activeTab));
+    }
+  }, [dbWatchlist, dbFavorites, activeTab]);
+
+  const handleRemove = async (id: string) => {
+    const res = await removeFromAllLists(id);
+    if (res.success) {
+      setDbWatchlist(prev => prev.filter(m => m.id !== id));
+      setDbFavorites(prev => prev.filter(m => m.id !== id));
+    }
   };
 
   const tabs = [

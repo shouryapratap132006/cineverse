@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMovieDetails } from "@/hooks/useMovies";
 import { useCineverseAuth } from "@/components/provider";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { toggleWatchlist, toggleFavorite, removeFromAllLists, getMovieLibraryState } from "@/actions/watchlist";
+import { createReview, getMovieReviews } from "@/actions/review";
+import { getRecommendations } from "@/lib/tmdb";
 import { ArrowLeft, Star, Clock, Calendar, Bookmark, Flame, Heart, Sparkles, Send } from "lucide-react";
 import GlassCard from "@/components/shared/GlassCard";
-import { Movie, MOCK_MOVIES } from "@/lib/mockData";
 
 export default function MovieDetailsClient({ id }: { id: string }) {
   const router = useRouter();
@@ -17,15 +18,10 @@ export default function MovieDetailsClient({ id }: { id: string }) {
   // Fetch details (API or Fallback)
   const { data: movie, isLoading, error } = useMovieDetails(id);
 
-  // Watchlist LocalStorage State
-  // Format: Record<movieId, "want-to-watch" | "watched" | "favorite" | "none">
-  const [watchlist, setWatchlist] = useLocalStorage<Record<string, string>>("cineverse_watchlist_data", {});
   const [watchlistStatus, setWatchlistStatus] = useState<string>("none");
-
-  // Reviews LocalStorage State
-  // Format: Record<movieId, Array<Review>>
-  const [storedReviews, setStoredReviews] = useLocalStorage<Record<string, any[]>>("cineverse_movie_reviews", {});
+  const [isFavorite, setIsFavorite] = useState<boolean>(false);
   const [reviewsList, setReviewsList] = useState<any[]>([]);
+  const [similarMovies, setSimilarMovies] = useState<any[]>([]);
   
   // Custom review writing states
   const [reviewText, setReviewText] = useState("");
@@ -34,18 +30,27 @@ export default function MovieDetailsClient({ id }: { id: string }) {
 
   // Sync state with storage on load
   useEffect(() => {
-    if (watchlist[id]) {
-      setWatchlistStatus(watchlist[id]);
-    } else {
-      setWatchlistStatus("none");
-    }
+    if (!movie) return;
 
-    if (movie) {
-      const customReviews = storedReviews[id] || [];
-      const combined = [...customReviews, ...movie.reviews];
-      setReviewsList(combined);
-    }
-  }, [watchlist, id, movie, storedReviews]);
+    // 1. Get database watchlist/favorite state
+    getMovieLibraryState(id).then((state) => {
+      setWatchlistStatus(state.watchlistStatus);
+      setIsFavorite(state.isFavorite);
+    });
+
+    // 2. Fetch database critiques
+    getMovieReviews(id).then((res) => {
+      if (res.success && res.reviews) {
+        const movieReviews = movie?.reviews || [];
+        setReviewsList([...res.reviews, ...movieReviews]);
+      }
+    });
+
+    // 3. Fetch real recommendations from TMDB
+    getRecommendations(id).then((recs) => {
+      setSimilarMovies(recs.slice(0, 4));
+    });
+  }, [id, movie]);
 
   if (isLoading) {
     return (
@@ -67,37 +72,52 @@ export default function MovieDetailsClient({ id }: { id: string }) {
     );
   }
 
-  const handleWatchlistChange = (status: string) => {
-    setWatchlistStatus(status);
-    setWatchlist({
-      ...watchlist,
-      [id]: status
-    });
+  const handleWatchlistChange = async (status: string) => {
+    const posterPath = movie.posterUrl ? movie.posterUrl.split("/p/w500")[1] || "" : "";
+    
+    if (status === "none") {
+      const res = await removeFromAllLists(id);
+      if (res.success) {
+        setWatchlistStatus("none");
+        setIsFavorite(false);
+      }
+    } else if (status === "favorite") {
+      const res = await toggleFavorite(id, movie.title, posterPath);
+      if (res.success) {
+        setIsFavorite(!isFavorite);
+      }
+    } else {
+      const dbStatus = status === "want-to-watch" ? "WANT_TO_WATCH" : "WATCHED";
+      const res = await toggleWatchlist(id, movie.title, posterPath, dbStatus);
+      if (res.success) {
+        setWatchlistStatus(status);
+      }
+    }
   };
 
-  const handleReviewSubmit = (e: React.FormEvent) => {
+  const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewText.trim()) return;
 
-    const newReview = {
-      id: `rev_${Date.now()}`,
-      user: user?.username || "cinephile",
-      rating: ratingInput,
-      content: reviewText,
-      date: new Date().toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' }),
-      avatarUrl: user?.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"
-    };
-
-    const currentCustomReviews = storedReviews[id] || [];
-    const updatedCustomReviews = [newReview, ...currentCustomReviews];
+    const posterPath = movie.posterUrl ? movie.posterUrl.split("/p/w500")[1] || "" : "";
+    const res = await createReview(id, movie.title, posterPath, ratingInput * 2, reviewText);
     
-    setStoredReviews({
-      ...storedReviews,
-      [id]: updatedCustomReviews
-    });
+    if (res.success && res.review) {
+      const newReview = {
+        id: res.review.id,
+        user: user?.username || "cinephile",
+        rating: res.review.rating,
+        content: res.review.content,
+        date: new Date(res.review.createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' }),
+        avatarUrl: user?.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"
+      };
 
-    setReviewText("");
-    setRatingInput(5);
+      setReviewsList([newReview, ...reviewsList]);
+      setReviewText("");
+      setRatingInput(5);
+    } else {
+      alert("Failed to submit review: " + res.error);
+    }
   };
 
   // Convert runtime minutes to hours/minutes
@@ -106,9 +126,6 @@ export default function MovieDetailsClient({ id }: { id: string }) {
     const mins = minutes % 60;
     return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
   };
-
-  // Find similar recommendations
-  const similarMovies = MOCK_MOVIES.filter((m) => m.id !== id).slice(0, 4);
 
   return (
     <div className="w-full space-y-8 pb-16">
@@ -200,17 +217,17 @@ export default function MovieDetailsClient({ id }: { id: string }) {
               <button
                 onClick={() => handleWatchlistChange("favorite")}
                 className={`col-span-2 py-2 px-3 rounded-lg border text-center transition cursor-pointer flex items-center justify-center space-x-1.5 ${
-                  watchlistStatus === "favorite"
+                  isFavorite
                     ? "bg-brand-purple/20 border-brand-purple text-white"
                     : "bg-white/3 border-white/5 text-slate-400 hover:border-white/10"
                 }`}
               >
-                <Heart className={`w-3.5 h-3.5 ${watchlistStatus === "favorite" ? "fill-brand-purple text-brand-purple" : ""}`} />
+                <Heart className={`w-3.5 h-3.5 ${isFavorite ? "fill-brand-purple text-brand-purple" : ""}`} />
                 <span>Add as Favorite</span>
               </button>
             </div>
             
-            {watchlistStatus !== "none" && (
+            {(watchlistStatus !== "none" || isFavorite) && (
               <button
                 onClick={() => handleWatchlistChange("none")}
                 className="w-full text-center text-[10px] text-slate-500 hover:text-slate-300 font-bold uppercase pt-1"

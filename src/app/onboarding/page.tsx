@@ -3,16 +3,58 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCineverseAuth } from "@/components/provider";
-import { Film, User, Compass, Star, ChevronRight, ChevronLeft, Check } from "lucide-react";
+import { Film, User, Compass, Star, ChevronRight, ChevronLeft, Check, Search } from "lucide-react";
 import GlassCard from "@/components/shared/GlassCard";
-import { MOCK_MOVIES } from "@/lib/mockData";
+import { syncUserAccount, updateProfile } from "@/actions/user";
+import { getTrendingMovies, Movie } from "@/lib/tmdb";
+import { useAuth, useUser } from "@clerk/nextjs";
 
-const AVATARS = [
-  "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120",
-  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120",
-  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120",
-  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120",
-  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120",
+const CHARACTER_AVATARS = [
+  // Hollywood
+  { name: "Batman", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Batman&background=000&color=fff&size=120" },
+  { name: "Joker", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Joker&background=4c1d95&color=fff&size=120" },
+  { name: "Iron Man", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Iron+Man&background=b91c1c&color=fff&size=120" },
+  { name: "Spider-Man", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Spider+Man&background=dc2626&color=fff&size=120" },
+  { name: "Captain America", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Captain+America&background=1d4ed8&color=fff&size=120" },
+  { name: "Deadpool", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Deadpool&background=ef4444&color=fff&size=120" },
+  { name: "John Wick", category: "Hollywood", url: "https://ui-avatars.com/api/?name=John+Wick&background=111&color=fff&size=120" },
+  { name: "Harry Potter", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Harry+Potter&background=7f1d1d&color=fff&size=120" },
+  { name: "Hermione", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Hermione&background=9a3412&color=fff&size=120" },
+  { name: "Darth Vader", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Darth+Vader&background=000&color=ef4444&size=120" },
+  { name: "Luke Skywalker", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Luke+Skywalker&background=047857&color=fff&size=120" },
+  { name: "Indiana Jones", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Indiana+Jones&background=78350f&color=fff&size=120" },
+  { name: "Neo", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Neo&background=064e3b&color=34d399&size=120" },
+  { name: "Jack Sparrow", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Jack+Sparrow&background=451a03&color=fff&size=120" },
+  { name: "Sherlock Holmes", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Sherlock+Holmes&background=1e3a8a&color=fff&size=120" },
+  { name: "Rocky", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Rocky&background=b91c1c&color=fff&size=120" },
+  { name: "Rambo", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Rambo&background=064e3b&color=fff&size=120" },
+  { name: "Terminator", category: "Hollywood", url: "https://ui-avatars.com/api/?name=Terminator&background=374151&color=ef4444&size=120" },
+
+  // Bollywood
+  { name: "Kabir Singh", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Kabir+Singh&background=b91c1c&color=fff&size=120" },
+  { name: "Rancho", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Rancho&background=047857&color=fff&size=120" },
+  { name: "Munna Bhai", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Munna+Bhai&background=d97706&color=fff&size=120" },
+  { name: "Circuit", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Circuit&background=0f766e&color=fff&size=120" },
+  { name: "Bunny", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Bunny&background=4338ca&color=fff&size=120" },
+  { name: "Veer", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Veer&background=be123c&color=fff&size=120" },
+  { name: "Sultan", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Sultan&background=b45309&color=fff&size=120" },
+  { name: "Pushpa", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Pushpa&background=78350f&color=fff&size=120" },
+  { name: "Rocky (KGF)", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Rocky&background=111&color=fbbf24&size=120" },
+  { name: "RRR Characters", category: "Bollywood", url: "https://ui-avatars.com/api/?name=RRR&background=b91c1c&color=fff&size=120" },
+  { name: "Bajirao", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Bajirao&background=9a3412&color=fff&size=120" },
+  { name: "Chulbul Pandey", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Chulbul+Pandey&background=047857&color=fff&size=120" },
+  { name: "Don", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Don&background=000&color=fff&size=120" },
+  { name: "Mogambo", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Mogambo&background=312e81&color=fff&size=120" },
+  { name: "Gabbar Singh", category: "Bollywood", url: "https://ui-avatars.com/api/?name=Gabbar+Singh&background=3f3f46&color=fff&size=120" },
+
+  // Anime
+  { name: "Luffy", category: "Anime", url: "https://ui-avatars.com/api/?name=Luffy&background=b91c1c&color=fff&size=120" },
+  { name: "Naruto", category: "Anime", url: "https://ui-avatars.com/api/?name=Naruto&background=d97706&color=fff&size=120" },
+  { name: "Itachi", category: "Anime", url: "https://ui-avatars.com/api/?name=Itachi&background=000&color=ef4444&size=120" },
+  { name: "Gojo", category: "Anime", url: "https://ui-avatars.com/api/?name=Gojo&background=1e3a8a&color=fff&size=120" },
+  { name: "Levi", category: "Anime", url: "https://ui-avatars.com/api/?name=Levi&background=064e3b&color=fff&size=120" },
+  { name: "Eren", category: "Anime", url: "https://ui-avatars.com/api/?name=Eren&background=451a03&color=fff&size=120" },
+  { name: "Tanjiro", category: "Anime", url: "https://ui-avatars.com/api/?name=Tanjiro&background=047857&color=fff&size=120" },
 ];
 
 const BANNERS = [
@@ -28,12 +70,14 @@ const GENRES = [
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { isSignedIn, user, updateUser } = useCineverseAuth();
+  const { isSignedIn: isMockSignedIn, user: mockUser, updateUser } = useCineverseAuth();
+  const { isLoaded: isClerkLoaded, isSignedIn: isClerkSignedIn } = useAuth();
+  const { user: clerkUser } = useUser();
   
   const [step, setStep] = useState(1);
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState(AVATARS[0]);
+  const [avatarUrl, setAvatarUrl] = useState(CHARACTER_AVATARS[0].url);
   const [bannerUrl, setBannerUrl] = useState(BANNERS[0]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedMovies, setSelectedMovies] = useState<string[]>([]);
@@ -41,14 +85,53 @@ export default function OnboardingPage() {
   const [directors, setDirectors] = useState("");
   const [language, setLanguage] = useState("English");
   const [country, setCountry] = useState("United States");
+  
+  const [avatarSearch, setAvatarSearch] = useState("");
+  const [moviesCatalog, setMoviesCatalog] = useState<Movie[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!isSignedIn) {
+    // Wait for Clerk to load if keys are present
+    if (!isClerkLoaded && typeof process !== "undefined" && process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+      return;
+    }
+
+    if (!isMockSignedIn && !isClerkSignedIn) {
       router.push("/auth/sign-in");
     } else {
-      setUsername(user?.username || "");
+      // Sync DB Account First
+      let id = "";
+      let email = "";
+      let name = "";
+
+      if (isClerkSignedIn && clerkUser) {
+        id = clerkUser.id;
+        email = clerkUser.primaryEmailAddress?.emailAddress || "";
+        name = clerkUser.username || clerkUser.firstName || clerkUser.lastName || "";
+      } else if (mockUser) {
+        id = mockUser.id;
+        email = mockUser.email || "";
+        name = mockUser.username || "";
+      }
+
+      syncUserAccount(id ? { id, email, username: name } : undefined)
+        .then((res) => {
+          if (res.success && res.user?.profile?.username) {
+            setUsername(res.user.profile.username);
+            
+            // If the user already existed in our PostgreSQL database and has genres picked, they are onboarded
+            if (!res.isNewUser && res.user.profile.favoriteGenres && res.user.profile.favoriteGenres.length > 0) {
+              router.replace("/dashboard");
+            }
+          }
+        });
+      
+      // Load Movies for Step 3
+      getTrendingMovies().then((m) => setMoviesCatalog(m));
     }
-  }, [isSignedIn, user, router]);
+  }, [isMockSignedIn, isClerkSignedIn, isClerkLoaded, clerkUser, mockUser, router]);
+
+  const filteredAvatars = CHARACTER_AVATARS.filter(c => c.name.toLowerCase().includes(avatarSearch.toLowerCase()));
 
   const handleGenreToggle = (genre: string) => {
     setSelectedGenres((prev) =>
@@ -62,12 +145,12 @@ export default function OnboardingPage() {
     );
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step < 3) {
       setStep(step + 1);
     } else {
-      // Save profile details to localStorage & updateUser state
-      const profile = {
+      setIsSubmitting(true);
+      const res = await updateProfile({
         username,
         bio,
         avatarUrl,
@@ -78,41 +161,38 @@ export default function OnboardingPage() {
         favoriteDirectors: directors.split(",").map((s) => s.trim()).filter(Boolean),
         language,
         country,
-      };
-      
-      localStorage.setItem("cineverse_profile", JSON.stringify(profile));
-      localStorage.setItem("cineverse_onboarded", "true");
-      
-      updateUser({
-        username,
-        avatarUrl,
-        bannerUrl,
-        bio,
-        favoriteGenres: selectedGenres,
-        favoriteMovies: selectedMovies,
-        isOnboarded: true,
       });
-
-      router.push("/dashboard");
+      
+      if (res.success) {
+        updateUser({
+          username,
+          avatarUrl,
+          bannerUrl,
+          bio,
+          favoriteGenres: selectedGenres,
+          favoriteMovies: selectedMovies,
+          isOnboarded: true,
+        });
+        router.push("/dashboard");
+      } else {
+        alert("Failed to update profile: " + res.error);
+        setIsSubmitting(false);
+      }
     }
   };
 
   const handlePrev = () => {
-    if (step > 1) {
-      setStep(step - 1);
-    }
+    if (step > 1) setStep(step - 1);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center relative p-6 bg-brand-dark overflow-hidden">
-      {/* Glow shapes */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute -top-[10%] -left-[10%] w-[500px] h-[500px] rounded-full bg-brand-blue/15 blur-[120px]" />
         <div className="absolute -bottom-[10%] -right-[10%] w-[500px] h-[500px] rounded-full bg-brand-purple/15 blur-[120px]" />
       </div>
 
       <div className="relative z-10 w-full max-w-2xl space-y-8">
-        {/* Header */}
         <div className="flex flex-col items-center">
           <div className="flex items-center space-x-2.5 mb-2">
             <div className="bg-slate-900 border border-white/10 p-2 rounded-lg text-white">
@@ -126,7 +206,6 @@ export default function OnboardingPage() {
           <p className="text-xs text-slate-400 mt-1">Let other cinephiles discover what you love</p>
         </div>
 
-        {/* Stepper Steps Tracker */}
         <div className="flex items-center justify-center space-x-4 mb-4">
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center">
@@ -152,10 +231,8 @@ export default function OnboardingPage() {
           ))}
         </div>
 
-        {/* Card containing Step Panels */}
         <GlassCard hoverGlow={false} className="border-white/10 shadow-2xl p-8 space-y-6">
           
-          {/* STEP 1: Basic profiles */}
           {step === 1 && (
             <div className="space-y-6 animate-fadeIn">
               <h3 className="text-base font-bold text-white flex items-center space-x-2 border-b border-white/5 pb-3">
@@ -179,7 +256,7 @@ export default function OnboardingPage() {
                 <div className="space-y-1.5">
                   <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400">Bio</label>
                   <textarea
-                    rows={3}
+                    rows={2}
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     placeholder="Tell the community about your film preferences..."
@@ -187,26 +264,35 @@ export default function OnboardingPage() {
                   />
                 </div>
 
-                {/* Avatar Selection */}
-                <div className="space-y-2.5">
-                  <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block">Choose Avatar</label>
-                  <div className="flex items-center space-x-4">
-                    {AVATARS.map((url) => (
+                <div className="space-y-3">
+                  <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block">Choose Character Avatar</label>
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={avatarSearch}
+                      onChange={(e) => setAvatarSearch(e.target.value)}
+                      placeholder="Search character (e.g. Batman, Luffy)..."
+                      className="w-full py-2 pl-9 pr-4 rounded-lg glass-input text-xs"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-40 overflow-y-auto scrollbar-thin pr-1">
+                    {filteredAvatars.map((c) => (
                       <button
-                        key={url}
+                        key={c.name}
                         type="button"
-                        onClick={() => setAvatarUrl(url)}
-                        className={`relative w-12 h-12 rounded-full overflow-hidden border-2 transition ${
-                          avatarUrl === url ? "border-brand-purple scale-110 shadow-lg" : "border-transparent opacity-60 hover:opacity-100"
+                        onClick={() => setAvatarUrl(c.url)}
+                        title={`${c.name} (${c.category})`}
+                        className={`relative w-12 h-12 rounded-full overflow-hidden border-2 transition mx-auto ${
+                          avatarUrl === c.url ? "border-brand-purple scale-110 shadow-lg shadow-brand-purple/30" : "border-transparent opacity-50 hover:opacity-100"
                         }`}
                       >
-                        <img src={url} alt="avatar" className="w-full h-full object-cover" />
+                        <img src={c.url} alt={c.name} className="w-full h-full object-cover" />
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Banner Selection */}
                 <div className="space-y-2.5">
                   <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block">Choose Profile Banner</label>
                   <div className="grid grid-cols-3 gap-3">
@@ -215,7 +301,7 @@ export default function OnboardingPage() {
                         key={url}
                         type="button"
                         onClick={() => setBannerUrl(url)}
-                        className={`relative h-16 rounded-xl overflow-hidden border-2 transition ${
+                        className={`relative h-12 rounded-xl overflow-hidden border-2 transition ${
                           bannerUrl === url ? "border-brand-purple scale-102 shadow-lg" : "border-transparent opacity-50 hover:opacity-100"
                         }`}
                       >
@@ -228,7 +314,6 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* STEP 2: Genres & Demographics */}
           {step === 2 && (
             <div className="space-y-6 animate-fadeIn">
               <h3 className="text-base font-bold text-white flex items-center space-x-2 border-b border-white/5 pb-3">
@@ -237,7 +322,6 @@ export default function OnboardingPage() {
               </h3>
 
               <div className="space-y-5">
-                {/* Genres */}
                 <div className="space-y-2.5">
                   <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block">Favorite Genres</label>
                   <div className="flex flex-wrap gap-2.5">
@@ -287,7 +371,6 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* STEP 3: Favorite Specifics */}
           {step === 3 && (
             <div className="space-y-6 animate-fadeIn">
               <h3 className="text-base font-bold text-white flex items-center space-x-2 border-b border-white/5 pb-3">
@@ -296,11 +379,10 @@ export default function OnboardingPage() {
               </h3>
 
               <div className="space-y-5">
-                {/* Favorite Movies */}
                 <div className="space-y-2.5">
                   <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block">Select Favorite Movies (From catalog)</label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {MOCK_MOVIES.slice(0, 6).map((movie) => {
+                    {moviesCatalog.slice(0, 6).map((movie) => {
                       const isSelected = selectedMovies.includes(movie.title);
                       return (
                         <button
@@ -326,7 +408,7 @@ export default function OnboardingPage() {
                     type="text"
                     value={actors}
                     onChange={(e) => setActors(e.target.value)}
-                    placeholder="Matthew McConaughey, Anne Hathaway (comma separated)"
+                    placeholder="Matthew McConaughey, Anne Hathaway"
                     className="w-full py-3 px-4 rounded-xl glass-input text-xs"
                   />
                 </div>
@@ -337,7 +419,7 @@ export default function OnboardingPage() {
                     type="text"
                     value={directors}
                     onChange={(e) => setDirectors(e.target.value)}
-                    placeholder="Christopher Nolan, Denis Villeneuve (comma separated)"
+                    placeholder="Christopher Nolan, Denis Villeneuve"
                     className="w-full py-3 px-4 rounded-xl glass-input text-xs"
                   />
                 </div>
@@ -345,12 +427,11 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Stepper Buttons Controls */}
           <div className="flex items-center justify-between border-t border-white/5 pt-6 mt-6">
             <button
               type="button"
               onClick={handlePrev}
-              disabled={step === 1}
+              disabled={step === 1 || isSubmitting}
               className={`py-2.5 px-5 rounded-xl border flex items-center space-x-2 text-xs font-semibold transition cursor-pointer ${
                 step === 1
                   ? "border-white/5 text-slate-600 cursor-not-allowed bg-transparent"
@@ -364,10 +445,13 @@ export default function OnboardingPage() {
             <button
               type="button"
               onClick={handleNext}
-              className="py-2.5 px-6 rounded-xl bg-gradient-to-r from-brand-blue to-brand-purple text-white text-xs font-semibold hover:opacity-90 transition flex items-center space-x-2 cursor-pointer active:scale-95 shadow-xl shadow-brand-purple/10"
+              disabled={isSubmitting}
+              className="py-2.5 px-6 rounded-xl bg-gradient-to-r from-brand-blue to-brand-purple text-white text-xs font-semibold hover:opacity-90 transition flex items-center space-x-2 cursor-pointer active:scale-95 shadow-xl shadow-brand-purple/10 disabled:opacity-50"
             >
-              <span>{step === 3 ? "Complete Setup" : "Continue"}</span>
-              <ChevronRight className="w-4 h-4" />
+              <span>
+                {isSubmitting ? "Saving..." : step === 3 ? "Complete Setup" : "Continue"}
+              </span>
+              {!isSubmitting && <ChevronRight className="w-4 h-4" />}
             </button>
           </div>
 

@@ -14,8 +14,9 @@ const queryClient = new QueryClient({
   },
 });
 
-// Mock Auth Context
-interface MockUser {
+import { useAuth, useUser, useClerk } from "@clerk/nextjs";
+
+export interface UnifiedUser {
   id: string;
   username: string;
   email: string;
@@ -29,31 +30,95 @@ interface MockUser {
   isOnboarded?: boolean;
 }
 
-interface MockAuthContextType {
-  isSignedIn: boolean;
+interface CineverseAuthContextType {
+  isClerk: boolean;
   isLoaded: boolean;
-  user: MockUser | null;
+  isSignedIn: boolean;
+  user: UnifiedUser | null;
   signIn: (email: string) => boolean;
   signUp: (username: string, email: string) => boolean;
   signOut: () => void;
-  updateUser: (data: Partial<MockUser>) => void;
+  updateUser: (data: Partial<UnifiedUser>) => void;
 }
 
-const MockAuthContext = createContext<MockAuthContextType | undefined>(undefined);
+const CineverseAuthContext = createContext<CineverseAuthContextType | undefined>(undefined);
 
-export function useMockAuth() {
-  const context = useContext(MockAuthContext);
+export function useCineverseAuth() {
+  const context = useContext(CineverseAuthContext);
   if (!context) {
-    throw new Error("useMockAuth must be used within a MockAuthProvider");
+    throw new Error("useCineverseAuth must be used within AppProviders");
   }
   return context;
 }
 
 // Wrapper to check if Clerk is configured
-const hasClerkKey = typeof process !== "undefined" && !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const hasClerkKey = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
+  const { isLoaded: authLoaded, isSignedIn, userId } = useAuth();
+  const { user: clerkUser, isLoaded: userLoaded } = useUser();
+  const { signOut } = useClerk();
+  const [dbUser, setDbUser] = useState<any>(null);
+  const [loadingDb, setLoadingDb] = useState(true);
+
+  useEffect(() => {
+    if (isSignedIn && userId) {
+      setLoadingDb(true);
+      // Lazy sync & fetch the user from database
+      import("@/actions/user").then(({ syncUserAccount }) => {
+        syncUserAccount()
+          .then((res) => {
+            if (res.success && res.user) {
+              setDbUser(res.user);
+            }
+            setLoadingDb(false);
+          })
+          .catch(() => setLoadingDb(false));
+      });
+    } else {
+      setDbUser(null);
+      setLoadingDb(false);
+    }
+  }, [isSignedIn, userId]);
+
+  const value: CineverseAuthContextType = {
+    isClerk: true,
+    isLoaded: authLoaded && userLoaded && !loadingDb,
+    isSignedIn: !!isSignedIn,
+    user: clerkUser ? {
+      id: clerkUser.id,
+      username: dbUser?.profile?.username || clerkUser.username || clerkUser.firstName || "cinephile",
+      email: clerkUser.primaryEmailAddress?.emailAddress || "",
+      avatarUrl: dbUser?.profile?.avatarUrl || clerkUser.imageUrl,
+      bannerUrl: dbUser?.profile?.bannerUrl,
+      bio: dbUser?.profile?.bio,
+      favoriteGenres: dbUser?.profile?.favoriteGenres,
+      favoriteMovies: dbUser?.profile?.favoriteMovies,
+      isOnboarded: !!dbUser?.profile?.favoriteGenres?.length || localStorage.getItem("cineverse_onboarded") === "true",
+    } : null,
+    signIn: () => false,
+    signUp: () => false,
+    signOut: () => {
+      signOut();
+    },
+    updateUser: (data) => {
+      if (dbUser) {
+        setDbUser({
+          ...dbUser,
+          profile: {
+            ...dbUser.profile,
+            ...data
+          }
+        });
+      }
+    }
+  };
+
+  return <CineverseAuthContext.Provider value={value}>{children}</CineverseAuthContext.Provider>;
+}
 
 function MockAuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<MockUser | null>(null);
+  const [user, setUser] = useState<UnifiedUser | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -67,7 +132,7 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = (email: string) => {
     // Basic mock authentication
-    const mockUser: MockUser = {
+    const mockUser: UnifiedUser = {
       id: "usr_mock123",
       username: email.split("@")[0] || "cinephile",
       email: email,
@@ -96,7 +161,7 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = (username: string, email: string) => {
-    const mockUser: MockUser = {
+    const mockUser: UnifiedUser = {
       id: "usr_mock123",
       username: username,
       email: email,
@@ -113,7 +178,7 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("cineverse_user");
   };
 
-  const updateUser = (data: Partial<MockUser>) => {
+  const updateUser = (data: Partial<UnifiedUser>) => {
     if (!user) return;
     const updated = { ...user, ...data };
     setUser(updated);
@@ -121,8 +186,9 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value = {
-    isSignedIn: !!user,
+    isClerk: false,
     isLoaded,
+    isSignedIn: !!user,
     user,
     signIn,
     signUp,
@@ -130,51 +196,32 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
     updateUser,
   };
 
-  return <MockAuthContext.Provider value={value}>{children}</MockAuthContext.Provider>;
+  return <CineverseAuthContext.Provider value={value}>{children}</CineverseAuthContext.Provider>;
 }
 
-// Global Auth hook that abstracts Clerk vs Mock
-export function useCineverseAuth() {
-  const mockContext = useContext(MockAuthContext);
-  
-  // If Mock Auth is active, use it
-  if (mockContext) {
-    return {
-      isClerk: false,
-      isLoaded: mockContext.isLoaded,
-      isSignedIn: mockContext.isSignedIn,
-      user: mockContext.user,
-      signIn: mockContext.signIn,
-      signUp: mockContext.signUp,
-      signOut: mockContext.signOut,
-      updateUser: mockContext.updateUser,
-    };
-  }
-
-  // Fallback signature for when we're just matching Clerk's hook (placeholder if not using mock)
-  return {
-    isClerk: true,
-    isLoaded: true,
-    isSignedIn: false,
-    user: null,
-    signIn: () => false,
-    signUp: () => false,
-    signOut: () => {},
-    updateUser: () => {},
-  };
-}
+import { dark } from "@clerk/themes";
 
 export default function AppProviders({ children }: { children: React.ReactNode }) {
-  const content = (
+  // If Clerk Publishable key exists, wrap in ClerkProvider, else use the normal chain
+  if (hasClerkKey) {
+    return (
+      <ClerkProvider 
+        appearance={{
+          baseTheme: dark,
+          variables: { colorPrimary: "#7C3AED", colorBackground: "#0c0f1d" },
+          elements: { card: "shadow-2xl border border-white/10" }
+        }}
+      >
+        <QueryClientProvider client={queryClient}>
+          <ClerkAuthProvider>{children}</ClerkAuthProvider>
+        </QueryClientProvider>
+      </ClerkProvider>
+    );
+  }
+
+  return (
     <QueryClientProvider client={queryClient}>
       <MockAuthProvider>{children}</MockAuthProvider>
     </QueryClientProvider>
   );
-
-  // If Clerk Publishable key exists, wrap in ClerkProvider, else use the normal chain
-  if (hasClerkKey) {
-    return <ClerkProvider>{content}</ClerkProvider>;
-  }
-
-  return content;
 }
