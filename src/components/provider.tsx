@@ -199,18 +199,19 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
   return <CineverseAuthContext.Provider value={value}>{children}</CineverseAuthContext.Provider>;
 }
 
-import { dark } from "@clerk/themes";
+import { dark, experimental_createTheme } from "@clerk/themes";
+
+const cineverseTheme = experimental_createTheme({
+  baseTheme: dark,
+  variables: { colorPrimary: "#7C3AED", colorBackground: "#0c0f1d" },
+});
 
 export default function AppProviders({ children }: { children: React.ReactNode }) {
   // If Clerk Publishable key exists, wrap in ClerkProvider, else use the normal chain
   if (hasClerkKey) {
     return (
       <ClerkProvider 
-        appearance={{
-          baseTheme: dark,
-          variables: { colorPrimary: "#7C3AED", colorBackground: "#0c0f1d" },
-          elements: { card: "shadow-2xl border border-white/10" }
-        }}
+        appearance={cineverseTheme}
       >
         <QueryClientProvider client={queryClient}>
           <ClerkAuthProvider>{children}</ClerkAuthProvider>
