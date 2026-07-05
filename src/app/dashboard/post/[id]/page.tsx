@@ -124,7 +124,7 @@ export default function PostDetailPage() {
   const userReaction = post.reactions?.find((r: any) => r.userId === user?.id);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 xl:pr-[340px]">
+    <div className="max-w-3xl mx-auto px-4 py-8">
 
       {/* Back Button */}
       <button

@@ -156,7 +156,7 @@ export default function CommunitiesHub() {
   );
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 xl:pr-[340px] min-h-screen space-y-8">
+    <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 min-h-screen space-y-8">
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -321,7 +321,7 @@ export default function CommunitiesHub() {
 
           {/* Placeholder events for new users */}
           <section className="space-y-3 mt-6">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">🌟 Global Events</h2>
+            <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">Global Events</h2>
             {[
               { title: "Watch Party: Interstellar 10th Anniversary", date: "July 12, 2025", community: "Nolanverse", emoji: "⌛", going: 234 },
               { title: "Monthly Horror Rewatch: The Shining", date: "July 20, 2025", community: "Horror Freaks", emoji: "🕯", going: 156 },

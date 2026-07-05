@@ -299,7 +299,7 @@ export default function MovieDetailsClient({ id }: { id: string }) {
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {movie.cast.map((c) => (
-                <div key={c.name} className="flex items-center space-x-2.5 p-2 bg-white/3 border border-white/5 rounded-xl">
+                <Link key={c.name} href={`/dashboard/discover?person=${encodeURIComponent(c.name)}`} className="flex items-center space-x-2.5 p-2 bg-white/3 border border-white/5 rounded-xl hover:border-brand-purple/40 transition">
                   <img
                     src={c.avatarUrl}
                     alt={c.name}
@@ -309,7 +309,7 @@ export default function MovieDetailsClient({ id }: { id: string }) {
                     <h4 className="text-[11px] font-bold text-white truncate">{c.name}</h4>
                     <span className="text-[9px] text-slate-500 truncate block">{c.character}</span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -321,10 +321,10 @@ export default function MovieDetailsClient({ id }: { id: string }) {
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {movie.crew.map((cr) => (
-                <div key={cr.name} className="space-y-0.5">
+                <Link key={`${cr.name}-${cr.job}`} href={`/dashboard/discover?person=${encodeURIComponent(cr.name)}`} className="block space-y-0.5 rounded-xl border border-white/5 bg-white/3 p-2 transition hover:border-brand-purple/40">
                   <span className="text-[9px] uppercase tracking-wider font-bold text-slate-500 block">{cr.job}</span>
                   <span className="text-xs font-bold text-white">{cr.name}</span>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

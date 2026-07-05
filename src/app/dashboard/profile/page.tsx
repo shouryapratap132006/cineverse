@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useCineverseAuth } from "@/components/provider";
 import {
   MapPin, Globe, Award, Clock, Film, Star, MessageSquare,
-  Bookmark, Heart, BarChart2, Edit3, Grid, List
+  Bookmark, Heart, BarChart2, Edit3, X, Save, Camera,
 } from "lucide-react";
 import GlassCard from "@/components/shared/GlassCard";
 import { getUserProfile } from "@/actions/profile";
 import { getFeed } from "@/actions/social";
+import { updateProfile } from "@/actions/user";
 import { formatDistanceToNow } from "date-fns";
 
 const TABS = [
@@ -19,12 +20,44 @@ const TABS = [
   { id: "genres", label: "Taste", icon: BarChart2 },
 ];
 
+const BANNERS = [
+  "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1400",
+  "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=1400",
+  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1400",
+  "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1400",
+  "https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=1400",
+];
+
+const GENRES = [
+  "Action", "Drama", "Sci-Fi", "Fantasy", "Anime",
+  "Thriller", "Comedy", "Romance", "Documentary", "Horror",
+];
+
+// Real headshot avatar photos
+const ACTOR_AVATARS = [
+  ...Array.from({ length: 20 }, (_, i) => ({ url: `https://randomuser.me/api/portraits/men/${i + 1}.jpg` })),
+  ...Array.from({ length: 20 }, (_, i) => ({ url: `https://randomuser.me/api/portraits/women/${i + 1}.jpg` })),
+];
+
 export default function ProfilePage() {
   const { user } = useCineverseAuth();
   const [profileData, setProfileData] = useState<any>(null);
   const [userPosts, setUserPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("activity");
+
+  // Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editUsername, setEditUsername] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editAvatarUrl, setEditAvatarUrl] = useState("");
+  const [editBannerUrl, setEditBannerUrl] = useState("");
+  const [editLanguage, setEditLanguage] = useState("English");
+  const [editCountry, setEditCountry] = useState("United States");
+  const [editGenres, setEditGenres] = useState<string[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     getUserProfile().then((res) => {
@@ -42,7 +75,6 @@ export default function ProfilePage() {
     if (activeTab === "posts" && profileData && userPosts.length === 0) {
       getFeed().then(res => {
         if (res.success && res.posts) {
-          // Filter to only this user's posts
           const myPosts = (res.posts as any[]).filter(
             (p: any) => p.userId === profileData.id
           );
@@ -51,6 +83,51 @@ export default function ProfilePage() {
       });
     }
   }, [activeTab, profileData]);
+
+  const openEditModal = () => {
+    if (!profileData) return;
+    const p = profileData.profile || {};
+    setEditUsername(p.username || "");
+    setEditBio(p.bio || "");
+    setEditAvatarUrl(p.avatarUrl || "");
+    setEditBannerUrl(p.bannerUrl || "");
+    setEditLanguage(p.language || "English");
+    setEditCountry(p.country || "United States");
+    setEditGenres(p.favoriteGenres || []);
+    setSaveError("");
+    setShowEditModal(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!editUsername.trim()) {
+      setSaveError("Username is required.");
+      return;
+    }
+    setIsSaving(true);
+    setSaveError("");
+    const res = await updateProfile({
+      username: editUsername.trim(),
+      bio: editBio,
+      avatarUrl: editAvatarUrl,
+      bannerUrl: editBannerUrl,
+      favoriteGenres: editGenres,
+      favoriteMovies: profileData?.profile?.favoriteMovies || [],
+      favoriteActors: profileData?.profile?.favoriteActors || [],
+      favoriteDirectors: profileData?.profile?.favoriteDirectors || [],
+      language: editLanguage,
+      country: editCountry,
+    });
+    setIsSaving(false);
+    if (res.success) {
+      // Refresh profile data
+      getUserProfile().then((r) => {
+        if (r.success && r.user) setProfileData(r.user);
+      });
+      setShowEditModal(false);
+    } else {
+      setSaveError(res.error || "Failed to save.");
+    }
+  };
 
   if (loading) {
     return (
@@ -64,7 +141,7 @@ export default function ProfilePage() {
   const profile = profileData.profile || {};
 
   return (
-    <div className="w-full pb-16 xl:pr-[340px]">
+    <div className="w-full pb-16">
 
       {/* Cover Banner */}
       <div className="h-[260px] w-full relative overflow-hidden">
@@ -86,7 +163,7 @@ export default function ProfilePage() {
               {/* Avatar */}
               <div className="relative -mt-20 md:-mt-16">
                 <img
-                  src={profile.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profileData.id}`}
+                  src={profile.avatarUrl || `https://randomuser.me/api/portraits/men/1.jpg`}
                   alt={profile.username}
                   className="w-24 h-24 md:w-28 md:h-28 rounded-full object-cover border-4 border-slate-950 shadow-2xl"
                 />
@@ -112,13 +189,13 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <Link
-              href="/onboarding"
+            <button
+              onClick={openEditModal}
               className="flex items-center gap-2 py-2.5 px-5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition active:scale-95"
             >
               <Edit3 className="w-4 h-4" />
               Edit Profile
-            </Link>
+            </button>
           </div>
 
           {/* Stats Grid */}
@@ -302,6 +379,168 @@ export default function ProfilePage() {
 
         </div>
       </div>
+
+      {/* ─── Edit Profile Modal ─── */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div
+            ref={modalRef}
+            className="relative w-full max-w-xl bg-slate-950 border border-white/10 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
+              <h2 className="text-base font-bold text-white">Edit Profile</h2>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body — scrollable */}
+            <div className="overflow-y-auto flex-1 p-6 space-y-5">
+
+              {/* Username & Bio */}
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Username</label>
+                  <input
+                    type="text"
+                    value={editUsername}
+                    onChange={e => setEditUsername(e.target.value)}
+                    placeholder="Your username"
+                    className="w-full py-2.5 px-4 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple/60 transition"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bio</label>
+                  <textarea
+                    rows={3}
+                    value={editBio}
+                    onChange={e => setEditBio(e.target.value)}
+                    placeholder="Tell the community about yourself..."
+                    className="w-full py-2.5 px-4 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple/60 transition resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* Avatar picker */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                  <Camera className="w-3.5 h-3.5" /> Choose Avatar
+                </label>
+                <div className="grid grid-cols-8 gap-1.5 max-h-36 overflow-y-auto pr-1">
+                  {ACTOR_AVATARS.map((a, i) => (
+                    <button
+                      key={a.url}
+                      type="button"
+                      onClick={() => setEditAvatarUrl(a.url)}
+                      className={`rounded-full border-2 overflow-hidden transition ${
+                        editAvatarUrl === a.url
+                          ? "border-brand-purple scale-110 shadow-md shadow-brand-purple/40"
+                          : "border-transparent hover:border-white/30 hover:scale-105"
+                      }`}
+                    >
+                      <img src={a.url} alt={`Avatar ${i + 1}`} className="w-9 h-9 object-cover block" loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Banner picker */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Banner Image</label>
+                <div className="grid grid-cols-5 gap-2">
+                  {BANNERS.map(url => (
+                    <button
+                      key={url}
+                      type="button"
+                      onClick={() => setEditBannerUrl(url)}
+                      className={`h-10 rounded-lg overflow-hidden border-2 transition ${
+                        editBannerUrl === url
+                          ? "border-brand-purple scale-105 shadow-md"
+                          : "border-transparent opacity-50 hover:opacity-100"
+                      }`}
+                    >
+                      <img src={url} alt="banner" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Language & Country */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Language</label>
+                  <input
+                    type="text"
+                    value={editLanguage}
+                    onChange={e => setEditLanguage(e.target.value)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple/60 transition"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Country</label>
+                  <input
+                    type="text"
+                    value={editCountry}
+                    onChange={e => setEditCountry(e.target.value)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple/60 transition"
+                  />
+                </div>
+              </div>
+
+              {/* Favorite Genres */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Favorite Genres</label>
+                <div className="flex flex-wrap gap-2">
+                  {GENRES.map(g => (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() =>
+                        setEditGenres(prev =>
+                          prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]
+                        )
+                      }
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                        editGenres.includes(g)
+                          ? "bg-brand-purple/20 border-brand-purple text-white"
+                          : "bg-white/3 border-white/5 text-slate-400 hover:border-white/20"
+                      }`}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {saveError && (
+                <p className="text-xs text-red-400 font-semibold">{saveError}</p>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-white/10 flex items-center justify-end gap-3 shrink-0">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="py-2 px-5 rounded-xl border border-white/10 text-sm text-slate-300 hover:text-white hover:bg-white/5 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveProfile}
+                disabled={isSaving}
+                className="py-2 px-6 rounded-xl bg-gradient-to-r from-brand-blue to-brand-purple text-white text-sm font-bold flex items-center gap-2 hover:opacity-90 transition active:scale-95 disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                {isSaving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

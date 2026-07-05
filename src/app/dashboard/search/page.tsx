@@ -51,7 +51,7 @@ export default function SearchPage() {
     path ? `https://image.tmdb.org/t/p/${size}${path}` : null;
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8 min-h-screen xl:pr-[340px]">
+    <div className="max-w-6xl mx-auto px-6 py-8 min-h-screen">
 
       {/* Header */}
       <div className="space-y-1 mb-8">

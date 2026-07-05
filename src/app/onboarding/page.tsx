@@ -1,70 +1,58 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCineverseAuth } from "@/components/provider";
-import { Film, User, Compass, Star, ChevronRight, ChevronLeft, Check, Search } from "lucide-react";
+import { Film, User, Compass, Star, ChevronRight, ChevronLeft, Check } from "lucide-react";
 import GlassCard from "@/components/shared/GlassCard";
 import { syncUserAccount, updateProfile } from "@/actions/user";
 import { getTrendingMovies, Movie } from "@/lib/tmdb";
 import { useAuth, useUser } from "@clerk/nextjs";
 
-// Helper to generate a reliable illustrated avatar
-const av = (seed: string, bg: string, style = "adventurer") =>
-  `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(seed)}&backgroundColor=${bg}`;
-
-const CHARACTER_AVATARS = [
-  // Hollywood Heroes & Villains
-  { name: "Batman", category: "Hollywood", url: av("batman-dark-knight", "0a0a0a") },
-  { name: "Joker", category: "Hollywood", url: av("joker-chaos", "4c1d95") },
-  { name: "Superman", category: "Hollywood", url: av("superman-krypton", "1d4ed8") },
-  { name: "Iron Man", category: "Hollywood", url: av("ironman-stark", "7f1d1d") },
-  { name: "Spider-Man", category: "Hollywood", url: av("spiderman-web", "dc2626") },
-  { name: "Thor", category: "Hollywood", url: av("thor-asgard", "1e40af") },
-  { name: "Captain America", category: "Hollywood", url: av("captain-america", "1d4ed8") },
-  { name: "Black Panther", category: "Hollywood", url: av("black-panther-wakanda", "111827") },
-  { name: "Wonder Woman", category: "Hollywood", url: av("wonder-woman-diana", "b45309") },
-  { name: "Deadpool", category: "Hollywood", url: av("deadpool-mercenary", "991b1b") },
-  { name: "John Wick", category: "Hollywood", url: av("john-wick-baba-yaga", "111827") },
-  { name: "Thanos", category: "Hollywood", url: av("thanos-infinity", "312e81") },
-  { name: "Harry Potter", category: "Hollywood", url: av("harry-potter-wizard", "7f1d1d") },
-  { name: "Hermione", category: "Hollywood", url: av("hermione-granger", "92400e") },
-  { name: "Darth Vader", category: "Hollywood", url: av("darth-vader-sith", "0a0a0a") },
-  { name: "Luke Skywalker", category: "Hollywood", url: av("luke-skywalker-jedi", "14532d") },
-  { name: "Indiana Jones", category: "Hollywood", url: av("indiana-jones-archaeologist", "78350f") },
-  { name: "Neo", category: "Hollywood", url: av("neo-matrix-chosen", "064e3b") },
-  { name: "Jack Sparrow", category: "Hollywood", url: av("jack-sparrow-pirate", "451a03") },
-  { name: "The Mandalorian", category: "Hollywood", url: av("mandalorian-beskar", "1f2937") },
-  { name: "Wolverine", category: "Hollywood", url: av("wolverine-mutant-xmen", "78350f") },
-  { name: "Hulk", category: "Hollywood", url: av("hulk-banner-gamma", "14532d") },
-
-  // Bollywood
-  { name: "Kabir Singh", category: "Bollywood", url: av("kabir-singh-patel", "7f1d1d") },
-  { name: "Rancho", category: "Bollywood", url: av("rancho-3-idiots", "047857") },
-  { name: "Munna Bhai", category: "Bollywood", url: av("munna-bhai-mbbs", "b45309") },
-  { name: "Prem", category: "Bollywood", url: av("prem-ddlj-romance", "4338ca") },
-  { name: "Don", category: "Bollywood", url: av("don-bollywood-gangster", "111827") },
-  { name: "Pushpa Raj", category: "Bollywood", url: av("pushpa-raj-allu", "78350f") },
-  { name: "Rocky (KGF)", category: "Bollywood", url: av("rocky-kgf-yash", "111827") },
-  { name: "Baahubali", category: "Bollywood", url: av("baahubali-amarendra", "92400e") },
-  { name: "Bajirao", category: "Bollywood", url: av("bajirao-mastani-peshwa", "9a3412") },
-  { name: "Chulbul Pandey", category: "Bollywood", url: av("chulbul-pandey-dabangg", "047857") },
-  { name: "Gabbar Singh", category: "Bollywood", url: av("gabbar-singh-sholay", "374151") },
-  { name: "Mogambo", category: "Bollywood", url: av("mogambo-mrgm", "312e81") },
-
-  // Anime — pixel-art style for that anime feel
-  { name: "Monkey D. Luffy", category: "Anime", url: av("luffy-onepiece-straw-hat", "991b1b", "pixel-art") },
-  { name: "Naruto Uzumaki", category: "Anime", url: av("naruto-uzumaki-konoha", "b45309", "pixel-art") },
-  { name: "Gojo Satoru", category: "Anime", url: av("gojo-satoru-jjk", "1e40af", "pixel-art") },
-  { name: "Levi Ackerman", category: "Anime", url: av("levi-ackerman-aot", "064e3b", "pixel-art") },
-  { name: "Itachi Uchiha", category: "Anime", url: av("itachi-uchiha-sharingan", "0a0a0a", "pixel-art") },
-  { name: "Light Yagami", category: "Anime", url: av("light-yagami-deathnote", "1f2937", "pixel-art") },
-  { name: "Tanjiro Kamado", category: "Anime", url: av("tanjiro-demon-slayer", "047857", "pixel-art") },
-  { name: "Eren Yeager", category: "Anime", url: av("eren-yeager-titan", "451a03", "pixel-art") },
-  { name: "Saitama", category: "Anime", url: av("saitama-one-punch-man", "1d4ed8", "pixel-art") },
-  { name: "Zoro", category: "Anime", url: av("roronoa-zoro-swordsman", "14532d", "pixel-art") },
-  { name: "Sukuna", category: "Anime", url: av("sukuna-ryomen-cursed", "7f1d1d", "pixel-art") },
-  { name: "All Might", category: "Anime", url: av("all-might-symbol-peace", "1d4ed8", "pixel-art") },
+// Real actor & actress headshot photos
+const ACTOR_AVATARS = [
+  // Male actors
+  { url: "https://randomuser.me/api/portraits/men/1.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/2.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/3.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/4.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/5.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/6.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/7.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/8.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/9.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/10.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/11.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/12.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/13.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/14.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/15.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/16.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/17.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/18.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/19.jpg" },
+  { url: "https://randomuser.me/api/portraits/men/20.jpg" },
+  // Female actresses
+  { url: "https://randomuser.me/api/portraits/women/1.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/2.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/3.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/4.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/5.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/6.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/7.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/8.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/9.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/10.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/11.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/12.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/13.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/14.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/15.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/16.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/17.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/18.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/19.jpg" },
+  { url: "https://randomuser.me/api/portraits/women/20.jpg" },
 ];
 
 const BANNERS = [
@@ -78,8 +66,10 @@ const GENRES = [
   "Thriller", "Comedy", "Romance", "Documentary", "Horror"
 ];
 
-export default function OnboardingPage() {
+function OnboardingForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isEditMode = searchParams.get("edit") === "true";
   const { isSignedIn: isMockSignedIn, user: mockUser, updateUser } = useCineverseAuth();
   const { isLoaded: isClerkLoaded, isSignedIn: isClerkSignedIn } = useAuth();
   const { user: clerkUser } = useUser();
@@ -87,7 +77,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState(CHARACTER_AVATARS[0].url);
+  const [avatarUrl, setAvatarUrl] = useState(ACTOR_AVATARS[0].url);
   const [bannerUrl, setBannerUrl] = useState(BANNERS[0]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedMovies, setSelectedMovies] = useState<string[]>([]);
@@ -96,7 +86,6 @@ export default function OnboardingPage() {
   const [language, setLanguage] = useState("English");
   const [country, setCountry] = useState("United States");
   
-  const [avatarSearch, setAvatarSearch] = useState("");
   const [moviesCatalog, setMoviesCatalog] = useState<Movie[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -126,11 +115,20 @@ export default function OnboardingPage() {
 
       syncUserAccount(id ? { id, email, username: name } : undefined)
         .then((res) => {
-          if (res.success && res.user?.profile?.username) {
-            setUsername(res.user.profile.username);
-            
-            // If the user already existed in our PostgreSQL database and has genres picked, they are onboarded
-            if (!res.isNewUser && res.user.profile.favoriteGenres && res.user.profile.favoriteGenres.length > 0) {
+          if (res.success && res.user?.profile) {
+            const p = res.user.profile;
+            if (p.username) setUsername(p.username);
+            if (p.bio) setBio(p.bio);
+            if (p.avatarUrl) setAvatarUrl(p.avatarUrl);
+            if (p.bannerUrl) setBannerUrl(p.bannerUrl);
+            if (p.favoriteGenres?.length) setSelectedGenres(p.favoriteGenres);
+            if (p.language) setLanguage(p.language);
+            if (p.country) setCountry(p.country);
+            if (p.favoriteActors?.length) setActors(p.favoriteActors.join(", "));
+            if (p.favoriteDirectors?.length) setDirectors(p.favoriteDirectors.join(", "));
+
+            // Skip redirect if user is in edit mode
+            if (!isEditMode && !res.isNewUser && p.favoriteGenres && p.favoriteGenres.length > 0) {
               router.replace("/dashboard");
             }
           }
@@ -139,12 +137,9 @@ export default function OnboardingPage() {
       // Load Movies for Step 3
       getTrendingMovies().then((m) => setMoviesCatalog(m));
     }
-  }, [isMockSignedIn, isClerkSignedIn, isClerkLoaded, clerkUser, mockUser, router]);
+  }, [isMockSignedIn, isClerkSignedIn, isClerkLoaded, clerkUser, mockUser, router, isEditMode]);
 
-  const filteredAvatars = CHARACTER_AVATARS.filter(c => {
-    const q = avatarSearch.toLowerCase();
-    return c.name.toLowerCase().includes(q) || c.category.toLowerCase().includes(q);
-  });
+
 
   const handleGenreToggle = (genre: string) => {
     setSelectedGenres((prev) =>
@@ -186,7 +181,7 @@ export default function OnboardingPage() {
           favoriteMovies: selectedMovies,
           isOnboarded: true,
         });
-        router.push("/dashboard");
+        router.push(isEditMode ? "/dashboard/profile" : "/dashboard");
       } else {
         alert("Failed to update profile: " + res.error);
         setIsSubmitting(false);
@@ -278,63 +273,25 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block">Choose Character Avatar</label>
-                    {/* Category filter pills */}
-                    <div className="flex gap-1.5">
-                      {["All", "Hollywood", "Bollywood", "Anime"].map((cat) => (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => setAvatarSearch(cat === "All" ? "" : cat)}
-                          className={`text-[9px] font-bold px-2 py-1 rounded-lg border transition ${
-                            (cat === "All" && !avatarSearch) || avatarSearch.toLowerCase() === cat.toLowerCase()
-                              ? "bg-brand-purple/20 border-brand-purple text-brand-purple"
-                              : "bg-white/5 border-white/10 text-slate-500 hover:text-white"
-                          }`}
-                        >
-                          {cat}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="relative">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={avatarSearch}
-                      onChange={(e) => setAvatarSearch(e.target.value)}
-                      placeholder="Search character (e.g. Batman, Luffy)..."
-                      className="w-full py-2 pl-9 pr-4 rounded-lg glass-input text-xs"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-3 max-h-52 overflow-y-auto scrollbar-thin pr-1">
-                    {filteredAvatars.map((c) => (
+                  <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block">Choose Your Avatar Photo</label>
+                  <div className="grid grid-cols-5 sm:grid-cols-8 gap-2 max-h-52 overflow-y-auto scrollbar-thin pr-1">
+                    {ACTOR_AVATARS.map((a, i) => (
                       <button
-                        key={c.name}
+                        key={a.url}
                         type="button"
-                        onClick={() => setAvatarUrl(c.url)}
-                        className={`flex flex-col items-center gap-1.5 p-1.5 rounded-xl border-2 transition group ${
-                          avatarUrl === c.url
-                            ? "border-brand-purple bg-brand-purple/10 shadow-lg shadow-brand-purple/20"
-                            : "border-transparent hover:border-white/20 hover:bg-white/5"
+                        onClick={() => setAvatarUrl(a.url)}
+                        className={`rounded-full border-2 transition overflow-hidden ${
+                          avatarUrl === a.url
+                            ? "border-brand-purple shadow-lg shadow-brand-purple/30 scale-110"
+                            : "border-transparent hover:border-white/30 hover:scale-105"
                         }`}
                       >
-                        <div className="w-14 h-14 rounded-full overflow-hidden border border-white/10 bg-slate-800 group-hover:border-brand-purple/40 transition">
-                          <img
-                            src={c.url}
-                            alt={c.name}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                              // Fallback to DiceBear if the SVG fails for some reason
-                              (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=1e293b`;
-                            }}
-                          />
-                        </div>
-                        <span className="text-[9px] font-bold text-center text-slate-400 group-hover:text-white transition leading-tight line-clamp-2 w-full px-0.5">
-                          {c.name}
-                        </span>
+                        <img
+                          src={a.url}
+                          alt={`Avatar ${i + 1}`}
+                          className="w-10 h-10 object-cover block"
+                          loading="lazy"
+                        />
                       </button>
                     ))}
                   </div>
@@ -342,12 +299,7 @@ export default function OnboardingPage() {
                   {avatarUrl && (
                     <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl">
                       <img src={avatarUrl} alt="Selected" className="w-10 h-10 rounded-full border-2 border-brand-purple object-cover" />
-                      <span className="text-xs font-bold text-white">
-                        {CHARACTER_AVATARS.find(c => c.url === avatarUrl)?.name || "Selected Avatar"}
-                      </span>
-                      <span className="ml-auto text-[9px] text-slate-500 font-semibold">
-                        {CHARACTER_AVATARS.find(c => c.url === avatarUrl)?.category}
-                      </span>
+                      <span className="text-xs font-semibold text-slate-300">Selected</span>
                     </div>
                   )}
                 </div>
@@ -517,5 +469,13 @@ export default function OnboardingPage() {
         </GlassCard>
       </div>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-brand-purple border-t-transparent rounded-full animate-spin" /></div>}>
+      <OnboardingForm />
+    </Suspense>
   );
 }

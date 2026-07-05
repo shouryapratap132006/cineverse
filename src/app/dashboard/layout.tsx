@@ -1,5 +1,6 @@
 import React from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
+import RightSidebar from "@/components/dashboard/RightSidebar";
 
 export default function DashboardLayout({
   children,
@@ -8,7 +9,7 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="min-h-screen bg-brand-dark flex relative">
-      {/* Permanent Left Sidebar (Hidden on mobile, need drawer on mobile or standard layout) */}
+      {/* Permanent Left Sidebar */}
       <div className="hidden lg:block">
         <Sidebar />
       </div>
@@ -20,7 +21,6 @@ export default function DashboardLayout({
           <span className="font-display font-extrabold text-sm tracking-wider text-white">
             Cine<span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-brand-purple">Verse</span>
           </span>
-          {/* We can add a simple profile avatar or slide out trigger */}
           <div className="w-6.5 h-6.5 rounded-full bg-brand-purple/20 flex items-center justify-center text-[10px] font-bold text-brand-purple">
             C
           </div>
@@ -31,6 +31,9 @@ export default function DashboardLayout({
           {children}
         </div>
       </div>
+
+      {/* Global Right Sidebar (visible on xl and up) */}
+      <RightSidebar />
     </div>
   );
 }

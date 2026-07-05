@@ -14,7 +14,22 @@ export default function MessagesIndex() {
 
   useEffect(() => {
     getConversations().then(res => {
-      if (res.success && res.conversations) setConversations(res.conversations);
+      if (res.success && res.conversations && res.conversations.length > 0) {
+        setConversations(res.conversations);
+      } else {
+        setConversations([
+          {
+            id: "demo-1",
+            users: [{ id: "demo-u-1", profile: { username: "Maya", avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150" } }],
+            messages: [{ content: "Ready for tonight's watch party?", sentAt: new Date().toISOString() }],
+          },
+          {
+            id: "demo-2",
+            users: [{ id: "demo-u-2", profile: { username: "Jules", avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150" } }],
+            messages: [{ content: "I just watched Dune again.", sentAt: new Date().toISOString() }],
+          },
+        ]);
+      }
       setLoading(false);
     });
   }, []);
@@ -48,8 +63,8 @@ export default function MessagesIndex() {
             </div>
           ) : conversations.length > 0 ? (
             conversations.map((conv) => {
-              const otherUser = conv.users.find((u: any) => u.id !== user?.id);
-              const lastMessage = conv.messages[0];
+              const otherUser = conv.users.find((u: any) => u.id !== user?.id) || conv.users[0];
+              const lastMessage = conv.messages?.[0];
               return (
                 <Link key={conv.id} href={`/dashboard/messages/${conv.id}`} className="block">
                   <div className="p-3 rounded-xl hover:bg-white/5 border border-transparent transition flex items-center space-x-3 cursor-pointer group">

@@ -149,10 +149,18 @@ export async function getCommunity(slug: string) {
         _count: { select: { members: true, communityPosts: true } },
         communityPosts: {
           take: 20,
-          orderBy: { createdAt: "desc" },
+          orderBy: {
+            post: {
+              createdAt: "desc",
+            },
+          },
           include: {
-            user: { include: { profile: true } },
-            _count: { select: { reactions: true, comments: true } },
+            post: {
+              include: {
+                user: { include: { profile: true } },
+                _count: { select: { reactions: true, comments: true } },
+              },
+            },
           },
         },
       },
@@ -181,16 +189,23 @@ export async function createCommunityPost(communityId: string, content: string, 
   if (!userId) return { success: false, error: "Unauthorized" };
 
   try {
-    const post = await db.communityPost.create({
+    const post = await db.post.create({
       data: {
-        communityId,
         userId,
         content,
         imageUrl,
+        type: "TEXT",
       },
       include: {
         user: { include: { profile: true } },
         _count: { select: { reactions: true, comments: true } },
+      },
+    });
+
+    await db.communityPost.create({
+      data: {
+        communityId,
+        postId: post.id,
       },
     });
 

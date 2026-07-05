@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCineverseAuth } from "@/components/provider";
@@ -14,6 +14,11 @@ export default function Sidebar() {
   const router = useRouter();
   const { signOut: mockSignOut, user } = useCineverseAuth();
   const { signOut: clerkSignOut } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const menuItems = [
     { name: "Home", href: "/dashboard", icon: Home },
@@ -54,7 +59,7 @@ export default function Sidebar() {
         <nav className="space-y-1.5">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const isActive = mounted && pathname === item.href;
             return (
               <Link
                 key={item.name}

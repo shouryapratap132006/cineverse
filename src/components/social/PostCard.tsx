@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Heart, MessageSquare, Repeat, Bookmark, MoreHorizontal, Smile } from "lucide-react";
-import { toggleReaction, toggleBookmark } from "@/actions/social";
+import { Heart, MessageSquare, Repeat, Bookmark, MoreHorizontal, Smile, Send, Sparkles } from "lucide-react";
+import { toggleReaction, toggleBookmark, voteOnPoll, createComment } from "@/actions/social";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +25,9 @@ const REACTIONS = [
 export default function PostCard({ post, onUpdate }: PostCardProps) {
   const [showReactions, setShowReactions] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [showComments, setShowComments] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
 
   const currentUserReaction = post.reactions && post.reactions.length > 0 ? post.reactions[0] : null;
   const isBookmarked = post.bookmarks && post.bookmarks.length > 0;
@@ -40,6 +43,21 @@ export default function PostCard({ post, onUpdate }: PostCardProps) {
 
   const handleBookmark = async () => {
     await toggleBookmark(post.id, "POST");
+    if (onUpdate) onUpdate();
+  };
+
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim() || submittingComment) return;
+    setSubmittingComment(true);
+    await createComment({ postId: post.id, content: commentText.trim() });
+    setCommentText("");
+    if (onUpdate) onUpdate();
+    setSubmittingComment(false);
+  };
+
+  const handlePollVote = async (pollId: string, optionIndex: number) => {
+    await voteOnPoll(pollId, optionIndex);
     if (onUpdate) onUpdate();
   };
 
@@ -78,13 +96,33 @@ export default function PostCard({ post, onUpdate }: PostCardProps) {
           <img src={post.imageUrl} alt="Post attachment" className="mt-3 rounded-xl border border-white/10 max-h-96 object-cover w-full" />
         )}
         {post.movie && (
-          <div className="mt-3 bg-slate-800/50 rounded-xl p-3 flex space-x-3 border border-white/5">
-            <div className="w-12 h-18 bg-slate-700 rounded-md overflow-hidden flex-shrink-0">
-               <img src={`https://image.tmdb.org/t/p/w200${post.movie.posterPath}`} alt={post.movie.title} className="w-full h-full object-cover"/>
+          <div className="mt-3 rounded-xl border border-white/5 bg-slate-800/50 p-3">
+            <div className="flex items-center space-x-3">
+              <div className="h-18 w-12 shrink-0 overflow-hidden rounded-md bg-slate-700">
+                <img src={`https://image.tmdb.org/t/p/w200${post.movie.posterPath}`} alt={post.movie.title} className="h-full w-full object-cover" />
+              </div>
+              <div className="flex flex-col justify-center">
+                <span className="mb-1 text-xs font-semibold text-brand-purple">Attached Movie</span>
+                <span className="text-sm font-bold text-white">{post.movie.title}</span>
+              </div>
             </div>
-            <div className="flex flex-col justify-center">
-              <span className="text-xs font-semibold text-brand-purple mb-1">Attached Movie</span>
-              <span className="text-white font-bold text-sm">{post.movie.title}</span>
+          </div>
+        )}
+        {post.poll && (
+          <div className="mt-3 rounded-xl border border-white/5 bg-slate-800/40 p-3">
+            <p className="text-sm font-semibold text-white">{post.poll.question}</p>
+            <div className="mt-3 space-y-2">
+              {post.poll.options.map((option: string, index: number) => (
+                <button
+                  key={`${post.poll.id}-${index}`}
+                  type="button"
+                  onClick={() => handlePollVote(post.poll.id, index)}
+                  className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-slate-200 transition hover:bg-slate-900"
+                >
+                  <span>{option}</span>
+                  <span className="text-[10px] text-slate-500">Vote</span>
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -127,13 +165,14 @@ export default function PostCard({ post, onUpdate }: PostCardProps) {
           )}
         </div>
 
-        <button className="flex items-center space-x-2 text-slate-400 hover:text-brand-blue text-xs font-semibold transition group">
+        <button onClick={() => setShowComments((prev) => !prev)} className="flex items-center space-x-2 text-slate-400 hover:text-brand-blue text-xs font-semibold transition group">
           <MessageSquare className="w-4.5 h-4.5 group-hover:scale-110 transition-transform" />
           <span>{post._count.comments || 0}</span>
         </button>
 
         <button className="flex items-center space-x-2 text-slate-400 hover:text-green-400 text-xs font-semibold transition group">
           <Repeat className="w-4.5 h-4.5 group-hover:scale-110 transition-transform" />
+          <span>Share</span>
         </button>
 
         <div className="flex-1" />
@@ -148,6 +187,28 @@ export default function PostCard({ post, onUpdate }: PostCardProps) {
           <Bookmark className={cn("w-4.5 h-4.5 group-hover:scale-110 transition-transform", isBookmarked && "fill-brand-gold")} />
         </button>
       </div>
+
+      {showComments && (
+        <div className="mt-4 space-y-3 border-t border-white/5 pt-4">
+          <form onSubmit={handleCommentSubmit} className="flex items-center gap-2">
+            <input
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Write a comment"
+              className="flex-1 rounded-full border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-white outline-none"
+            />
+            <button type="submit" disabled={submittingComment} className="rounded-full bg-brand-purple p-2 text-white">
+              <Send className="h-4 w-4" />
+            </button>
+          </form>
+          <div className="space-y-2 text-sm text-slate-400">
+            <div className="rounded-xl border border-white/5 bg-slate-950/40 p-3">
+              <p className="font-semibold text-white">Community-style interactions are enabled</p>
+              <p className="mt-1 text-xs">You can now react, comment, share, and attach richer media to posts.</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

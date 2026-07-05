@@ -240,6 +240,31 @@ export async function toggleReaction(targetId: string, type: "POST" | "COMMENT" 
 // COMMENTS
 // ==========================================
 
+export async function voteOnPoll(pollId: string, optionIndex: number) {
+  const userId = await getUserId();
+  if (!userId) return { success: false, error: "Unauthorized" };
+
+  try {
+    const existingVote = await db.vote.findUnique({
+      where: { pollId_userId: { pollId, userId } },
+    });
+
+    if (existingVote) {
+      return { success: false, error: "You have already voted" };
+    }
+
+    const vote = await db.vote.create({
+      data: { pollId, userId, optionIndex },
+    });
+
+    revalidatePath("/dashboard");
+    return { success: true, vote };
+  } catch (error: any) {
+    console.error("Vote Poll Error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
 export async function createComment(data: {
   postId?: string;
   reviewId?: string;
