@@ -10,62 +10,27 @@ import {
 } from "lucide-react";
 import {
   createCommunity, getCommunities, getUpcomingEvents, getFilmClubs,
-  createFilmClub, joinFilmClub, joinCommunity,
+  createFilmClub, joinFilmClub, joinCommunity, seedFeaturedCommunities,
 } from "@/actions/community";
 import { formatDistanceToNow } from "date-fns";
 
+const FEATURED_SLUGS = ["sci-fi-enthusiasts", "nolanverse", "a24-fanatics", "bollywood-blockbusters", "horror-freaks"];
+
+const FEATURED_META: Record<string, { tag: string; tagColor: string; banner: string; gradient: string; members: string }> = {
+  "sci-fi-enthusiasts": { tag: "Genre", tagColor: "bg-sky-500/20 text-sky-400 border-sky-500/30", banner: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200", gradient: "from-sky-900/80 via-indigo-900/60 to-transparent", members: "24.1K" },
+  "nolanverse":         { tag: "Director", tagColor: "bg-slate-500/20 text-slate-300 border-slate-500/30", banner: "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=1200", gradient: "from-slate-900/80 via-zinc-900/60 to-transparent", members: "18.7K" },
+  "a24-fanatics":       { tag: "Studio", tagColor: "bg-rose-500/20 text-rose-400 border-rose-500/30", banner: "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=1200", gradient: "from-rose-900/80 via-pink-900/60 to-transparent", members: "31.4K" },
+  "bollywood-blockbusters": { tag: "Regional", tagColor: "bg-orange-500/20 text-orange-400 border-orange-500/30", banner: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200", gradient: "from-orange-900/80 via-amber-900/60 to-transparent", members: "42.8K" },
+  "horror-freaks":      { tag: "Genre", tagColor: "bg-red-500/20 text-red-400 border-red-500/30", banner: "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?w=1200", gradient: "from-red-950/90 via-slate-900/60 to-transparent", members: "15.2K" },
+};
+
 // ─── Featured communities with cinematic banners ──────────────────────────────
 const FEATURED = [
-  {
-    name: "Sci-Fi Enthusiasts",
-    description: "Explore the cosmos through cinema. Hard sci-fi, space opera, cyberpunk — all welcome.",
-    slug: "sci-fi-enthusiasts",
-    banner: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200",
-    gradient: "from-sky-900/80 via-indigo-900/60 to-transparent",
-    tag: "Genre",
-    tagColor: "bg-sky-500/20 text-sky-400 border-sky-500/30",
-    members: "24.1K",
-  },
-  {
-    name: "Nolanverse",
-    description: "For those who believe Christopher Nolan hasn't made a bad film. Mind-bending discussions.",
-    slug: "nolanverse",
-    banner: "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=1200",
-    gradient: "from-slate-900/80 via-zinc-900/60 to-transparent",
-    tag: "Director",
-    tagColor: "bg-slate-500/20 text-slate-300 border-slate-500/30",
-    members: "18.7K",
-  },
-  {
-    name: "A24 Fanatics",
-    description: "Prestige cinema meets cult obsession. Midsommar to Everything Everywhere.",
-    slug: "a24-fanatics",
-    banner: "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=1200",
-    gradient: "from-rose-900/80 via-pink-900/60 to-transparent",
-    tag: "Studio",
-    tagColor: "bg-rose-500/20 text-rose-400 border-rose-500/30",
-    members: "31.4K",
-  },
-  {
-    name: "Bollywood Blockbusters",
-    description: "RRR, KGF, Baahubali and beyond. Celebrating the grandeur of Indian cinema.",
-    slug: "bollywood-blockbusters",
-    banner: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200",
-    gradient: "from-orange-900/80 via-amber-900/60 to-transparent",
-    tag: "Regional",
-    tagColor: "bg-orange-500/20 text-orange-400 border-orange-500/30",
-    members: "42.8K",
-  },
-  {
-    name: "Horror Freaks",
-    description: "From Ari Aster to James Wan. We love being scared. No jump scare slander.",
-    slug: "horror-freaks",
-    banner: "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?w=1200",
-    gradient: "from-red-950/90 via-slate-900/60 to-transparent",
-    tag: "Genre",
-    tagColor: "bg-red-500/20 text-red-400 border-red-500/30",
-    members: "15.2K",
-  },
+  { name: "Sci-Fi Enthusiasts", description: "Explore the cosmos through cinema. Hard sci-fi, space opera, cyberpunk — all welcome.", slug: "sci-fi-enthusiasts", ...FEATURED_META["sci-fi-enthusiasts"] },
+  { name: "Nolanverse", description: "For those who believe Christopher Nolan hasn't made a bad film. Mind-bending discussions.", slug: "nolanverse", ...FEATURED_META["nolanverse"] },
+  { name: "A24 Fanatics", description: "Prestige cinema meets cult obsession. Midsommar to Everything Everywhere.", slug: "a24-fanatics", ...FEATURED_META["a24-fanatics"] },
+  { name: "Bollywood Blockbusters", description: "RRR, KGF, Baahubali and beyond. Celebrating the grandeur of Indian cinema.", slug: "bollywood-blockbusters", ...FEATURED_META["bollywood-blockbusters"] },
+  { name: "Horror Freaks", description: "From Ari Aster to James Wan. We love being scared. No jump scare slander.", slug: "horror-freaks", ...FEATURED_META["horror-freaks"] },
 ];
 
 const GENRE_TAGS = [
@@ -115,17 +80,19 @@ export default function CommunityHubPage() {
   }, []);
 
   useEffect(() => {
-    Promise.all([
-      getCommunities("all"),
-      getCommunities("joined"),
-      getUpcomingEvents(),
-      getFilmClubs(),
-    ]).then(([all, joined, evRes, clubs]) => {
-      if (all.success) setDbCommunities(all.communities || []);
-      if (joined.success) setJoinedCommunities(joined.communities || []);
-      if (evRes.success) setEvents(evRes.events || []);
-      if (clubs.success) setFilmClubs(clubs.clubs || []);
-      setLoadingData(false);
+    seedFeaturedCommunities().then(() => {
+      Promise.all([
+        getCommunities("all"),
+        getCommunities("joined"),
+        getUpcomingEvents(),
+        getFilmClubs(),
+      ]).then(([all, joined, evRes, clubs]) => {
+        if (all.success) setDbCommunities(all.communities || []);
+        if (joined.success) setJoinedCommunities(joined.communities || []);
+        if (evRes.success) setEvents(evRes.events || []);
+        if (clubs.success) setFilmClubs(clubs.clubs || []);
+        setLoadingData(false);
+      });
     });
   }, []);
 
@@ -154,20 +121,19 @@ export default function CommunityHubPage() {
     getFilmClubs().then(r => { if (r.success) setFilmClubs(r.clubs || []); });
   };
 
-  // Filter + merge communities (db + featured)
-  const allCommunities = [
-    ...FEATURED.map(f => ({ ...f, isStatic: true })),
-    ...dbCommunities.filter(c => !FEATURED.some(f => f.slug === c.slug)),
-  ].filter(c => {
+  // Enrich DB communities with featured metadata where applicable
+  const allCommunities = dbCommunities.map(c => ({
+    ...c,
+    ...(FEATURED_META[c.slug] || {}),
+    isOfficial: FEATURED_SLUGS.includes(c.slug),
+  })).filter(c => {
     if (activeGenre !== "All") {
-      const type = (c as any).type || (c as any).tag || "";
-      if (!type.toLowerCase().includes(activeGenre.toLowerCase()) && !(c.name || "").toLowerCase().includes(activeGenre.toLowerCase())) {
-        return false;
-      }
+      const type = c.type || c.tag || "";
+      if (!type.toLowerCase().includes(activeGenre.toLowerCase()) && !c.name.toLowerCase().includes(activeGenre.toLowerCase())) return false;
     }
     if (search) {
       const q = search.toLowerCase();
-      return (c.name || "").toLowerCase().includes(q) || (c.description || "").toLowerCase().includes(q);
+      return c.name.toLowerCase().includes(q) || (c.description || "").toLowerCase().includes(q);
     }
     return true;
   });
@@ -535,57 +501,49 @@ export default function CommunityHubPage() {
 // ─── Community Card Component ─────────────────────────────────────────────────
 function CommunityCard({ community, onJoin, joined }: { community: any; onJoin: () => void; joined?: boolean }) {
   const isJoined = joined || (community.members && community.members.length > 0);
-  const memberCount = community.members !== undefined
-    ? (typeof community.members === "string" ? community.members : community._count?.members?.toLocaleString())
-    : community.members;
+  const memberCount = community._count?.members?.toLocaleString() || community.members || "—";
+  const banner = community.banner || community.bannerUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600";
 
   return (
     <div className="group relative bg-slate-900/60 border border-white/8 rounded-2xl overflow-hidden hover:border-brand-purple/30 transition-all hover:shadow-xl hover:shadow-brand-purple/10 hover:-translate-y-0.5">
       {/* Banner */}
       <div className="h-28 relative overflow-hidden">
-        <img
-          src={community.banner || community.bannerUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600"}
-          alt={community.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+        <img src={banner} alt={community.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent" />
-        {community.tag && (
-          <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold border ${community.tagColor || "bg-white/10 border-white/20 text-white"}`}>
-            {community.tag || community.type}
-          </span>
-        )}
+        <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
+          {community.isOfficial && (
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-brand-purple/30 border border-brand-purple/50 text-brand-purple backdrop-blur-sm">
+              ✦ CineVerse Official
+            </span>
+          )}
+          {community.tag && (
+            <span className={`ml-auto px-2 py-0.5 rounded-full text-[9px] font-bold border ${community.tagColor || "bg-white/10 border-white/20 text-white"}`}>
+              {community.tag || community.type}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="text-sm font-bold text-white">{community.name}</h3>
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-sm font-bold text-white">{community.name}</h3>
+          {community.isOfficial && <span className="text-brand-purple text-xs">✦</span>}
+        </div>
         <p className="text-[11px] text-slate-400 mt-1 line-clamp-2 leading-relaxed">{community.description}</p>
 
         <div className="flex items-center justify-between mt-4">
           <div className="flex items-center gap-1 text-[10px] text-slate-500">
             <Users className="w-3 h-3" />
-            <span>{memberCount || community._count?.members || "—"} members</span>
+            <span>{memberCount} members</span>
           </div>
 
-          {community.isStatic ? (
-            <Link
-              href={`/dashboard/community/${community.slug}`}
-              className="px-3 py-1.5 rounded-lg bg-brand-purple/20 border border-brand-purple/30 text-brand-purple text-[10px] font-bold hover:bg-brand-purple/30 transition"
-            >
-              Explore →
-            </Link>
-          ) : isJoined ? (
-            <Link
-              href={`/dashboard/community/${community.slug}`}
-              className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold hover:bg-emerald-500/20 transition"
-            >
+          {isJoined ? (
+            <Link href={`/dashboard/community/${community.slug}`} className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold hover:bg-emerald-500/20 transition">
               <Check className="w-3 h-3 inline mr-1" />Joined
             </Link>
           ) : (
-            <button
-              onClick={onJoin}
-              className="px-3 py-1.5 rounded-lg bg-brand-purple text-white text-[10px] font-bold hover:opacity-90 transition active:scale-95"
-            >
+            <button onClick={onJoin} className="px-3 py-1.5 rounded-lg bg-brand-purple text-white text-[10px] font-bold hover:opacity-90 transition active:scale-95">
               Join
             </button>
           )}
@@ -598,30 +556,26 @@ function CommunityCard({ community, onJoin, joined }: { community: any; onJoin: 
 // ─── Community List Item Component ────────────────────────────────────────────
 function CommunityListItem({ community, onJoin, joined }: { community: any; onJoin: () => void; joined?: boolean }) {
   const isJoined = joined || (community.members && community.members.length > 0);
+  const banner = community.banner || community.bannerUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=200";
 
   return (
     <div className="bg-slate-900/60 border border-white/8 rounded-2xl p-4 flex items-center gap-4 hover:border-brand-purple/30 transition-all">
       <div className="w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-white/10">
-        <img
-          src={community.banner || community.bannerUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=200"}
-          alt={community.name}
-          className="w-full h-full object-cover"
-        />
+        <img src={banner} alt={community.name} className="w-full h-full object-cover" />
       </div>
       <div className="flex-1 min-w-0">
-        <h3 className="text-sm font-bold text-white">{community.name}</h3>
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-sm font-bold text-white">{community.name}</h3>
+          {community.isOfficial && <span className="text-brand-purple text-xs" title="CineVerse Official">✦</span>}
+        </div>
         <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{community.description}</p>
         <div className="flex items-center gap-3 mt-1.5 text-[10px] text-slate-500">
-          <span className="flex items-center gap-1"><Users className="w-3 h-3" />{community._count?.members || community.members || "—"} members</span>
+          <span className="flex items-center gap-1"><Users className="w-3 h-3" />{community._count?.members || "—"} members</span>
           <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{community._count?.communityPosts || "—"} posts</span>
         </div>
       </div>
       <div className="shrink-0">
-        {community.isStatic ? (
-          <Link href={`/dashboard/community/${community.slug}`} className="px-4 py-2 rounded-xl bg-brand-purple/20 border border-brand-purple/30 text-brand-purple text-xs font-bold hover:bg-brand-purple/30 transition">
-            View →
-          </Link>
-        ) : isJoined ? (
+        {isJoined ? (
           <Link href={`/dashboard/community/${community.slug}`} className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 transition">
             Joined
           </Link>

@@ -24,6 +24,68 @@ async function getUserId() {
   return null;
 }
 
+export async function seedFeaturedCommunities() {
+  const FEATURED = [
+    {
+      name: "Sci-Fi Enthusiasts",
+      slug: "sci-fi-enthusiasts",
+      description: "Explore the cosmos through cinema. Hard sci-fi, space opera, cyberpunk — all welcome.",
+      type: "GENRE",
+      bannerUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200",
+    },
+    {
+      name: "Nolanverse",
+      slug: "nolanverse",
+      description: "For those who believe Christopher Nolan hasn't made a bad film. Mind-bending discussions.",
+      type: "DIRECTOR",
+      bannerUrl: "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=1200",
+    },
+    {
+      name: "A24 Fanatics",
+      slug: "a24-fanatics",
+      description: "Prestige cinema meets cult obsession. Midsommar to Everything Everywhere.",
+      type: "STUDIO",
+      bannerUrl: "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=1200",
+    },
+    {
+      name: "Bollywood Blockbusters",
+      slug: "bollywood-blockbusters",
+      description: "RRR, KGF, Baahubali and beyond. Celebrating the grandeur of Indian cinema.",
+      type: "GENRE",
+      bannerUrl: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200",
+    },
+    {
+      name: "Horror Freaks",
+      slug: "horror-freaks",
+      description: "From Ari Aster to James Wan. We love being scared. No jump scare slander.",
+      type: "GENRE",
+      bannerUrl: "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?w=1200",
+    },
+  ];
+
+  try {
+    for (const c of FEATURED) {
+      await db.community.upsert({
+        where: { slug: c.slug },
+        update: {},
+        create: {
+          name: c.name,
+          slug: c.slug,
+          description: c.description,
+          type: c.type,
+          bannerUrl: c.bannerUrl,
+          rules: [],
+          events: [],
+        },
+      });
+    }
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+
 export async function createCommunity(data: {
   name: string;
   slug: string;
