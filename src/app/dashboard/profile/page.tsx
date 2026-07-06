@@ -8,8 +8,7 @@ import {
   Bookmark, Heart, BarChart2, Edit3, X, Save, Camera,
 } from "lucide-react";
 import GlassCard from "@/components/shared/GlassCard";
-import { getUserProfile } from "@/actions/profile";
-import { getFeed } from "@/actions/social";
+import { getUserProfile, getUserPosts } from "@/actions/profile";
 import { updateProfile } from "@/actions/user";
 import { formatDistanceToNow } from "date-fns";
 
@@ -66,19 +65,19 @@ export default function ProfilePage() {
     });
   }, [user]);
 
-  // Load user posts when Posts tab clicked
+  // Re-fetch posts and reviews whenever their tab becomes active
   useEffect(() => {
-    if (activeTab === "posts" && profileData && userPosts.length === 0) {
-      getFeed().then(res => {
-        if (res.success && res.posts) {
-          const myPosts = (res.posts as any[]).filter(
-            (p: any) => p.userId === profileData.id
-          );
-          setUserPosts(myPosts);
-        }
+    if (activeTab === "posts" && profileData) {
+      getUserPosts(profileData.id).then(res => {
+        if (res.success && res.posts) setUserPosts(res.posts);
       });
     }
-  }, [activeTab, profileData]);
+    if (activeTab === "reviews" && profileData) {
+      getUserProfile().then(res => {
+        if (res.success && res.user) setProfileData(res.user);
+      });
+    }
+  }, [activeTab, profileData?.id]);
 
   const openEditModal = () => {
     if (!profileData) return;

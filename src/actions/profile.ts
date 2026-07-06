@@ -44,7 +44,6 @@ export async function getUserProfile(targetId?: string) {
           }
         },
         reviews: {
-          take: 5,
           orderBy: { createdAt: "desc" },
           include: { movie: true }
         },
@@ -93,9 +92,24 @@ export async function getUserProfile(targetId?: string) {
   }
 }
 
+export async function getUserPosts(userId: string) {
+  try {
+    const posts = await db.post.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      include: {
+        movie: true,
+        _count: { select: { reactions: true, comments: true } },
+      }
+    });
+    return { success: true, posts };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 export async function getSuggestedUsers() {
   const currentUserId = await getUserId();
-  if (!currentUserId) return { success: false, users: [] };
 
   try {
     const following = await db.follow.findMany({
