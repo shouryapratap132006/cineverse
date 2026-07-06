@@ -368,6 +368,7 @@ model Message {
   content        String       @db.Text
   seenBy         String[]     // Array of user IDs who have seen the message
   sentAt         DateTime     @default(now())
+  pinned         Boolean      @default(false)
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 

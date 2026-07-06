@@ -154,3 +154,84 @@ export async function getOrCreateConversation(targetUserId: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function editMessage(messageId: string, newContent: string) {
+  const userId = await getUserId();
+  if (!userId) return { success: false, error: "Unauthorized" };
+
+  try {
+    const existing = await db.message.findUnique({
+      where: { id: messageId }
+    });
+
+    if (!existing) return { success: false, error: "Message not found" };
+    if (existing.senderId !== userId) return { success: false, error: "Unauthorized to edit this message" };
+
+    const updated = await db.message.update({
+      where: { id: messageId },
+      data: { content: newContent },
+      include: { sender: { include: { profile: true } } }
+    });
+
+    if (process.env.PUSHER_APP_ID) {
+      await pusherServer.trigger(`chat-${updated.conversationId}`, "edit-message", updated);
+    }
+
+    return { success: true, message: updated };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteMessage(messageId: string) {
+  const userId = await getUserId();
+  if (!userId) return { success: false, error: "Unauthorized" };
+
+  try {
+    const existing = await db.message.findUnique({
+      where: { id: messageId }
+    });
+
+    if (!existing) return { success: false, error: "Message not found" };
+    if (existing.senderId !== userId) return { success: false, error: "Unauthorized to delete this message" };
+
+    await db.message.delete({
+      where: { id: messageId }
+    });
+
+    if (process.env.PUSHER_APP_ID) {
+      await pusherServer.trigger(`chat-${existing.conversationId}`, "delete-message", { messageId });
+    }
+
+    return { success: true, messageId };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function togglePinMessage(messageId: string) {
+  const userId = await getUserId();
+  if (!userId) return { success: false, error: "Unauthorized" };
+
+  try {
+    const existing = await db.message.findUnique({
+      where: { id: messageId }
+    });
+
+    if (!existing) return { success: false, error: "Message not found" };
+
+    const updated = await db.message.update({
+      where: { id: messageId },
+      data: { pinned: !existing.pinned },
+      include: { sender: { include: { profile: true } } }
+    });
+
+    if (process.env.PUSHER_APP_ID) {
+      await pusherServer.trigger(`chat-${updated.conversationId}`, "pin-message", updated);
+    }
+
+    return { success: true, message: updated };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

@@ -59,6 +59,21 @@ app.prepare().then(() => {
       socket.to(`conv:${data.conversationId}`).emit("user-stop-typing", data);
     });
 
+    // Edit message relay
+    socket.on("edit-message", (data: { conversationId: string; message: any }) => {
+      io.to(`conv:${data.conversationId}`).emit("message-edited", data.message);
+    });
+
+    // Delete message relay
+    socket.on("delete-message", (data: { conversationId: string; messageId: string }) => {
+      io.to(`conv:${data.conversationId}`).emit("message-deleted", data.messageId);
+    });
+
+    // Pin message relay
+    socket.on("pin-message", (data: { conversationId: string; message: any }) => {
+      io.to(`conv:${data.conversationId}`).emit("message-pinned", data.message);
+    });
+
     socket.on("disconnect", () => {
       userSockets.delete(socket.id);
     });

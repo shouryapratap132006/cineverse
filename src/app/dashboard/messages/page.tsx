@@ -136,8 +136,21 @@ export default function MessagesIndex() {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 truncate mt-0.5">
-                        {last ? last.content || "📎 Attachment" : "Say hello 👋"}
+                       <p className="text-xs text-slate-400 truncate mt-0.5">
+                        {(() => {
+                          if (!last) return "Say hello 👋";
+                          let text = last.content;
+                          if (text && text.startsWith("{") && text.endsWith("}")) {
+                            try {
+                              const parsed = JSON.parse(text);
+                              if (parsed.attachments && parsed.attachments.length > 0) {
+                                return "📎 Attachment";
+                              }
+                              return parsed.text || "";
+                            } catch (e) {}
+                          }
+                          return text || "Say hello 👋";
+                        })()}
                       </p>
                     </div>
                   </div>

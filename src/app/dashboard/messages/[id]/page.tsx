@@ -1,7 +1,7 @@
 "use client";
 
 import React, {
-  useState, useEffect, useRef, useCallback, Suspense
+  useState, useEffect, useRef, useCallback
 } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -9,16 +9,17 @@ import dynamic from "next/dynamic";
 import {
   ArrowLeft, Send, Loader2, SmilePlus, Paperclip, Image as ImageIcon,
   FileText, File, X, Reply, Palette, Check, CheckCheck, Download,
-  Camera, Wallpaper
+  Camera, Pencil, Trash2, Pin, PinOff
 } from "lucide-react";
 import { useCineverseAuth } from "@/components/provider";
-import { getMessages, sendMessage } from "@/actions/messages";
+import { getMessages, sendMessage, editMessage, deleteMessage, togglePinMessage } from "@/actions/messages";
+import { uploadToCloudinary } from "@/actions/upload";
 import { getSocket } from "@/lib/socket";
 import { DEFAULT_AVATAR } from "@/lib/avatars";
 import { format, isToday, isYesterday } from "date-fns";
 import data from "@emoji-mart/data";
 
-// Lazy-load emoji picker (large bundle)
+// Lazy-load emoji picker
 const EmojiPicker = dynamic(() => import("@emoji-mart/react"), { ssr: false });
 
 /* ─── Types ─────────────────────────────────────────────────── */
@@ -27,6 +28,8 @@ type Attachment = {
   name: string;
   url: string;
   size?: string;
+  uploading?: boolean;
+  tempId?: string;
 };
 
 type Reaction = { emoji: string; users: string[] };
@@ -40,10 +43,11 @@ type Msg = {
   replyTo?: { id: string; content: string; senderName: string };
   reactions?: Reaction[];
   attachments?: Attachment[];
+  pinned?: boolean;
 };
 
 /* ─── Gradient background themes ─────────────────────────────── */
-const GRADIENT_THEMES: { id: string; label: string; style: React.CSSProperties; preview: string }[] = [
+const GRADIENT_THEMES = [
   {
     id: "default",    label: "Dark Cosmos",
     style: { background: "#030712" },
@@ -115,11 +119,14 @@ export default function ChatThread() {
 
   // Feature state
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [replyTo, setReplyTo] = useState<Msg | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showBgPanel, setShowBgPanel] = useState(false);
   const [bgThemeId, setBgThemeId] = useState("default");
-  const [bgCustomUrl, setBgCustomUrl] = useState<string | null>(null); // custom photo bg
+  const [bgCustomUrl, setBgCustomUrl] = useState<string | null>(null);
+  const [uploadingBg, setUploadingBg] = useState(false);
   const [reactingTo, setReactingTo] = useState<string | null>(null);
   const [hoveredMsg, setHoveredMsg] = useState<string | null>(null);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
@@ -132,6 +139,7 @@ export default function ChatThread() {
   const bgInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const attachmentMenuRef = useRef<HTMLDivElement>(null);
 
   // Derive current background style
   const currentTheme = GRADIENT_THEMES.find(t => t.id === bgThemeId) ?? GRADIENT_THEMES[0];
@@ -173,7 +181,7 @@ export default function ChatThread() {
       setMessages(prev => {
         if (prev.some(m => m.id === msg.id)) return prev;
         const tempIdx = prev.findIndex(
-          m => m.id.startsWith("temp-") && m.senderId === msg.senderId && m.content === msg.content
+          m => m.id.startsWith("temp-") && m.senderId === msg.senderId
         );
         if (tempIdx !== -1) {
           const next = [...prev];
@@ -183,6 +191,18 @@ export default function ChatThread() {
         return [...prev, msg];
       });
       if (msg.senderId !== user.id && !otherUser) setOtherUser(msg.sender);
+    });
+
+    socket.on("message-edited", (editedMsg: any) => {
+      setMessages(prev => prev.map(m => m.id === editedMsg.id ? editedMsg : m));
+    });
+
+    socket.on("message-deleted", (deletedMsgId: string) => {
+      setMessages(prev => prev.filter(m => m.id !== deletedMsgId));
+    });
+
+    socket.on("message-pinned", (pinnedMsg: any) => {
+      setMessages(prev => prev.map(m => m.id === pinnedMsg.id ? pinnedMsg : m));
     });
 
     socket.on("user-typing", (d: { userId: string; username: string }) => {
@@ -195,21 +215,27 @@ export default function ChatThread() {
     return () => {
       socket.emit("leave-conversation", id);
       socket.off("new-message");
+      socket.off("message-edited");
+      socket.off("message-deleted");
+      socket.off("message-pinned");
       socket.off("user-typing");
       socket.off("user-stop-typing");
     };
-  }, [id, user?.id]);
+  }, [id, user?.id, otherUser]);
 
   /* ── Auto-scroll ── */
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typingUser]);
 
-  /* ── Close emoji picker on outside click ── */
+  /* ── Close emoji & attachment picker on outside click ── */
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
         setShowEmojiPicker(false);
+      }
+      if (attachmentMenuRef.current && !attachmentMenuRef.current.contains(e.target as Node)) {
+        setShowAttachmentMenu(false);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -231,33 +257,77 @@ export default function ChatThread() {
     }, 1500);
   };
 
-  /* ── File select (attachments) ── */
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: "image" | "file") => {
+  /* ── File select (attachments with Cloudinary Upload) ── */
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>, type: "image" | "file") => {
     const files = e.target.files;
     if (!files) return;
+
     Array.from(files).forEach(file => {
-      const url = URL.createObjectURL(file);
+      const tempUrl = URL.createObjectURL(file);
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
       const docExts = ["pdf", "doc", "docx", "txt", "ppt", "pptx", "xls", "xlsx"];
       const detectedType: Attachment["type"] = type === "image" ? "image" : docExts.includes(ext) ? "doc" : "file";
-      setAttachments(prev => [...prev, { type: detectedType, name: file.name, url, size: formatFileSize(file.size) }]);
+      const tempId = `temp-upload-${Date.now()}-${Math.random()}`;
+
+      // 1. Add preview image immediately to UI with uploading status
+      setAttachments(prev => [...prev, {
+        type: detectedType,
+        name: file.name,
+        url: tempUrl,
+        size: formatFileSize(file.size),
+        uploading: true,
+        tempId
+      }]);
+
+      // 2. Perform Cloudinary background upload
+      const formData = new FormData();
+      formData.append("file", file);
+
+      uploadToCloudinary(formData).then(res => {
+        if (res.success && res.url) {
+          setAttachments(prev => prev.map(item =>
+            item.tempId === tempId ? { ...item, url: res.url, uploading: false } : item
+          ));
+        } else {
+          alert(`Failed to upload ${file.name}: ${res.error || "Unknown error"}`);
+          setAttachments(prev => prev.filter(item => item.tempId !== tempId));
+        }
+      }).catch(err => {
+        console.error(err);
+        setAttachments(prev => prev.filter(item => item.tempId !== tempId));
+      });
     });
+
     e.target.value = "";
   };
 
-  /* ── Custom background photo upload ── */
+  /* ── Custom background photo upload to Cloudinary ── */
   const handleBgPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      setBgCustomUrl(dataUrl);
-      try { localStorage.setItem("cv-chat-bg-custom", dataUrl); } catch {}
-    };
-    reader.readAsDataURL(file);
+
+    setUploadingBg(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    uploadToCloudinary(formData).then(res => {
+      if (res.success && res.url) {
+        setBgCustomUrl(res.url);
+        try {
+          localStorage.setItem("cv-chat-bg-custom", res.url);
+        } catch {}
+      } else {
+        alert(`Failed to upload background: ${res.error || "Unknown error"}`);
+      }
+      setUploadingBg(false);
+      setShowBgPanel(false);
+    }).catch(err => {
+      console.error(err);
+      alert("Failed to upload background image.");
+      setUploadingBg(false);
+    });
+
     e.target.value = "";
-    setShowBgPanel(false);
   };
 
   const clearCustomBg = () => {
@@ -272,15 +342,58 @@ export default function ChatThread() {
     setShowBgPanel(false);
   };
 
-  /* ── Send ── */
-  const handleSend = useCallback(async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!text.trim() && attachments.length === 0) return;
-    if (sending) return;
+  /* ── Send & Edit Handlers ── */
+  const handleEditSend = async (messageId: string) => {
+    if (!text.trim() || sending) return;
+    setSending(true);
 
-    const content = text.trim();
+    const textVal = text.trim();
     setText("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
+    setEditingMessageId(null);
+
+    const msg = messages.find(m => m.id === messageId);
+    if (!msg) {
+      setSending(false);
+      return;
+    }
+
+    let contentString = textVal;
+    if (msg.content && msg.content.startsWith("{") && msg.content.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(msg.content);
+        parsed.text = textVal;
+        contentString = JSON.stringify(parsed);
+      } catch (e) {}
+    }
+
+    const res = await editMessage(messageId, contentString);
+    if (res.success && res.message) {
+      socketRef.current?.emit("edit-message", { conversationId: id, message: res.message });
+      setMessages(prev => prev.map(m => m.id === messageId ? (res.message as unknown as Msg) : m));
+    }
+    setSending(false);
+  };
+
+  const handleSend = useCallback(async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (editingMessageId) {
+      handleEditSend(editingMessageId);
+      return;
+    }
+
+    if (!text.trim() && attachments.length === 0) return;
+    
+    // Block sending if any attachments are still uploading to Cloudinary
+    const isStillUploading = attachments.some(a => a.uploading);
+    if (isStillUploading || sending) return;
+
+    setSending(true);
+
+    const textVal = text.trim();
+    setText("");
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+
     const savedReply = replyTo;
     const savedAttachments = [...attachments];
     setReplyTo(null);
@@ -289,53 +402,78 @@ export default function ChatThread() {
 
     socketRef.current?.emit("stop-typing", { conversationId: id, userId: user?.id });
 
-    const tempMsg: Msg = {
-      id: `temp-${Date.now()}`,
-      content,
-      senderId: user?.id ?? "",
-      sender: { profile: { avatarUrl: user?.avatarUrl, username: user?.username } },
-      sentAt: new Date().toISOString(),
+    // Build the Rich Message payload
+    const richPayload = {
+      text: textVal,
       replyTo: savedReply
         ? { id: savedReply.id, content: savedReply.content, senderName: savedReply.sender?.profile?.username ?? "User" }
         : undefined,
-      attachments: savedAttachments.length > 0 ? savedAttachments : undefined,
+      attachments: savedAttachments.map(({ type, name, url, size }) => ({ type, name, url, size }))
+    };
+
+    // Serialize payload to a JSON string for prisma storage
+    const contentString = JSON.stringify(richPayload);
+
+    // Optimistic Msg state update for instant UI response
+    const tempMsg: Msg = {
+      id: `temp-${Date.now()}`,
+      content: contentString,
+      senderId: user?.id ?? "",
+      sender: { profile: { avatarUrl: user?.avatarUrl, username: user?.username } },
+      sentAt: new Date().toISOString(),
     };
     setMessages(prev => [...prev, tempMsg]);
 
-    const res = await sendMessage(id, content);
+    const res = await sendMessage(id, contentString);
     if (res.success && res.message) {
       socketRef.current?.emit("send-message", { conversationId: id, message: res.message });
       setMessages(prev =>
-        prev.map(m =>
-          m.id === tempMsg.id
-            ? ({ ...res.message, replyTo: tempMsg.replyTo, attachments: tempMsg.attachments } as unknown as Msg)
-            : m
-        )
+        prev.map(m => m.id === tempMsg.id ? (res.message as unknown as Msg) : m)
       );
     }
-  }, [text, sending, id, user, replyTo, attachments]);
+    setSending(false);
+  }, [text, sending, id, user, replyTo, attachments, editingMessageId]);
 
-  /* ── Reaction ── */
-  const handleReaction = (msgId: string, emoji: string) => {
-    setMessages(prev => prev.map(m => {
-      if (m.id !== msgId) return m;
-      const reactions = m.reactions ? [...m.reactions] : [];
-      const existing = reactions.find(r => r.emoji === emoji);
-      if (existing) {
-        const hasUser = existing.users.includes(user?.id ?? "");
-        if (hasUser) {
-          existing.users = existing.users.filter(u => u !== user?.id);
-          if (existing.users.length === 0) return { ...m, reactions: reactions.filter(r => r.emoji !== emoji) };
-        } else {
-          existing.users = [...existing.users, user?.id ?? ""];
-        }
-      } else {
-        reactions.push({ emoji, users: [user?.id ?? ""] });
-      }
-      return { ...m, reactions };
-    }));
-    setReactingTo(null);
-    setHoveredMsg(null);
+  /* ── Edit / Delete / Pin Triggers ── */
+  const startEditing = (msg: Msg, rawContent: string) => {
+    setEditingMessageId(msg.id);
+    setText(rawContent);
+    setReplyTo(null);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 128) + "px";
+    }
+  };
+
+  const triggerDelete = async (messageId: string) => {
+    if (!confirm("Are you sure you want to delete this message?")) return;
+    const res = await deleteMessage(messageId);
+    if (res.success) {
+      socketRef.current?.emit("delete-message", { conversationId: id, messageId });
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+    } else {
+      alert("Delete failed: " + (res.error || "Unknown error"));
+    }
+  };
+
+  const triggerPin = async (messageId: string) => {
+    const res = await togglePinMessage(messageId);
+    if (res.success && res.message) {
+      socketRef.current?.emit("pin-message", { conversationId: id, message: res.message });
+      setMessages(prev => prev.map(m => m.id === messageId ? (res.message as unknown as Msg) : m));
+    }
+  };
+
+  const scrollToMessage = (msgId: string) => {
+    const el = document.getElementById(`msg-${msgId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-brand-purple", "ring-offset-2", "ring-offset-slate-950", "transition-all");
+      setTimeout(() => {
+        el.classList.remove("ring-2", "ring-brand-purple", "ring-offset-2", "ring-offset-slate-950");
+      }, 2000);
+    }
   };
 
   /* ── Loading state ── */
@@ -355,6 +493,9 @@ export default function ChatThread() {
     if (last && last.date === d) last.msgs.push(msg);
     else grouped.push({ date: d, msgs: [msg] });
   });
+
+  const pinnedMessages = messages.filter(m => m.pinned);
+  const isAttachmentUploading = attachments.some(a => a.uploading);
 
   return (
     <div className="w-full h-full flex flex-col relative overflow-hidden" style={bgStyle}>
@@ -413,7 +554,7 @@ export default function ChatThread() {
           </div>
         )}
 
-        {/* Background change button — positioned carefully to avoid clashing with notifications */}
+        {/* Background change button */}
         <button
           onClick={() => setShowBgPanel(v => !v)}
           className={`shrink-0 p-2 rounded-xl transition ${showBgPanel ? "bg-brand-purple/20 text-brand-purple" : "text-slate-400 hover:text-white hover:bg-white/8"}`}
@@ -424,7 +565,38 @@ export default function ChatThread() {
         </button>
       </div>
 
-      {/* ── Background Panel (slides in from right, fixed modal) ── */}
+      {/* ── Pinned Messages Banner ── */}
+      {pinnedMessages.length > 0 && (
+        <div
+          className="shrink-0 flex items-center gap-3 px-4 py-2 border-b border-white/8 z-10 select-none animate-in slide-in-from-top duration-200"
+          style={{ background: "rgba(15,23,42,0.85)", backdropFilter: "blur(12px)" }}
+        >
+          <Pin className="w-4 h-4 text-brand-purple fill-brand-purple shrink-0" />
+          <div className="flex-1 overflow-hidden">
+            <p className="text-[10px] font-bold text-brand-purple uppercase tracking-wider">Pinned Messages ({pinnedMessages.length})</p>
+            <div className="flex gap-2 mt-0.5 overflow-x-auto no-scrollbar scroll-smooth">
+              {pinnedMessages.map((pm, idx) => {
+                let contentText = pm.content;
+                if (pm.content && pm.content.startsWith("{") && pm.content.endsWith("}")) {
+                  try { contentText = JSON.parse(pm.content).text ?? ""; } catch (e) {}
+                }
+                return (
+                  <button
+                    key={pm.id}
+                    onClick={() => scrollToMessage(pm.id)}
+                    className="shrink-0 text-xs text-slate-300 hover:text-white hover:bg-white/5 bg-slate-900/40 border border-white/5 rounded-lg px-2.5 py-1 transition flex items-center gap-1.5 max-w-[180px]"
+                  >
+                    <span className="font-semibold text-[10px] text-brand-purple">#{idx + 1}</span>
+                    <span className="truncate">{contentText || "Attachment"}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Background Panel ── */}
       {showBgPanel && (
         <>
           {/* Backdrop */}
@@ -463,14 +635,19 @@ export default function ChatThread() {
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Custom Photo</p>
                 <button
                   onClick={() => bgInputRef.current?.click()}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-dashed border-white/15 hover:border-brand-purple/50 text-slate-400 hover:text-white transition group"
+                  disabled={uploadingBg}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-dashed border-white/15 hover:border-brand-purple/50 text-slate-400 hover:text-white transition group disabled:opacity-40"
                 >
                   <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-brand-purple/10 transition shrink-0">
-                    <Camera className="w-4 h-4" />
+                    {uploadingBg ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-brand-purple" />
+                    ) : (
+                      <Camera className="w-4 h-4" />
+                    )}
                   </div>
                   <div className="text-left min-w-0">
-                    <p className="text-xs font-semibold">Choose from Gallery</p>
-                    <p className="text-[10px] text-slate-600">JPG, PNG, WEBP supported</p>
+                    <p className="text-xs font-semibold">{uploadingBg ? "Uploading to Cloudinary..." : "Choose from Gallery"}</p>
+                    <p className="text-[10px] text-slate-600">Stored securely on Cloudinary</p>
                   </div>
                 </button>
 
@@ -527,7 +704,7 @@ export default function ChatThread() {
       {/* ── Messages scroll area ── */}
       <div className="flex-1 overflow-y-auto px-2 md:px-4 py-4 space-y-1" style={{ position: "relative", zIndex: 1 }}>
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full gap-3" style={{ opacity: 0.5 }}>
+          <div className="flex flex-col items-center justify-center h-full gap-3 opacity-50">
             <SmilePlus className="w-10 h-10 text-slate-600" />
             <p className="text-sm text-slate-500">No messages yet. Say hello!</p>
           </div>
@@ -555,10 +732,34 @@ export default function ChatThread() {
               const isLast = !nextMsg || nextMsg.senderId !== msg.senderId;
               const isTemp = msg.id.startsWith("temp-");
 
+              // JSON Parsing for Rich Content Structure
+              let textContent = msg.content;
+              let replyToInfo = msg.replyTo;
+              let attachmentsInfo = msg.attachments;
+
+              if (msg.content && msg.content.startsWith("{") && msg.content.endsWith("}")) {
+                try {
+                  const parsed = JSON.parse(msg.content);
+                  textContent = parsed.text ?? "";
+                  replyToInfo = parsed.replyTo ?? replyToInfo;
+                  attachmentsInfo = parsed.attachments ?? attachmentsInfo;
+                } catch (e) {
+                  // Fallback to raw string
+                }
+              }
+
+              const displayMsg = {
+                ...msg,
+                content: textContent,
+                replyTo: replyToInfo,
+                attachments: attachmentsInfo
+              };
+
               return (
                 <div
                   key={msg.id}
-                  className={`flex items-end gap-1.5 ${isMe ? "flex-row-reverse" : "flex-row"}`}
+                  id={`msg-${msg.id}`}
+                  className={`flex items-end gap-1.5 ${isMe ? "flex-row-reverse" : "flex-row"} transition-all duration-300 p-1 rounded-2xl`}
                   onMouseEnter={() => setHoveredMsg(msg.id)}
                   onMouseLeave={() => { setHoveredMsg(null); setReactingTo(null); }}
                 >
@@ -574,7 +775,7 @@ export default function ChatThread() {
                   </div>
 
                   <div className={`flex flex-col ${isMe ? "items-end" : "items-start"} max-w-[82%] md:max-w-[65%]`}>
-                    {/* Sender name (others only) */}
+                    {/* Sender name */}
                     {showAvatar && !isMe && (
                       <span className="text-[10px] font-bold text-brand-purple mb-0.5 px-1">
                         {msg.sender?.profile?.username ?? "User"}
@@ -582,27 +783,27 @@ export default function ChatThread() {
                     )}
 
                     {/* Reply preview */}
-                    {msg.replyTo && (
+                    {displayMsg.replyTo && (
                       <div
-                        className={`flex items-start gap-2 px-3 py-1.5 rounded-xl mb-1 max-w-full border-l-2 border-brand-purple`}
+                        className="flex items-start gap-2 px-3 py-1.5 rounded-xl mb-1 max-w-full border-l-2 border-brand-purple"
                         style={{ background: "rgba(124,58,237,0.08)" }}
                       >
                         <Reply className="w-3 h-3 text-brand-purple shrink-0 mt-0.5" />
                         <div className="min-w-0">
-                          <p className="text-[10px] font-bold text-brand-purple truncate">{msg.replyTo.senderName}</p>
-                          <p className="text-[11px] text-slate-400 truncate">{msg.replyTo.content}</p>
+                          <p className="text-[10px] font-bold text-brand-purple truncate">{displayMsg.replyTo.senderName}</p>
+                          <p className="text-[11px] text-slate-400 truncate">{displayMsg.replyTo.content}</p>
                         </div>
                       </div>
                     )}
 
-                    {/* Bubble + hover actions */}
+                    {/* Bubble + actions */}
                     <div className="relative group/bubble">
                       <div
                         className={`rounded-2xl text-sm leading-relaxed ${
                           isMe
                             ? `text-white ${isLast ? "rounded-br-sm" : ""} ${isTemp ? "opacity-70" : ""}`
                             : `text-slate-100 ${isLast ? "rounded-bl-sm" : ""}`
-                        } ${msg.attachments && msg.attachments.length > 0 ? "p-2" : "px-4 py-2.5"}`}
+                        } ${displayMsg.attachments && displayMsg.attachments.length > 0 ? "p-2" : "px-4 py-2.5"}`}
                         style={
                           isMe
                             ? { background: "linear-gradient(135deg, #2563EB, #7C3AED)" }
@@ -610,9 +811,9 @@ export default function ChatThread() {
                         }
                       >
                         {/* Attachments */}
-                        {msg.attachments && msg.attachments.length > 0 && (
+                        {displayMsg.attachments && displayMsg.attachments.length > 0 && (
                           <div className="space-y-1.5 mb-2">
-                            {msg.attachments.map((att, ai) => (
+                            {displayMsg.attachments.map((att, ai) => (
                               <div key={ai}>
                                 {att.type === "image" ? (
                                   <button
@@ -643,11 +844,20 @@ export default function ChatThread() {
                         )}
 
                         {/* Text */}
-                        {msg.content && (
-                          <span className={msg.attachments && msg.attachments.length > 0 ? "px-2 pb-1 block" : ""}>
-                            {msg.content}
+                        {displayMsg.content && (
+                          <span className={displayMsg.attachments && displayMsg.attachments.length > 0 ? "px-2 pb-1 block" : ""}>
+                            {displayMsg.content}
                           </span>
                         )}
+
+                        {/* Pinned label inside bubble */}
+                        {displayMsg.pinned && (
+                          <div className="flex items-center gap-1 text-[9px] text-slate-300 mt-1 opacity-70 border-t border-white/10 pt-1">
+                            <Pin className="w-2.5 h-2.5 text-brand-purple fill-brand-purple shrink-0" />
+                            <span>Pinned</span>
+                          </div>
+                        )}
+
                         {isTemp && (
                           <span className="inline-flex ml-1 align-middle opacity-60">
                             <Loader2 className="w-3 h-3 animate-spin" />
@@ -655,25 +865,66 @@ export default function ChatThread() {
                         )}
                       </div>
 
-                      {/* Hover actions — visible on hover */}
+                      {/* Hover actions — premium vertical stack or horizontal list */}
                       {hoveredMsg === msg.id && (
                         <div
-                          className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 ${isMe ? "-left-[5.5rem]" : "-right-[5.5rem]"} z-20`}
+                          className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 z-20 ${
+                            isMe ? "-left-[8.5rem]" : "-right-[6.5rem]"
+                          }`}
                         >
+                          {/* Quick React */}
                           <button
                             onClick={() => setReactingTo(reactingTo === msg.id ? null : msg.id)}
                             className="p-1.5 rounded-full text-slate-400 hover:text-yellow-400 transition shadow-lg"
                             style={{ background: "rgba(15,23,42,0.9)", border: "1px solid rgba(255,255,255,0.1)" }}
+                            title="React"
                           >
                             <SmilePlus className="w-3.5 h-3.5" />
                           </button>
+                          
+                          {/* Reply */}
                           <button
-                            onClick={() => { setReplyTo(msg); textareaRef.current?.focus(); }}
+                            onClick={() => { setReplyTo(displayMsg); setEditingMessageId(null); textareaRef.current?.focus(); }}
                             className="p-1.5 rounded-full text-slate-400 hover:text-brand-blue transition shadow-lg"
                             style={{ background: "rgba(15,23,42,0.9)", border: "1px solid rgba(255,255,255,0.1)" }}
+                            title="Reply"
                           >
                             <Reply className="w-3.5 h-3.5" />
                           </button>
+
+                          {/* Pin / Unpin */}
+                          <button
+                            onClick={() => triggerPin(msg.id)}
+                            className={`p-1.5 rounded-full transition shadow-lg ${displayMsg.pinned ? "text-brand-purple" : "text-slate-400 hover:text-brand-purple"}`}
+                            style={{ background: "rgba(15,23,42,0.9)", border: "1px solid rgba(255,255,255,0.1)" }}
+                            title={displayMsg.pinned ? "Unpin Message" : "Pin Message"}
+                          >
+                            {displayMsg.pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+                          </button>
+
+                          {/* Edit (Me only) */}
+                          {isMe && (
+                            <button
+                              onClick={() => startEditing(displayMsg, displayMsg.content)}
+                              className="p-1.5 rounded-full text-slate-400 hover:text-green-400 transition shadow-lg"
+                              style={{ background: "rgba(15,23,42,0.9)", border: "1px solid rgba(255,255,255,0.1)" }}
+                              title="Edit Message"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
+                          {/* Delete (Me only) */}
+                          {isMe && (
+                            <button
+                              onClick={() => triggerDelete(msg.id)}
+                              className="p-1.5 rounded-full text-slate-400 hover:text-red-500 transition shadow-lg"
+                              style={{ background: "rgba(15,23,42,0.9)", border: "1px solid rgba(255,255,255,0.1)" }}
+                              title="Delete Message"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       )}
 
@@ -755,7 +1006,7 @@ export default function ChatThread() {
         <div ref={bottomRef} className="h-2" />
       </div>
 
-      {/* ── Emoji Picker (WhatsApp-style via emoji-mart) ── */}
+      {/* ── Emoji Picker (WhatsApp-style) ── */}
       {showEmojiPicker && (
         <div
           ref={emojiPickerRef}
@@ -800,6 +1051,25 @@ export default function ChatThread() {
         className="shrink-0"
         style={{ background: "rgba(3,7,18,0.90)", backdropFilter: "blur(16px)", borderTop: "1px solid rgba(255,255,255,0.06)", zIndex: 10 }}
       >
+        {/* Editing Banner */}
+        {editingMessageId && (
+          <div
+            className="flex items-center gap-2 px-4 py-2 border-b border-white/5"
+            style={{ background: "rgba(34,197,94,0.06)" }}
+          >
+            <Pencil className="w-4 h-4 text-green-400 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold text-green-400">
+                Editing message
+              </p>
+              <p className="text-xs text-slate-400 truncate">Press enter to save, ESC to cancel</p>
+            </div>
+            <button onClick={() => { setEditingMessageId(null); setText(""); }} className="text-slate-500 hover:text-white transition shrink-0">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* Reply banner */}
         {replyTo && (
           <div
@@ -825,10 +1095,17 @@ export default function ChatThread() {
             {attachments.map((att, i) => (
               <div key={i} className="relative shrink-0">
                 {att.type === "image" ? (
-                  <img src={att.url} alt={att.name} className="w-16 h-16 object-cover rounded-xl border border-white/10" />
+                  <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/10">
+                    <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
+                    {att.uploading && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <Loader2 className="w-4 h-4 animate-spin text-brand-blue" />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div
-                    className="w-16 h-16 flex flex-col items-center justify-center rounded-xl border border-white/10 gap-1 p-1"
+                    className="relative w-16 h-16 flex flex-col items-center justify-center rounded-xl border border-white/10 gap-1 p-1"
                     style={{ background: "rgba(30,41,59,0.8)" }}
                   >
                     {att.type === "doc"
@@ -836,11 +1113,16 @@ export default function ChatThread() {
                       : <File className="w-5 h-5 text-slate-400" />
                     }
                     <p className="text-[8px] text-slate-400 text-center truncate w-full px-1">{att.name}</p>
+                    {att.uploading && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-xl">
+                        <Loader2 className="w-4 h-4 animate-spin text-brand-blue" />
+                      </div>
+                    )}
                   </div>
                 )}
                 <button
                   onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))}
-                  className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center"
+                  className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center z-10"
                 >
                   <X className="w-2.5 h-2.5 text-white" />
                 </button>
@@ -862,51 +1144,54 @@ export default function ChatThread() {
               <SmilePlus className="w-5 h-5" />
             </button>
 
-            {/* Attach — hover reveals sub-menu */}
-            <div className="relative group/attach">
+            {/* Attach */}
+            <div className="relative" ref={attachmentMenuRef}>
               <button
-                className="p-2 text-slate-400 hover:text-brand-blue hover:bg-white/5 rounded-xl transition"
+                onClick={() => setShowAttachmentMenu(prev => !prev)}
+                className={`p-2 rounded-xl transition ${showAttachmentMenu ? "text-brand-blue bg-white/5" : "text-slate-400 hover:text-brand-blue hover:bg-white/5"}`}
                 title="Attach"
               >
                 <Paperclip className="w-5 h-5" />
               </button>
               {/* Sub-menu */}
-              <div
-                className="absolute bottom-full left-0 mb-2 hidden group-hover/attach:flex flex-col gap-1 p-2 rounded-xl shadow-2xl min-w-[160px] z-50"
-                style={{
-                  background: "rgba(10,14,28,0.97)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  backdropFilter: "blur(16px)",
-                }}
-              >
-                <button
-                  onClick={() => imageInputRef.current?.click()}
-                  className="flex items-center gap-2.5 px-3 py-2 text-xs text-slate-300 hover:bg-white/5 hover:text-white rounded-lg transition"
+              {showAttachmentMenu && (
+                <div
+                  className="absolute bottom-full left-0 mb-2 flex flex-col gap-1 p-2 rounded-xl shadow-2xl min-w-[160px] z-50 animate-in fade-in slide-in-from-bottom-2 duration-150"
+                  style={{
+                    background: "rgba(10,14,28,0.97)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    backdropFilter: "blur(16px)",
+                  }}
                 >
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(34,197,94,0.15)" }}>
-                    <ImageIcon className="w-3.5 h-3.5 text-green-400" />
-                  </div>
-                  Photo / Video
-                </button>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2.5 px-3 py-2 text-xs text-slate-300 hover:bg-white/5 hover:text-white rounded-lg transition"
-                >
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(37,99,235,0.15)" }}>
-                    <FileText className="w-3.5 h-3.5 text-brand-blue" />
-                  </div>
-                  Document
-                </button>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2.5 px-3 py-2 text-xs text-slate-300 hover:bg-white/5 hover:text-white rounded-lg transition"
-                >
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(100,116,139,0.15)" }}>
-                    <File className="w-3.5 h-3.5 text-slate-400" />
-                  </div>
-                  File
-                </button>
-              </div>
+                  <button
+                    onClick={() => { imageInputRef.current?.click(); setShowAttachmentMenu(false); }}
+                    className="flex items-center gap-2.5 px-3 py-2 text-xs text-slate-300 hover:bg-white/5 hover:text-white rounded-lg transition text-left"
+                  >
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(34,197,94,0.15)" }}>
+                      <ImageIcon className="w-3.5 h-3.5 text-green-400" />
+                    </div>
+                    Photo / Video
+                  </button>
+                  <button
+                    onClick={() => { fileInputRef.current?.click(); setShowAttachmentMenu(false); }}
+                    className="flex items-center gap-2.5 px-3 py-2 text-xs text-slate-300 hover:bg-white/5 hover:text-white rounded-lg transition text-left"
+                  >
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(37,99,235,0.15)" }}>
+                      <FileText className="w-3.5 h-3.5 text-brand-blue" />
+                    </div>
+                    Document
+                  </button>
+                  <button
+                    onClick={() => { fileInputRef.current?.click(); setShowAttachmentMenu(false); }}
+                    className="flex items-center gap-2.5 px-3 py-2 text-xs text-slate-300 hover:bg-white/5 hover:text-white rounded-lg transition text-left"
+                  >
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(100,116,139,0.15)" }}>
+                      <File className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
+                    File
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -925,18 +1210,23 @@ export default function ChatThread() {
               style={{ maxHeight: "128px", minHeight: "40px" }}
               onKeyDown={e => {
                 if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+                if (e.key === "Escape" && editingMessageId) { setEditingMessageId(null); setText(""); }
               }}
             />
           </div>
 
-          {/* Send */}
+          {/* Send / Update */}
           <button
             onClick={() => handleSend()}
-            disabled={!text.trim() && attachments.length === 0}
+            disabled={(!text.trim() && attachments.length === 0) || isAttachmentUploading || sending}
             className="shrink-0 p-3 text-white rounded-xl transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg"
             style={{ background: "linear-gradient(135deg, #2563EB, #7C3AED)" }}
           >
-            <Send className="w-4 h-4" />
+            {editingMessageId ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
           </button>
         </div>
 
