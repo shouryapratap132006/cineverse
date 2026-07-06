@@ -3,6 +3,7 @@ import Sidebar from "@/components/dashboard/Sidebar";
 import RightSidebar from "@/components/dashboard/RightSidebar";
 import BottomNav from "@/components/dashboard/BottomNav";
 import MobileHeader from "@/components/dashboard/MobileHeader";
+import VpnBanner from "@/components/dashboard/VpnBanner";
 
 export default function DashboardLayout({
   children,
@@ -20,6 +21,9 @@ export default function DashboardLayout({
       <div className="flex-grow w-full lg:pl-64 min-h-screen flex flex-col">
         {/* Mobile Header */}
         <MobileHeader />
+
+        {/* VPN Banner — shown when TMDB is unreachable */}
+        <VpnBanner />
 
         {/* Page content — extra bottom padding on mobile for bottom nav */}
         <div className="flex-grow w-full relative pb-20 lg:pb-0">

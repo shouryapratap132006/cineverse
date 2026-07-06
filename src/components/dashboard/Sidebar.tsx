@@ -4,9 +4,8 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCineverseAuth } from "@/components/provider";
-import { Film, Home, Compass, Bookmark, Star, User, Settings, LogOut, Search, Globe, MessageSquare } from "lucide-react";
+import { Film, Home, Compass, Bookmark, Star, User, LogOut, Search, Globe, MessageSquare, Shield, Wifi } from "lucide-react";
 import { cn } from "@/lib/utils";
-
 import { useAuth } from "@clerk/nextjs";
 
 export default function Sidebar() {
@@ -15,9 +14,20 @@ export default function Sidebar() {
   const { signOut: mockSignOut, user } = useCineverseAuth();
   const { signOut: clerkSignOut } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const [tmdbBlocked, setTmdbBlocked] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    const dismissed = sessionStorage.getItem("vpn_banner_dismissed");
+    if (dismissed) return;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    fetch("https://api.themoviedb.org/3/configuration?api_key=1", {
+      signal: controller.signal, mode: "no-cors",
+    })
+      .then(() => setTmdbBlocked(false))
+      .catch(() => setTmdbBlocked(true))
+      .finally(() => clearTimeout(timeout));
   }, []);
 
   const menuItems = [
@@ -94,6 +104,23 @@ export default function Sidebar() {
         </div>
 
         <hr className="border-white/5" />
+
+        {/* VPN notice for desktop */}
+        {tmdbBlocked && (
+          <a
+            href="https://protonvpn.com/download"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 hover:bg-amber-500/15 transition group"
+          >
+            <Shield className="w-4 h-4 text-amber-400 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[10px] font-extrabold text-amber-300 leading-none">VPN Required</p>
+              <p className="text-[9px] text-amber-400/70 mt-0.5 leading-snug">TMDB blocked in India</p>
+            </div>
+            <Wifi className="w-3.5 h-3.5 text-amber-400/50 ml-auto shrink-0" />
+          </a>
+        )}
 
         <button
           onClick={handleSignOut}
