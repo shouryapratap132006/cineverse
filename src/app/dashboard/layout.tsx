@@ -1,4 +1,7 @@
+"use client";
+
 import React from "react";
+import { usePathname } from "next/navigation";
 import Sidebar from "@/components/dashboard/Sidebar";
 import RightSidebar from "@/components/dashboard/RightSidebar";
 import BottomNav from "@/components/dashboard/BottomNav";
@@ -10,29 +13,38 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  // Messages pages manage their own full-height layout
+  const isMessagesRoute = pathname?.startsWith("/dashboard/messages");
+
   return (
-    <div className="min-h-screen bg-brand-dark flex relative">
+    <div
+      className="bg-brand-dark flex relative"
+      style={{ height: "100dvh", overflow: "hidden" }}
+    >
       {/* Permanent Left Sidebar — desktop only */}
-      <div className="hidden lg:block">
+      <div className="hidden lg:block shrink-0">
         <Sidebar />
       </div>
 
       {/* Main App Container */}
-      <div className="flex-grow w-full lg:pl-64 min-h-screen flex flex-col">
-        {/* Mobile Header */}
-        <MobileHeader />
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden lg:pl-64">
+        {/* Mobile Header — hidden on messages route */}
+        {!isMessagesRoute && <MobileHeader />}
 
-        {/* VPN Banner — shown when TMDB is unreachable */}
+        {/* VPN Banner */}
         <VpnBanner />
 
-        {/* Page content — extra bottom padding on mobile for bottom nav */}
-        <div className="flex-grow w-full relative pb-20 lg:pb-0">
+        {/* Page content */}
+        <div
+          className={`flex-1 min-h-0 w-full relative ${isMessagesRoute ? "" : "overflow-y-auto pb-20 lg:pb-0"}`}
+        >
           {children}
         </div>
       </div>
 
-      {/* Global Right Sidebar */}
-      <RightSidebar />
+      {/* Right Sidebar — hidden on messages route */}
+      {!isMessagesRoute && <RightSidebar />}
 
       {/* Mobile Bottom Navigation */}
       <BottomNav />

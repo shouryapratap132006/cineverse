@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MessageSquare, Search, Plus, X, Loader2 } from "lucide-react";
+import { MessageSquare, Search, Plus, X, Loader2, ArrowLeft } from "lucide-react";
 import { useCineverseAuth } from "@/components/provider";
 import { getConversations, searchUsers, getOrCreateConversation } from "@/actions/messages";
 import { DEFAULT_AVATAR } from "@/lib/avatars";
@@ -59,21 +59,22 @@ export default function MessagesIndex() {
   });
 
   return (
-    <div className="w-full h-[calc(100vh-3.5rem)] flex">
+    <div className="w-full h-full flex" style={{ overflow: "hidden" }}>
 
-      {/* Inbox sidebar */}
-      <div className="w-full md:w-[360px] h-full border-r border-white/5 bg-slate-950/80 backdrop-blur-xl flex flex-col shrink-0">
+      {/* ── Inbox sidebar ── */}
+      <div className="w-full md:w-[360px] h-full border-r border-white/5 bg-slate-950/90 backdrop-blur-xl flex flex-col shrink-0">
 
         {/* Header */}
-        <div className="p-4 border-b border-white/5 space-y-3">
+        <div className="p-4 border-b border-white/5 space-y-3 bg-slate-950/60">
           <div className="flex items-center justify-between">
-            <h1 className="font-display font-extrabold text-xl text-white">Messages</h1>
+            <h1 className="font-display font-extrabold text-xl text-white tracking-tight">Messages</h1>
             <button
               onClick={() => setShowNew(true)}
-              className="p-2 bg-brand-blue/20 hover:bg-brand-blue/30 text-brand-blue rounded-xl transition"
+              className="p-2 bg-brand-blue/15 hover:bg-brand-blue/25 text-brand-blue rounded-xl transition flex items-center gap-1.5"
               title="New conversation"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4" />
+              <span className="text-xs font-bold hidden sm:inline">New</span>
             </button>
           </div>
           <div className="relative">
@@ -82,7 +83,7 @@ export default function MessagesIndex() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search conversations..."
-              className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 outline-none focus:border-brand-purple/50 transition"
+              className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/8 rounded-xl text-sm text-white placeholder-slate-500 outline-none focus:border-brand-purple/40 transition"
             />
           </div>
         </div>
@@ -90,16 +91,21 @@ export default function MessagesIndex() {
         {/* Conversation list */}
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {loading ? (
-            <div className="flex justify-center py-10">
+            <div className="flex justify-center py-12">
               <Loader2 className="w-6 h-6 text-brand-blue animate-spin" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center px-4 gap-3">
-              <MessageSquare className="w-10 h-10 text-slate-700" />
-              <p className="text-sm text-slate-500">No conversations yet.</p>
+            <div className="flex flex-col items-center justify-center py-20 text-center px-4 gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-white/5 flex items-center justify-center">
+                <MessageSquare className="w-7 h-7 text-slate-700" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-400">No conversations yet</p>
+                <p className="text-xs text-slate-600 mt-1">Start chatting with someone</p>
+              </div>
               <button
                 onClick={() => setShowNew(true)}
-                className="px-4 py-2 rounded-xl bg-brand-blue/20 text-brand-blue text-xs font-bold hover:bg-brand-blue/30 transition"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-blue to-brand-purple text-white text-xs font-bold hover:opacity-90 transition shadow-lg"
               >
                 Start a conversation
               </button>
@@ -115,9 +121,9 @@ export default function MessagesIndex() {
                       <img
                         src={other?.profile?.avatarUrl || DEFAULT_AVATAR}
                         alt={other?.profile?.username}
-                        className="w-11 h-11 rounded-full object-cover border border-white/10 group-hover:border-brand-purple/40 transition"
+                        className="w-12 h-12 rounded-full object-cover border border-white/10 group-hover:border-brand-purple/30 transition"
                       />
-                      <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-slate-950 rounded-full" />
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-slate-950 rounded-full" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
@@ -131,7 +137,7 @@ export default function MessagesIndex() {
                         )}
                       </div>
                       <p className="text-xs text-slate-400 truncate mt-0.5">
-                        {last ? last.content : "Say hello 👋"}
+                        {last ? last.content || "📎 Attachment" : "Say hello 👋"}
                       </p>
                     </div>
                   </div>
@@ -142,30 +148,41 @@ export default function MessagesIndex() {
         </div>
       </div>
 
-      {/* Empty state for desktop */}
-      <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-slate-900/20 gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-white/10 flex items-center justify-center">
-          <MessageSquare className="w-7 h-7 text-brand-blue" />
+      {/* ── Empty state for desktop ── */}
+      <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900/50 to-slate-950 gap-5 relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-brand-blue blur-[100px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full bg-brand-purple blur-[100px]" />
         </div>
-        <div className="text-center">
-          <h2 className="text-lg font-bold text-white">Your Messages</h2>
-          <p className="text-sm text-slate-400 mt-1">Select a conversation or start a new one.</p>
+
+        <div className="relative z-10 flex flex-col items-center gap-5">
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-brand-blue/20 to-brand-purple/20 border border-white/10 flex items-center justify-center shadow-2xl">
+            <MessageSquare className="w-9 h-9 text-brand-blue" />
+          </div>
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-white">Your Messages</h2>
+            <p className="text-sm text-slate-400 mt-1.5">Select a conversation or start a new one.</p>
+          </div>
+          <button
+            onClick={() => setShowNew(true)}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-brand-blue to-brand-purple text-white text-sm font-bold hover:opacity-90 transition shadow-xl"
+          >
+            <Plus className="w-4 h-4" /> New Message
+          </button>
         </div>
-        <button
-          onClick={() => setShowNew(true)}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-blue to-brand-purple text-white text-sm font-bold hover:opacity-90 transition"
-        >
-          <Plus className="w-4 h-4" /> New Message
-        </button>
       </div>
 
-      {/* New conversation modal */}
+      {/* ── New conversation modal ── */}
       {showNew && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="w-full max-w-md bg-slate-950 border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
               <h3 className="text-sm font-bold text-white">New Conversation</h3>
-              <button onClick={() => { setShowNew(false); setUserQuery(""); setUserResults([]); }} className="text-slate-400 hover:text-white transition">
+              <button
+                onClick={() => { setShowNew(false); setUserQuery(""); setUserResults([]); }}
+                className="text-slate-400 hover:text-white transition p-1 hover:bg-white/5 rounded-lg"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -184,10 +201,10 @@ export default function MessagesIndex() {
 
               <div className="space-y-1 max-h-64 overflow-y-auto">
                 {userResults.length === 0 && userQuery.length > 0 && !searching && (
-                  <p className="text-center text-xs text-slate-500 py-6">No users found for "{userQuery}"</p>
+                  <p className="text-center text-xs text-slate-500 py-8">No users found for "{userQuery}"</p>
                 )}
                 {!userQuery && (
-                  <p className="text-center text-xs text-slate-600 py-6">Type a username to search all CineVerse users</p>
+                  <p className="text-center text-xs text-slate-600 py-8">Type a username to search CineVerse users</p>
                 )}
                 {userResults.map(u => (
                   <button
