@@ -29,8 +29,10 @@ export async function createCommunity(data: {
   slug: string;
   description: string;
   bannerUrl?: string;
+  avatarUrl?: string;
   type?: string;
   tmdbId?: string;
+  rules?: string[];
 }) {
   const userId = await getUserId();
   if (!userId) return { success: false, error: "Unauthorized" };
@@ -43,6 +45,9 @@ export async function createCommunity(data: {
         description: data.description,
         type: data.type || "USER_CREATED",
         tmdbId: data.tmdbId,
+        bannerUrl: data.bannerUrl,
+        avatarUrl: data.avatarUrl,
+        rules: data.rules || [],
         members: {
           create: {
             userId,
@@ -104,7 +109,6 @@ export async function joinCommunity(communityId: string) {
   if (!userId) return { success: false, error: "Unauthorized" };
 
   try {
-    // Check if already a member
     const existing = await db.communityMember.findUnique({
       where: { communityId_userId: { communityId, userId } },
     });
@@ -143,22 +147,25 @@ export async function getCommunity(slug: string) {
       where: { slug },
       include: {
         members: {
-          take: 12,
+          take: 20,
+          orderBy: { joinedAt: "asc" },
           include: { user: { include: { profile: true } } },
         },
-        _count: { select: { members: true, communityPosts: true } },
+        _count: { select: { members: true, communityPosts: true, communityEvents: true } },
         communityPosts: {
           take: 20,
           orderBy: {
-            post: {
-              createdAt: "desc",
-            },
+            post: { createdAt: "desc" },
           },
           include: {
             post: {
               include: {
                 user: { include: { profile: true } },
                 _count: { select: { reactions: true, comments: true } },
+                reactions: { take: 1 },
+                bookmarks: { take: 1 },
+                poll: { include: { votes: true } },
+                movie: true,
               },
             },
           },
@@ -166,21 +173,114 @@ export async function getCommunity(slug: string) {
       },
     });
 
-    const isMember = userId
-      ? !!(await db.communityMember.findUnique({
-          where: { communityId_userId: { communityId: community?.id || "", userId } },
-        }))
-      : false;
+    if (!community) return { success: false, error: "Community not found" };
 
-    const userRole = userId
-      ? (await db.communityMember.findUnique({
-          where: { communityId_userId: { communityId: community?.id || "", userId } },
-        }))?.role || null
+    const memberRecord = userId
+      ? await db.communityMember.findUnique({
+          where: { communityId_userId: { communityId: community.id, userId } },
+        })
       : null;
+
+    const isMember = !!memberRecord;
+    const userRole = memberRecord?.role || null;
 
     return { success: true, community, isMember, userRole };
   } catch (error: any) {
     return { success: false, error: error.message };
+  }
+}
+
+export async function getCommunityMembers(
+  communityId: string,
+  sort: "newest" | "oldest" | "role" = "newest"
+) {
+  try {
+    const orderBy =
+      sort === "oldest"
+        ? { joinedAt: "asc" as const }
+        : sort === "role"
+        ? { role: "asc" as const }
+        : { joinedAt: "desc" as const };
+
+    const members = await db.communityMember.findMany({
+      where: { communityId },
+      orderBy,
+      include: {
+        user: {
+          include: {
+            profile: true,
+            _count: { select: { posts: true, reviews: true, followers: true } },
+          },
+        },
+      },
+    });
+
+    return { success: true, members };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getCommunityLeaderboard(communityId: string) {
+  try {
+    // Get members ordered by number of community posts
+    const members = await db.communityMember.findMany({
+      where: { communityId },
+      include: {
+        user: {
+          include: {
+            profile: true,
+            _count: { select: { posts: true, reviews: true } },
+          },
+        },
+      },
+      take: 10,
+    });
+
+    // Sort by post count descending
+    const sorted = members.sort(
+      (a, b) => (b.user._count?.posts || 0) - (a.user._count?.posts || 0)
+    );
+
+    return { success: true, leaderboard: sorted };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getCommunityReviews(communityId: string) {
+  try {
+    // Get reviews from community members
+    const community = await db.community.findUnique({
+      where: { id: communityId },
+      include: {
+        members: {
+          select: { userId: true },
+        },
+      },
+    });
+
+    if (!community) return { success: false, reviews: [] };
+
+    const memberIds = community.members.map((m) => m.userId);
+
+    const reviews = await db.review.findMany({
+      where: {
+        userId: { in: memberIds },
+        visibility: "PUBLIC",
+      },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      include: {
+        user: { include: { profile: true } },
+        movie: true,
+        _count: { select: { likes: true, comments: true } },
+      },
+    });
+
+    return { success: true, reviews };
+  } catch (error: any) {
+    return { success: false, reviews: [] };
   }
 }
 
@@ -203,14 +303,45 @@ export async function createCommunityPost(communityId: string, content: string, 
     });
 
     await db.communityPost.create({
+      data: { communityId, postId: post.id },
+    });
+
+    // Log activity
+    await db.activity.create({
       data: {
-        communityId,
-        postId: post.id,
+        userId,
+        type: "POST",
+        description: "Posted in a community.",
       },
     });
 
     revalidatePath(`/dashboard/community`);
     return { success: true, post };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function pinCommunityPost(communityId: string, postId: string) {
+  const userId = await getUserId();
+  if (!userId) return { success: false, error: "Unauthorized" };
+
+  try {
+    // Verify user is mod/owner
+    const member = await db.communityMember.findUnique({
+      where: { communityId_userId: { communityId, userId } },
+    });
+    if (!member || !["OWNER", "ADMIN", "MODERATOR"].includes(member.role)) {
+      return { success: false, error: "Not authorized" };
+    }
+
+    await db.communityPost.update({
+      where: { communityId_postId: { communityId, postId } },
+      data: { isPinned: true },
+    });
+
+    revalidatePath(`/dashboard/community`);
+    return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -261,9 +392,10 @@ export async function getUpcomingEvents(communityId?: string) {
       orderBy: { date: "asc" },
       take: 10,
       include: {
-        community: { select: { name: true, slug: true } },
+        community: { select: { name: true, slug: true, avatarUrl: true } },
         creator: { include: { profile: true } },
         _count: { select: { rsvps: true } },
+        rsvps: { take: 5, include: { user: { include: { profile: true } } } },
       },
     });
     return { success: true, events };

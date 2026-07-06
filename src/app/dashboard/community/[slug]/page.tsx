@@ -1,84 +1,228 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
+import { formatDistanceToNow, format, isPast, differenceInHours, differenceInMinutes, differenceInDays } from "date-fns";
 import {
-  Globe, Users, Shield, Calendar as CalendarIcon, MessageSquare,
-  Sparkles, Plus, Calendar, Star, Clock, MapPin, Check, LogOut
+  Users, MessageSquare, Star, Calendar, Globe, Shield,
+  Bell, Share2, ChevronRight, Flame, Trophy, Crown, Medal,
+  Plus, X, Check, LogOut, Film, BarChart2, Bookmark,
+  Heart, Send, ImageIcon, EyeOff, Search, Grid3x3, List,
+  Sparkles, Zap, Target, TrendingUp, Clock, Hash, MapPin,
+  Play, Volume2, Award, ChevronDown, MoreHorizontal, Repeat2,
 } from "lucide-react";
-import { getCommunity, joinCommunity, leaveCommunity, getUpcomingEvents, createEvent, rsvpEvent } from "@/actions/community";
-import GlassCard from "@/components/shared/GlassCard";
-import PostComposer from "@/components/social/PostComposer";
+import {
+  getCommunity, joinCommunity, leaveCommunity,
+  createCommunityPost, createEvent, rsvpEvent,
+  getUpcomingEvents, getCommunityMembers, getCommunityLeaderboard,
+  getCommunityReviews,
+} from "@/actions/community";
+import { toggleReaction, toggleBookmark, createComment } from "@/actions/social";
 import PostCard from "@/components/social/PostCard";
 import { DEFAULT_AVATAR } from "@/lib/avatars";
 
-export default function CommunityPage() {
+// ─── Types ───────────────────────────────────────────────────────────────────
+type Tab = "posts" | "reviews" | "events" | "members" | "about";
+type MemberSort = "newest" | "oldest" | "role";
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function Skeleton({ className = "" }: { className?: string }) {
+  return (
+    <div className={`animate-pulse rounded-xl bg-white/5 ${className}`} />
+  );
+}
+
+function roleColor(role: string) {
+  if (role === "OWNER") return "text-amber-400 bg-amber-400/10 border-amber-400/30";
+  if (role === "ADMIN") return "text-red-400 bg-red-400/10 border-red-400/30";
+  if (role === "MODERATOR") return "text-brand-blue bg-brand-blue/10 border-brand-blue/30";
+  if (role === "VERIFIED_CREATOR") return "text-emerald-400 bg-emerald-400/10 border-emerald-400/30";
+  return "text-slate-400 bg-white/5 border-white/10";
+}
+
+function roleIcon(role: string) {
+  if (role === "OWNER") return <Crown className="w-3 h-3" />;
+  if (role === "ADMIN") return <Shield className="w-3 h-3" />;
+  if (role === "MODERATOR") return <Shield className="w-3 h-3" />;
+  return null;
+}
+
+function Countdown({ date }: { date: Date }) {
+  const [, forceUpdate] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => forceUpdate(n => n + 1), 60000);
+    return () => clearInterval(t);
+  }, []);
+  const days = differenceInDays(date, new Date());
+  const hours = differenceInHours(date, new Date()) % 24;
+  const minutes = differenceInMinutes(date, new Date()) % 60;
+  if (isPast(date)) return <span className="text-slate-500 text-xs">Ended</span>;
+  return (
+    <div className="flex items-center gap-1 text-xs font-bold">
+      {days > 0 && <span className="px-1.5 py-0.5 rounded bg-brand-purple/20 text-brand-purple">{days}d</span>}
+      <span className="px-1.5 py-0.5 rounded bg-brand-blue/20 text-brand-blue">{hours}h</span>
+      <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">{minutes}m</span>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+export default function CommunityDetailPage() {
   const { slug } = useParams() as { slug: string };
+
+  // Core data
   const [community, setCommunity] = useState<any>(null);
   const [isMember, setIsMember] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-  
-  const [activeSubTab, setActiveSubTab] = useState<"discussions" | "events" | "members">("discussions");
+
+  // Tab state
+  const [activeTab, setActiveTab] = useState<Tab>("posts");
+
+  // Posts
+  const [posts, setPosts] = useState<any[]>([]);
+
+  // Events
   const [events, setEvents] = useState<any[]>([]);
   const [showEventModal, setShowEventModal] = useState(false);
   const [newEvent, setNewEvent] = useState({ title: "", description: "", date: "", movieTitle: "" });
+  const [creatingEvent, setCreatingEvent] = useState(false);
 
-  const fetchCommunityDetails = async () => {
+  // Members
+  const [members, setMembers] = useState<any[]>([]);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [memberSort, setMemberSort] = useState<MemberSort>("newest");
+  const [memberView, setMemberView] = useState<"grid" | "list">("grid");
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
+  // Reviews
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+
+  // Leaderboard
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+
+  // Post composer
+  const [composerContent, setComposerContent] = useState("");
+  const [composerImage, setComposerImage] = useState<string | null>(null);
+  const [submittingPost, setSubmittingPost] = useState(false);
+  const [spoilerTag, setSpoilerTag] = useState(false);
+  const composerFileRef = useRef<HTMLInputElement>(null);
+
+  // Join/leave
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // ─── Load community ───────────────────────────────────────────────────────
+  const loadCommunity = useCallback(async () => {
     const res = await getCommunity(slug);
     if (res.success && res.community) {
       setCommunity(res.community);
       setIsMember(res.isMember || false);
       setUserRole(res.userRole || null);
+      const rawPosts = (res.community.communityPosts || []).map((cp: any) => cp.post);
+      setPosts(rawPosts);
     }
-  };
-
-  const fetchEvents = async () => {
-    if (community?.id) {
-      const res = await getUpcomingEvents(community.id);
-      if (res.success && res.events) {
-        setEvents(res.events);
-      }
-    }
-  };
-
-  useEffect(() => {
-    fetchCommunityDetails().then(() => setLoading(false));
+    setLoading(false);
   }, [slug]);
 
-  useEffect(() => {
-    if (community?.id) {
-      fetchEvents();
-    }
-  }, [community?.id, activeSubTab]);
+  useEffect(() => { loadCommunity(); }, [loadCommunity]);
 
+  // ─── Load tab-specific data ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!community?.id) return;
+    if (activeTab === "events") {
+      getUpcomingEvents(community.id).then(res => {
+        if (res.success && res.events) setEvents(res.events);
+      });
+    }
+    if (activeTab === "members") {
+      setLoadingMembers(true);
+      getCommunityMembers(community.id, memberSort).then(res => {
+        if (res.success && res.members) setMembers(res.members);
+        setLoadingMembers(false);
+      });
+    }
+    if (activeTab === "reviews") {
+      setLoadingReviews(true);
+      getCommunityReviews(community.id).then(res => {
+        if (res.success) setReviews(res.reviews || []);
+        setLoadingReviews(false);
+      });
+    }
+  }, [activeTab, community?.id]);
+
+  // Leaderboard loads always
+  useEffect(() => {
+    if (!community?.id) return;
+    getCommunityLeaderboard(community.id).then(res => {
+      if (res.success && res.leaderboard) setLeaderboard(res.leaderboard);
+    });
+  }, [community?.id]);
+
+  // Re-fetch members when sort changes
+  useEffect(() => {
+    if (activeTab === "members" && community?.id) {
+      setLoadingMembers(true);
+      getCommunityMembers(community.id, memberSort).then(res => {
+        if (res.success && res.members) setMembers(res.members);
+        setLoadingMembers(false);
+      });
+    }
+  }, [memberSort]);
+
+  // ─── Actions ──────────────────────────────────────────────────────────────
   const handleJoinToggle = async () => {
     if (!community || actionLoading) return;
     setActionLoading(true);
     if (isMember) {
       const res = await leaveCommunity(community.id);
-      if (res.success) {
-        setIsMember(false);
-        setUserRole(null);
-        fetchCommunityDetails();
-      }
+      if (res.success) { setIsMember(false); setUserRole(null); loadCommunity(); }
     } else {
       const res = await joinCommunity(community.id);
-      if (res.success) {
-        setIsMember(true);
-        setUserRole("MEMBER");
-        fetchCommunityDetails();
-      }
+      if (res.success) { setIsMember(true); setUserRole("MEMBER"); loadCommunity(); }
     }
     setActionLoading(false);
   };
 
+  const handleComposerImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const max = 800;
+        let w = img.width, h = img.height;
+        if (w > max) { h = h * max / w; w = max; }
+        if (h > max) { w = w * max / h; h = max; }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d")?.drawImage(img, 0, 0, w, h);
+        setComposerImage(canvas.toDataURL("image/jpeg", 0.7));
+      };
+      img.src = ev.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmitPost = async () => {
+    if ((!composerContent.trim() && !composerImage) || submittingPost || !community) return;
+    setSubmittingPost(true);
+    const res = await createCommunityPost(community.id, composerContent.trim(), composerImage || undefined);
+    if (res.success) {
+      setComposerContent("");
+      setComposerImage(null);
+      setSpoilerTag(false);
+      loadCommunity();
+    }
+    setSubmittingPost(false);
+  };
+
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!community || !newEvent.title || !newEvent.date) return;
-    setActionLoading(true);
+    if (!community || !newEvent.title || !newEvent.date || creatingEvent) return;
+    setCreatingEvent(true);
     const res = await createEvent({
       communityId: community.id,
       title: newEvent.title,
@@ -89,292 +233,762 @@ export default function CommunityPage() {
     if (res.success) {
       setShowEventModal(false);
       setNewEvent({ title: "", description: "", date: "", movieTitle: "" });
-      fetchEvents();
-    } else {
-      alert("Error creating event: " + res.error);
+      getUpcomingEvents(community.id).then(r => { if (r.success && r.events) setEvents(r.events); });
     }
-    setActionLoading(false);
+    setCreatingEvent(false);
   };
 
-  const handleRsvp = async (eventId: string, status: "GOING" | "INTERESTED" | "NOT_GOING") => {
-    const res = await rsvpEvent(eventId, status);
-    if (res.success) {
-      fetchEvents();
+  const handleRSVP = async (eventId: string, status: "GOING" | "INTERESTED" | "NOT_GOING") => {
+    await rsvpEvent(eventId, status);
+    if (community?.id) {
+      getUpcomingEvents(community.id).then(r => { if (r.success && r.events) setEvents(r.events); });
     }
   };
 
+  // ─── Filtered members ────────────────────────────────────────────────────
+  const filteredMembers = members.filter(m => {
+    if (!memberSearch) return true;
+    const name = m.user?.profile?.username || m.user?.email || "";
+    return name.toLowerCase().includes(memberSearch.toLowerCase());
+  });
+
+  // ─── Loading skeleton ────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="w-full">
+        <Skeleton className="h-72 w-full rounded-none" />
+        <div className="max-w-6xl mx-auto px-4 py-6 space-y-4">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <div className="grid grid-cols-3 gap-4">
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!community) {
-    return <div className="text-center py-20 text-white">Community not found.</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-white/10 flex items-center justify-center mb-4">
+          <Users className="w-8 h-8 text-slate-600" />
+        </div>
+        <h2 className="text-xl font-bold text-white mb-2">Community not found</h2>
+        <p className="text-slate-500 text-sm mb-6">This community doesn't exist or was removed.</p>
+        <Link href="/dashboard/community" className="px-5 py-2.5 rounded-xl bg-brand-purple text-white text-sm font-bold hover:opacity-90 transition">
+          Browse Communities
+        </Link>
+      </div>
+    );
   }
 
-  const canManage = userRole === "OWNER" || userRole === "ADMIN" || userRole === "MODERATOR";
+  const TABS: { id: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
+    { id: "posts", label: "Posts", icon: <MessageSquare className="w-4 h-4" />, count: community._count?.communityPosts },
+    { id: "reviews", label: "Reviews", icon: <Star className="w-4 h-4" /> },
+    { id: "events", label: "Events", icon: <Calendar className="w-4 h-4" />, count: community._count?.communityEvents },
+    { id: "members", label: "Members", icon: <Users className="w-4 h-4" />, count: community._count?.members },
+    { id: "about", label: "About", icon: <Globe className="w-4 h-4" /> },
+  ];
 
   return (
-    <div className="w-full pb-16">
-      
-      {/* Banner */}
-      <div className="h-[240px] w-full relative overflow-hidden">
-        <img
-          src={community.bannerUrl || "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200"}
-          alt="Banner"
-          className="w-full h-full object-cover filter brightness-[0.6]"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/40 to-transparent" />
-      </div>
+    <div className="w-full min-h-screen xl:pr-[340px]">
 
-      <div className="max-w-6xl mx-auto px-4 md:px-8 -mt-16 relative z-10">
-        
-        {/* Profile Card */}
-        <GlassCard hoverGlow={false} className="p-6 border-white/10 bg-slate-950/80 backdrop-blur-xl flex flex-col md:flex-row items-center md:items-start justify-between gap-6 mb-8">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-5 text-center md:text-left">
-            <div className="w-20 h-20 bg-gradient-to-br from-green-500/20 to-emerald-600/20 border-2 border-white/10 rounded-2xl flex items-center justify-center shadow-lg shrink-0">
-              <Globe className="w-10 h-10 text-green-400" />
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center justify-center md:justify-start gap-2.5">
-                <h1 className="font-display font-extrabold text-2xl text-white">{community.name}</h1>
-                {userRole && (
-                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-brand-purple/20 border border-brand-purple/30 text-brand-purple uppercase tracking-wider">
-                    {userRole}
-                  </span>
+      {/* ═══════════ HERO ═══════════ */}
+      <div className="relative h-64 md:h-80 overflow-hidden">
+        {/* Banner */}
+        <img
+          src={community.bannerUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1600"}
+          alt={community.name}
+          className="w-full h-full object-cover"
+        />
+        {/* Gradient overlays */}
+        <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-brand-dark/60 via-transparent to-transparent" />
+
+        {/* Floating glow orbs */}
+        <div className="absolute top-8 left-[20%] w-64 h-64 rounded-full bg-brand-purple/20 blur-[80px] pointer-events-none" />
+        <div className="absolute top-4 right-[20%] w-48 h-48 rounded-full bg-brand-blue/20 blur-[80px] pointer-events-none" />
+
+        {/* Hero Content */}
+        <div className="absolute bottom-0 left-0 right-0 px-4 md:px-8 pb-6">
+          <div className="flex items-end gap-4">
+            {/* Community Avatar */}
+            <div className="relative shrink-0">
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl border-2 border-white/20 overflow-hidden bg-slate-900 shadow-2xl shadow-brand-purple/30">
+                {community.avatarUrl ? (
+                  <img src={community.avatarUrl} alt={community.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-purple/30 to-brand-blue/30">
+                    <Film className="w-8 h-8 text-white/60" />
+                  </div>
                 )}
               </div>
-              <p className="text-sm text-slate-400 max-w-xl">{community.description}</p>
-              <div className="flex items-center justify-center md:justify-start gap-4 text-xs font-semibold text-slate-500 pt-2">
-                <span className="flex items-center"><Users className="w-3.5 h-3.5 mr-1" /> {community._count.members} Members</span>
-                <span className="flex items-center"><MessageSquare className="w-3.5 h-3.5 mr-1" /> {community._count.communityPosts} Discussions</span>
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-2 border-brand-dark" />
+            </div>
+
+            {/* Community Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">{community.name}</h1>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-brand-purple/20 text-brand-purple border border-brand-purple/30">
+                  {community.type?.replace("_", " ")}
+                </span>
+              </div>
+              <p className="text-slate-300 text-sm mt-1 line-clamp-2 max-w-2xl">{community.description}</p>
+              <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
+                <span className="flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5 text-brand-blue" />
+                  <strong className="text-white">{community._count?.members?.toLocaleString()}</strong> members
+                </span>
+                <span className="flex items-center gap-1">
+                  <MessageSquare className="w-3.5 h-3.5 text-brand-purple" />
+                  <strong className="text-white">{community._count?.communityPosts?.toLocaleString()}</strong> posts
+                </span>
+                <span className="hidden md:flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" />
+                  Created {formatDistanceToNow(new Date(community.createdAt), { addSuffix: true })}
+                </span>
               </div>
             </div>
-          </div>
-          
-          <button
-            onClick={handleJoinToggle}
-            disabled={actionLoading}
-            className={`py-2.5 px-6 rounded-xl font-bold text-sm transition flex items-center gap-2 ${
-              isMember
-                ? "bg-slate-900 border border-white/10 text-slate-300 hover:bg-slate-800 hover:text-white"
-                : "bg-green-500 hover:bg-green-400 text-slate-950"
-            }`}
-          >
-            {isMember ? (
-              <>
-                <LogOut className="w-4 h-4" />
-                <span>Leave</span>
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4" />
-                <span>Join Community</span>
-              </>
-            )}
-          </button>
-        </GlassCard>
 
-        {/* Subtabs selection */}
-        <div className="flex items-center gap-4 border-b border-white/5 pb-3 mb-6">
-          {[
-            { id: "discussions", label: "Discussions", icon: MessageSquare },
-            { id: "events", label: "Events", icon: CalendarIcon },
-            { id: "members", label: "Members", icon: Users },
-          ].map(tab => {
-            const Icon = tab.icon;
-            return (
+            {/* Actions */}
+            <div className="flex items-center gap-2 shrink-0">
               <button
-                key={tab.id}
-                onClick={() => setActiveSubTab(tab.id as any)}
-                className={`flex items-center gap-2 pb-2 text-sm font-bold border-b-2 transition-all -mb-[14px] ${
-                  activeSubTab === tab.id
-                    ? "border-green-400 text-green-400"
-                    : "border-transparent text-slate-500 hover:text-white"
+                onClick={() => navigator.clipboard.writeText(window.location.href)}
+                className="hidden md:flex items-center gap-2 py-2 px-4 rounded-xl border border-white/10 bg-white/5 text-xs font-bold text-white hover:bg-white/10 transition active:scale-95"
+              >
+                <Share2 className="w-4 h-4" />
+                Share
+              </button>
+              <button
+                onClick={handleJoinToggle}
+                disabled={actionLoading}
+                className={`flex items-center gap-2 py-2 px-5 rounded-xl text-xs font-bold transition active:scale-95 disabled:opacity-50 ${
+                  isMember
+                    ? "bg-white/10 border border-white/20 text-white hover:bg-red-500/20 hover:border-red-500/30 hover:text-red-400"
+                    : "bg-gradient-to-r from-brand-blue to-brand-purple text-white shadow-lg shadow-brand-purple/30 hover:opacity-90"
                 }`}
               >
-                <Icon className="w-4 h-4" />
-                {tab.label}
+                {isMember ? <><LogOut className="w-4 h-4" />Leave</> : <><Plus className="w-4 h-4" />Join</>}
               </button>
-            );
-          })}
+            </div>
+          </div>
         </div>
+      </div>
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* Left Column (Main Area) */}
-          <div className="lg:col-span-8 space-y-6">
-            
-            {activeSubTab === "discussions" && (
-              <>
-                {isMember ? (
-                  <PostComposer onPostCreated={fetchCommunityDetails} communityId={community.id} />
-                ) : (
-                  <div className="p-4 bg-white/3 border border-white/5 rounded-2xl text-center text-xs text-slate-400">
-                    Join this community to share your thoughts.
+      {/* ═══════════ TAB NAV ═══════════ */}
+      <div className="sticky top-0 z-20 bg-brand-dark/90 backdrop-blur-xl border-b border-white/5">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-4 py-3.5 text-xs font-bold whitespace-nowrap border-b-2 transition-all ${
+                  activeTab === tab.id
+                    ? "border-brand-purple text-white"
+                    : "border-transparent text-slate-500 hover:text-slate-300"
+                }`}
+              >
+                {tab.icon}
+                {tab.label}
+                {tab.count !== undefined && (
+                  <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${
+                    activeTab === tab.id ? "bg-brand-purple/20 text-brand-purple" : "bg-white/5 text-slate-500"
+                  }`}>{tab.count}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════ MAIN CONTENT ═══════════ */}
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="flex gap-6">
+
+          {/* ── CENTER FEED ── */}
+          <div className="flex-1 min-w-0 space-y-4">
+
+            {/* ── POSTS TAB ── */}
+            {activeTab === "posts" && (
+              <div className="space-y-4">
+                {/* Composer */}
+                {isMember && (
+                  <div className="bg-slate-900/60 border border-white/8 rounded-2xl p-5 backdrop-blur-md">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-full bg-brand-purple/20 flex items-center justify-center shrink-0">
+                        <MessageSquare className="w-4 h-4 text-brand-purple" />
+                      </div>
+                      <div className="flex-1 space-y-3">
+                        <textarea
+                          value={composerContent}
+                          onChange={e => setComposerContent(e.target.value)}
+                          placeholder={`Share something with ${community.name}...`}
+                          rows={3}
+                          className="w-full bg-transparent text-white placeholder-slate-500 resize-none outline-none text-sm leading-relaxed"
+                        />
+                        {composerImage && (
+                          <div className="relative w-full max-h-48 rounded-xl overflow-hidden border border-white/10">
+                            <img src={composerImage} alt="attachment" className="w-full max-h-48 object-contain" />
+                            <button onClick={() => setComposerImage(null)} className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-white hover:bg-black/80 transition">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between border-t border-white/5 pt-3">
+                          <div className="flex gap-1">
+                            <input type="file" ref={composerFileRef} onChange={handleComposerImage} accept="image/*" className="hidden" />
+                            <button onClick={() => composerFileRef.current?.click()} className="p-2 rounded-lg text-brand-blue hover:bg-brand-blue/10 transition" title="Attach image">
+                              <ImageIcon className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => setSpoilerTag(s => !s)} className={`p-2 rounded-lg transition ${spoilerTag ? "text-red-400 bg-red-400/10" : "text-slate-500 hover:bg-white/5"}`} title="Spoiler">
+                              <EyeOff className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-slate-600">{composerContent.length}/500</span>
+                            <button
+                              onClick={handleSubmitPost}
+                              disabled={(!composerContent.trim() && !composerImage) || submittingPost}
+                              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-purple text-white text-xs font-bold hover:opacity-90 transition active:scale-95 disabled:opacity-40"
+                            >
+                              {submittingPost ? "Posting..." : <><Send className="w-3.5 h-3.5" />Post</>}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                <div className="space-y-4">
-                  {community.communityPosts && community.communityPosts.length > 0 ? (
-                    community.communityPosts.map((cp: any) => (
-                      <PostCard key={cp.post.id} post={cp.post} onUpdate={fetchCommunityDetails} />
-                    ))
-                  ) : (
-                    <div className="text-center py-20 bg-slate-900/50 rounded-2xl border border-white/5">
-                      <MessageSquare className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                      <h3 className="text-lg font-bold text-white mb-1">No posts yet</h3>
-                      <p className="text-sm text-slate-500">Be the first to start a discussion in {community.name}.</p>
-                    </div>
-                  )}
-                </div>
-              </>
+                {/* Posts list */}
+                {posts.length === 0 ? (
+                  <EmptyState
+                    icon={<MessageSquare className="w-12 h-12 text-slate-700" />}
+                    title="No posts yet"
+                    desc={isMember ? "Be the first to post in this community." : "Join this community to start posting."}
+                  />
+                ) : (
+                  posts.map((post: any) => (
+                    <PostCard key={post.id} post={post} onUpdate={loadCommunity} />
+                  ))
+                )}
+              </div>
             )}
 
-            {activeSubTab === "events" && (
+            {/* ── REVIEWS TAB ── */}
+            {activeTab === "reviews" && (
+              <div className="space-y-4">
+                {loadingReviews ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-32 w-full" />
+                  ))
+                ) : reviews.length === 0 ? (
+                  <EmptyState
+                    icon={<Star className="w-12 h-12 text-slate-700" />}
+                    title="No reviews yet"
+                    desc="Community members haven't shared any movie reviews yet."
+                  />
+                ) : (
+                  reviews.map((rev: any) => (
+                    <Link key={rev.id} href={`/dashboard/movies/${rev.movieId}`} className="block group">
+                      <div className="bg-slate-900/60 border border-white/8 rounded-2xl p-5 hover:border-brand-blue/30 transition-all">
+                        <div className="flex items-start gap-4">
+                          {rev.movie?.posterPath && (
+                            <img
+                              src={`https://image.tmdb.org/t/p/w92${rev.movie.posterPath}`}
+                              alt={rev.movie.title}
+                              className="w-12 h-16 object-cover rounded-lg border border-white/10 shrink-0"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <img
+                                  src={rev.user?.profile?.avatarUrl || DEFAULT_AVATAR}
+                                  alt=""
+                                  className="w-7 h-7 rounded-full border border-white/10 shrink-0 object-cover"
+                                />
+                                <span className="text-xs font-bold text-slate-300">{rev.user?.profile?.username}</span>
+                                <span className="text-slate-600 text-xs">reviewed</span>
+                                <span className="text-xs font-bold text-white truncate">{rev.movie?.title}</span>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                                <span className="text-sm font-bold text-amber-400">{rev.rating}/10</span>
+                              </div>
+                            </div>
+                            <p className="text-sm text-slate-300 mt-2 line-clamp-3 leading-relaxed">{rev.content}</p>
+                            <div className="flex items-center gap-3 mt-3 text-[10px] text-slate-500">
+                              <span className="flex items-center gap-1"><Heart className="w-3 h-3" />{rev._count?.likes || 0}</span>
+                              <span className="flex items-center gap-1"><MessageSquare className="w-3 h-3" />{rev._count?.comments || 0}</span>
+                              <span className="ml-auto">{formatDistanceToNow(new Date(rev.createdAt), { addSuffix: true })}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* ── EVENTS TAB ── */}
+            {activeTab === "events" && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">Upcoming Community Events</h3>
-                  {canManage && (
-                    <button
-                      onClick={() => setShowEventModal(true)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-purple/20 border border-brand-purple/30 text-brand-purple text-xs font-bold rounded-lg hover:bg-brand-purple/30 transition"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Add Event
+                  <h2 className="text-base font-bold text-white">Upcoming Events</h2>
+                  {isMember && (
+                    <button onClick={() => setShowEventModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-purple text-white text-xs font-bold hover:opacity-90 transition active:scale-95">
+                      <Plus className="w-3.5 h-3.5" />Create Event
                     </button>
                   )}
                 </div>
 
                 {events.length === 0 ? (
-                  <div className="text-center py-16 bg-slate-900/30 rounded-2xl border border-white/5">
-                    <CalendarIcon className="w-12 h-12 text-slate-700 mx-auto mb-3" />
-                    <p className="font-bold text-white text-sm">No events scheduled</p>
-                    <p className="text-xs text-slate-500 mt-0.5">Stay tuned or check back later.</p>
-                  </div>
+                  <EmptyState
+                    icon={<Calendar className="w-12 h-12 text-slate-700" />}
+                    title="No upcoming events"
+                    desc="Be the first to create an event for this community."
+                  />
                 ) : (
                   <div className="space-y-3">
-                    {events.map((ev: any) => {
-                      const eventDate = new Date(ev.date);
-                      return (
-                        <GlassCard key={ev.id} hoverGlow={false} className="p-4 border-white/5 bg-slate-900/60 flex items-start gap-4">
-                          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-brand-purple/20 to-brand-blue/20 border border-brand-purple/20 flex flex-col items-center justify-center shrink-0 text-center">
-                            <span className="text-lg font-black text-brand-purple leading-none">{eventDate.getDate()}</span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">{eventDate.toLocaleString("default", { month: "short" })}</span>
+                    {events.map((ev: any) => (
+                      <div key={ev.id} className="bg-slate-900/60 border border-white/8 rounded-2xl p-5 hover:border-brand-purple/30 transition-all">
+                        <div className="flex items-start gap-4">
+                          <div className="shrink-0 w-14 h-14 rounded-xl bg-brand-purple/10 border border-brand-purple/20 flex flex-col items-center justify-center text-center">
+                            <span className="text-xs font-bold text-brand-purple uppercase">{format(new Date(ev.date), "MMM")}</span>
+                            <span className="text-lg font-extrabold text-white leading-none">{format(new Date(ev.date), "d")}</span>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-bold text-white">{ev.title}</h4>
-                            {ev.description && <p className="text-xs text-slate-400 mt-0.5">{ev.description}</p>}
-                            {ev.movieTitle && <span className="text-[10px] text-brand-purple font-semibold mt-1.5 block">🎬 Featured Movie: {ev.movieTitle}</span>}
-                            <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-500">
-                              <span>Created by {ev.creator.profile?.username || "Admin"}</span>
-                              <span className="w-1 h-1 rounded-full bg-slate-600" />
-                              <span>{ev._count?.rsvps || 0} going</span>
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <h3 className="text-sm font-bold text-white">{ev.title}</h3>
+                                {ev.movieTitle && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] text-brand-blue mt-0.5">
+                                    <Film className="w-3 h-3" />{ev.movieTitle}
+                                  </span>
+                                )}
+                              </div>
+                              <Countdown date={new Date(ev.date)} />
+                            </div>
+                            {ev.description && (
+                              <p className="text-xs text-slate-400 mt-1.5 line-clamp-2">{ev.description}</p>
+                            )}
+                            <div className="flex items-center gap-3 mt-3">
+                              <div className="flex items-center gap-1 text-xs text-slate-500">
+                                <Users className="w-3 h-3" />
+                                <span>{ev._count?.rsvps || 0} going</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-slate-500">
+                                <Clock className="w-3 h-3" />
+                                {format(new Date(ev.date), "h:mm a")}
+                              </div>
+                              {isMember && (
+                                <div className="ml-auto flex items-center gap-1">
+                                  {(["GOING", "INTERESTED"] as const).map(status => (
+                                    <button
+                                      key={status}
+                                      onClick={() => handleRSVP(ev.id, status)}
+                                      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition ${
+                                        status === "GOING"
+                                          ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
+                                          : "border-brand-blue/30 text-brand-blue bg-brand-blue/10 hover:bg-brand-blue/20"
+                                      }`}
+                                    >
+                                      {status === "GOING" ? "Going" : "Interested"}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-1.5 self-center shrink-0">
-                            <button onClick={() => handleRsvp(ev.id, "GOING")} className="px-2.5 py-1 bg-green-500/20 border border-green-500/30 text-green-400 text-[10px] font-bold rounded-lg hover:bg-green-500/30 transition">
-                              Going
-                            </button>
-                            <button onClick={() => handleRsvp(ev.id, "INTERESTED")} className="px-2.5 py-1 bg-white/5 border border-white/10 text-slate-400 text-[10px] font-bold rounded-lg hover:text-white transition">
-                              Interested
-                            </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Create Event Modal */}
+                {showEventModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                    <div className="w-full max-w-md bg-slate-950 border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+                      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+                        <h3 className="text-sm font-bold text-white">Create Community Event</h3>
+                        <button onClick={() => setShowEventModal(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <form onSubmit={handleCreateEvent} className="p-6 space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Event Title</label>
+                          <input
+                            required
+                            value={newEvent.title}
+                            onChange={e => setNewEvent(p => ({ ...p, title: e.target.value }))}
+                            placeholder="e.g. Watch Party: Interstellar"
+                            className="w-full py-2.5 px-4 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple/60 transition"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Description</label>
+                          <textarea
+                            rows={3}
+                            value={newEvent.description}
+                            onChange={e => setNewEvent(p => ({ ...p, description: e.target.value }))}
+                            placeholder="What should members know about this event?"
+                            className="w-full py-2.5 px-4 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple/60 transition resize-none"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Date & Time</label>
+                            <input
+                              type="datetime-local"
+                              required
+                              value={newEvent.date}
+                              onChange={e => setNewEvent(p => ({ ...p, date: e.target.value }))}
+                              className="w-full py-2.5 px-4 rounded-xl bg-white/5 border border-white/10 text-sm text-white focus:outline-none focus:border-brand-purple/60 transition"
+                            />
                           </div>
-                        </GlassCard>
-                      );
-                    })}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Movie (optional)</label>
+                            <input
+                              value={newEvent.movieTitle}
+                              onChange={e => setNewEvent(p => ({ ...p, movieTitle: e.target.value }))}
+                              placeholder="e.g. Interstellar"
+                              className="w-full py-2.5 px-4 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple/60 transition"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-3 pt-2">
+                          <button type="button" onClick={() => setShowEventModal(false)} className="px-4 py-2 rounded-xl border border-white/10 text-sm text-slate-300 hover:text-white hover:bg-white/5 transition">
+                            Cancel
+                          </button>
+                          <button type="submit" disabled={creatingEvent} className="px-5 py-2 rounded-xl bg-gradient-to-r from-brand-blue to-brand-purple text-white text-sm font-bold hover:opacity-90 transition active:scale-95 disabled:opacity-50">
+                            {creatingEvent ? "Creating..." : "Create Event"}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
                   </div>
                 )}
               </div>
             )}
 
-            {activeSubTab === "members" && (
+            {/* ── MEMBERS TAB ── */}
+            {activeTab === "members" && (
               <div className="space-y-4">
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Community Members</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {community.members?.map((m: any) => (
-                    <GlassCard key={m.user.id} hoverGlow={false} className="p-3 border-white/5 bg-slate-900/40 flex items-center gap-3">
-                      <img src={m.user.profile?.avatarUrl || DEFAULT_AVATAR} alt="" className="w-9 h-9 rounded-full object-cover border border-white/15" />
-                      <div className="min-w-0">
-                        <Link href={`/dashboard/profile/${m.user.id}`} className="text-xs font-bold text-white hover:underline truncate block">
-                          {m.user.profile?.username || "cinephile"}
-                        </Link>
-                        <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mt-0.5">{m.role}</span>
-                      </div>
-                    </GlassCard>
-                  ))}
+                {/* Controls */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      value={memberSearch}
+                      onChange={e => setMemberSearch(e.target.value)}
+                      placeholder="Search members..."
+                      className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-purple/60 transition"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={memberSort}
+                      onChange={e => setMemberSort(e.target.value as MemberSort)}
+                      className="py-2.5 px-3 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300 focus:outline-none"
+                    >
+                      <option value="newest">Newest</option>
+                      <option value="oldest">Oldest</option>
+                      <option value="role">By Role</option>
+                    </select>
+                    <button onClick={() => setMemberView("grid")} className={`p-2.5 rounded-xl border transition ${memberView === "grid" ? "border-brand-purple/40 bg-brand-purple/10 text-brand-purple" : "border-white/10 text-slate-500 hover:text-white"}`}>
+                      <Grid3x3 className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setMemberView("list")} className={`p-2.5 rounded-xl border transition ${memberView === "list" ? "border-brand-purple/40 bg-brand-purple/10 text-brand-purple" : "border-white/10 text-slate-500 hover:text-white"}`}>
+                      <List className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
+
+                {loadingMembers ? (
+                  <div className={`grid gap-3 ${memberView === "grid" ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4" : "grid-cols-1"}`}>
+                    {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
+                  </div>
+                ) : filteredMembers.length === 0 ? (
+                  <EmptyState
+                    icon={<Users className="w-12 h-12 text-slate-700" />}
+                    title="No members found"
+                    desc={memberSearch ? "Try a different search term." : "Be the first to join this community."}
+                  />
+                ) : memberView === "grid" ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {filteredMembers.map((m: any) => (
+                      <Link key={m.id} href={`/dashboard/profile/${m.user?.id}`} className="group block">
+                        <div className="bg-slate-900/60 border border-white/8 rounded-2xl p-4 text-center hover:border-brand-purple/30 transition-all group-hover:shadow-lg group-hover:shadow-brand-purple/10">
+                          <img
+                            src={m.user?.profile?.avatarUrl || DEFAULT_AVATAR}
+                            alt={m.user?.profile?.username}
+                            className="w-14 h-14 rounded-full object-cover border-2 border-white/10 mx-auto mb-2 group-hover:border-brand-purple/40 transition"
+                          />
+                          <p className="text-xs font-bold text-white truncate">{m.user?.profile?.username || "Anonymous"}</p>
+                          <span className={`inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold border ${roleColor(m.role)}`}>
+                            {roleIcon(m.role)}{m.role}
+                          </span>
+                          <p className="text-[10px] text-slate-500 mt-1.5">
+                            Joined {formatDistanceToNow(new Date(m.joinedAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredMembers.map((m: any) => (
+                      <Link key={m.id} href={`/dashboard/profile/${m.user?.id}`} className="block group">
+                        <div className="bg-slate-900/60 border border-white/8 rounded-xl p-4 flex items-center gap-3 hover:border-brand-purple/30 transition-all">
+                          <img
+                            src={m.user?.profile?.avatarUrl || DEFAULT_AVATAR}
+                            alt=""
+                            className="w-10 h-10 rounded-full object-cover border border-white/10 shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-white">{m.user?.profile?.username || "Anonymous"}</p>
+                            <p className="text-[10px] text-slate-500">{m.user?.profile?.bio?.slice(0, 60) || "No bio"}</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border ${roleColor(m.role)}`}>
+                              {roleIcon(m.role)}{m.role}
+                            </span>
+                            <span className="text-[10px] text-slate-600">
+                              {formatDistanceToNow(new Date(m.joinedAt), { addSuffix: true })}
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── ABOUT TAB ── */}
+            {activeTab === "about" && (
+              <div className="space-y-5">
+                {/* Description */}
+                <div className="bg-slate-900/60 border border-white/8 rounded-2xl p-6">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">About</h3>
+                  <p className="text-sm text-slate-300 leading-relaxed">{community.description}</p>
+                  <div className="grid grid-cols-2 gap-4 mt-5 pt-5 border-t border-white/5">
+                    {[
+                      { label: "Members", value: community._count?.members?.toLocaleString(), icon: <Users className="w-4 h-4 text-brand-blue" /> },
+                      { label: "Posts", value: community._count?.communityPosts?.toLocaleString(), icon: <MessageSquare className="w-4 h-4 text-brand-purple" /> },
+                      { label: "Type", value: community.type?.replace("_", " "), icon: <Globe className="w-4 h-4 text-emerald-400" /> },
+                      { label: "Created", value: format(new Date(community.createdAt), "MMM d, yyyy"), icon: <Calendar className="w-4 h-4 text-amber-400" /> },
+                    ].map(item => (
+                      <div key={item.label} className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">{item.icon}</div>
+                        <div>
+                          <p className="text-[10px] text-slate-500 uppercase tracking-wide">{item.label}</p>
+                          <p className="text-sm font-bold text-white">{item.value}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Rules */}
+                {community.rules?.length > 0 && (
+                  <div className="bg-slate-900/60 border border-white/8 rounded-2xl p-6">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Community Rules</h3>
+                    <ol className="space-y-3">
+                      {community.rules.map((rule: string, i: number) => (
+                        <li key={i} className="flex items-start gap-3">
+                          <span className="w-6 h-6 rounded-full bg-brand-purple/20 border border-brand-purple/30 flex items-center justify-center text-[10px] font-bold text-brand-purple shrink-0 mt-0.5">{i + 1}</span>
+                          <p className="text-sm text-slate-300 leading-relaxed">{rule}</p>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+
+                {/* Moderators */}
+                {community.members?.filter((m: any) => ["OWNER", "ADMIN", "MODERATOR"].includes(m.role)).length > 0 && (
+                  <div className="bg-slate-900/60 border border-white/8 rounded-2xl p-6">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Moderators</h3>
+                    <div className="space-y-3">
+                      {community.members
+                        .filter((m: any) => ["OWNER", "ADMIN", "MODERATOR"].includes(m.role))
+                        .map((m: any) => (
+                          <Link key={m.id} href={`/dashboard/profile/${m.user?.id}`} className="flex items-center gap-3 group">
+                            <img src={m.user?.profile?.avatarUrl || DEFAULT_AVATAR} alt="" className="w-9 h-9 rounded-full object-cover border border-white/10" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-white group-hover:text-brand-purple transition">{m.user?.profile?.username}</p>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border flex items-center gap-1 ${roleColor(m.role)}`}>
+                              {roleIcon(m.role)}{m.role}
+                            </span>
+                          </Link>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
           </div>
 
-          {/* Right Column (Sidebar details) */}
-          <div className="lg:col-span-4 space-y-6">
-            <div className="space-y-3.5">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center space-x-2">
-                <Shield className="w-4 h-4 text-brand-blue" />
-                <span>About Community</span>
-              </h3>
-              <GlassCard hoverGlow={false} className="p-4 border-white/5 space-y-3">
-                <p className="text-sm text-slate-300 leading-relaxed">{community.description}</p>
-                <hr className="border-white/5" />
-                <div className="text-xs text-slate-500 space-y-1">
-                  <p>Created: {new Date(community.createdAt).toLocaleDateString()}</p>
-                  <p>Type: {community.type}</p>
+          {/* ── RIGHT PANEL ── */}
+          <div className="w-72 shrink-0 hidden lg:block">
+            <div className="sticky top-20 space-y-4">
+
+              {/* Community Stats */}
+              <div className="bg-slate-900/60 border border-white/8 rounded-2xl p-5">
+                <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-4">Community Stats</h3>
+                <div className="space-y-3">
+                  {[
+                    { label: "Members", value: community._count?.members || 0, icon: <Users className="w-4 h-4 text-brand-blue" />, color: "text-brand-blue" },
+                    { label: "Total Posts", value: community._count?.communityPosts || 0, icon: <MessageSquare className="w-4 h-4 text-brand-purple" />, color: "text-brand-purple" },
+                    { label: "Events", value: community._count?.communityEvents || 0, icon: <Calendar className="w-4 h-4 text-emerald-400" />, color: "text-emerald-400" },
+                  ].map(stat => (
+                    <div key={stat.label} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {stat.icon}
+                        <span className="text-xs text-slate-400">{stat.label}</span>
+                      </div>
+                      <span className={`text-sm font-bold ${stat.color}`}>{stat.value.toLocaleString()}</span>
+                    </div>
+                  ))}
                 </div>
-              </GlassCard>
+              </div>
+
+              {/* Leaderboard */}
+              {leaderboard.length > 0 && (
+                <div className="bg-slate-900/60 border border-white/8 rounded-2xl p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Trophy className="w-4 h-4 text-brand-gold" />
+                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Top Contributors</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {leaderboard.slice(0, 5).map((m: any, i: number) => (
+                      <Link key={m.id} href={`/dashboard/profile/${m.user?.id}`} className="flex items-center gap-3 group">
+                        <span className={`text-xs font-black w-5 text-center ${i === 0 ? "text-brand-gold" : i === 1 ? "text-slate-300" : i === 2 ? "text-amber-600" : "text-slate-600"}`}>
+                          {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
+                        </span>
+                        <img src={m.user?.profile?.avatarUrl || DEFAULT_AVATAR} alt="" className="w-7 h-7 rounded-full object-cover border border-white/10" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-white truncate group-hover:text-brand-purple transition">{m.user?.profile?.username || "Anonymous"}</p>
+                        </div>
+                        <span className="text-[10px] text-slate-500 shrink-0">{m.user?._count?.posts || 0}p</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Upcoming Events */}
+              {events.length > 0 && (
+                <div className="bg-slate-900/60 border border-white/8 rounded-2xl p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Calendar className="w-4 h-4 text-emerald-400" />
+                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Upcoming Events</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {events.slice(0, 3).map((ev: any) => (
+                      <div key={ev.id} className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-brand-purple/10 border border-brand-purple/20 flex flex-col items-center justify-center shrink-0">
+                          <span className="text-[8px] font-bold text-brand-purple uppercase">{format(new Date(ev.date), "MMM")}</span>
+                          <span className="text-xs font-extrabold text-white">{format(new Date(ev.date), "d")}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-white truncate">{ev.title}</p>
+                          <p className="text-[10px] text-slate-500">{ev._count?.rsvps || 0} attending</p>
+                        </div>
+                      </div>
+                    ))}
+                    <button onClick={() => setActiveTab("events")} className="w-full text-[10px] text-brand-blue font-bold text-center hover:text-brand-purple transition pt-1">
+                      View all events →
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Community Rules (compact) */}
+              {community.rules?.length > 0 && (
+                <div className="bg-slate-900/60 border border-white/8 rounded-2xl p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Shield className="w-4 h-4 text-slate-400" />
+                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Rules</h3>
+                  </div>
+                  <ol className="space-y-2">
+                    {community.rules.slice(0, 5).map((rule: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-[10px] font-black text-brand-purple shrink-0 mt-0.5">{i + 1}.</span>
+                        <p className="text-[11px] text-slate-400 leading-snug line-clamp-2">{rule}</p>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              {/* Recent Members */}
+              {community.members?.length > 0 && (
+                <div className="bg-slate-900/60 border border-white/8 rounded-2xl p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Users className="w-4 h-4 text-slate-400" />
+                    <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Recent Members</h3>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {community.members.slice(0, 12).map((m: any) => (
+                      <Link key={m.id} href={`/dashboard/profile/${m.user?.id}`} title={m.user?.profile?.username}>
+                        <img
+                          src={m.user?.profile?.avatarUrl || DEFAULT_AVATAR}
+                          alt={m.user?.profile?.username}
+                          className="w-8 h-8 rounded-full object-cover border border-white/10 hover:border-brand-purple/40 hover:scale-110 transition"
+                        />
+                      </Link>
+                    ))}
+                  </div>
+                  <button onClick={() => setActiveTab("members")} className="w-full text-[10px] text-brand-blue font-bold text-center hover:text-brand-purple transition mt-3">
+                    View all {community._count?.members} members →
+                  </button>
+                </div>
+              )}
+
+              {/* AI Spotlight — Coming Soon */}
+              <div className="bg-gradient-to-br from-brand-purple/10 to-brand-blue/10 border border-brand-purple/20 rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-4 h-4 text-brand-purple" />
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-brand-purple">AI Features</h3>
+                  <span className="ml-auto px-1.5 py-0.5 rounded-full bg-brand-purple/20 text-brand-purple text-[9px] font-bold">SOON</span>
+                </div>
+                <div className="space-y-2">
+                  {["AI Discussion Prompts", "Auto Film Recommendations", "Community Sentiment", "Spoiler Detection"].map(f => (
+                    <div key={f} className="flex items-center gap-2 opacity-50">
+                      <div className="w-1.5 h-1.5 rounded-full bg-brand-purple" />
+                      <p className="text-[11px] text-slate-400">{f}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
             </div>
           </div>
-
         </div>
-
       </div>
+    </div>
+  );
+}
 
-      {/* CREATE EVENT MODAL */}
-      {showEventModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-white">Create Event</h2>
-              <button onClick={() => setShowEventModal(false)} className="text-slate-400 hover:text-white"><Plus className="w-5 h-5 rotate-45" /></button>
-            </div>
-            <form onSubmit={handleCreateEvent} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Event Title</label>
-                <input type="text" value={newEvent.title} onChange={e => setNewEvent({ ...newEvent, title: e.target.value })}
-                  className="w-full p-3 bg-slate-950 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-brand-purple" placeholder="e.g. Inception Rewatch Discussion" required />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Featured Movie (Optional)</label>
-                <input type="text" value={newEvent.movieTitle} onChange={e => setNewEvent({ ...newEvent, movieTitle: e.target.value })}
-                  className="w-full p-3 bg-slate-950 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-brand-purple" placeholder="e.g. Inception" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Event Date & Time</label>
-                <input type="datetime-local" value={newEvent.date} onChange={e => setNewEvent({ ...newEvent, date: e.target.value })}
-                  className="w-full p-3 bg-slate-950 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-brand-purple" required />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Description</label>
-                <textarea value={newEvent.description} onChange={e => setNewEvent({ ...newEvent, description: e.target.value })}
-                  className="w-full p-3 bg-slate-950 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-brand-purple resize-none" rows={3} placeholder="Tell members about the event details..." />
-              </div>
-              <div className="flex justify-end gap-3 pt-3 border-t border-white/5">
-                <button type="button" onClick={() => setShowEventModal(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white transition">Cancel</button>
-                <button type="submit" disabled={actionLoading} className="px-5 py-2 bg-gradient-to-r from-brand-blue to-brand-purple text-white font-bold rounded-xl text-sm disabled:opacity-50">
-                  {actionLoading ? "Saving..." : "Create Event"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
+// ─── Shared Components ────────────────────────────────────────────────────────
+function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center bg-slate-900/30 border border-white/5 rounded-2xl gap-3">
+      {icon}
+      <h3 className="text-base font-bold text-white">{title}</h3>
+      <p className="text-sm text-slate-500 max-w-xs">{desc}</p>
     </div>
   );
 }
