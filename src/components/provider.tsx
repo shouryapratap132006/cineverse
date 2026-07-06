@@ -94,7 +94,7 @@ function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
       bio: dbUser?.profile?.bio,
       favoriteGenres: dbUser?.profile?.favoriteGenres,
       favoriteMovies: dbUser?.profile?.favoriteMovies,
-      isOnboarded: !!dbUser?.profile?.favoriteGenres?.length || localStorage.getItem("cineverse_onboarded") === "true",
+      isOnboarded: !!(dbUser?.profile?.favoriteGenres?.length),
     } : null,
     signIn: () => false,
     signUp: () => false,

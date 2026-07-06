@@ -123,9 +123,9 @@ function OnboardingForm() {
             if (p.favoriteActors?.length) setActors(p.favoriteActors.join(", "));
             if (p.favoriteDirectors?.length) setDirectors(p.favoriteDirectors.join(", "));
 
-            // Skip redirect if user is in edit mode
+            // Skip redirect if user is in edit mode or is a new user
             if (!isEditMode && !res.isNewUser && p.favoriteGenres && p.favoriteGenres.length > 0) {
-              router.replace("/dashboard");
+              window.location.href = "/dashboard";
             }
           }
         });
@@ -177,7 +177,7 @@ function OnboardingForm() {
           favoriteMovies: selectedMovies,
           isOnboarded: true,
         });
-        router.push(isEditMode ? "/dashboard/profile" : "/dashboard");
+        window.location.href = isEditMode ? "/dashboard/profile" : "/dashboard";
       } else {
         alert("Failed to update profile: " + res.error);
         setIsSubmitting(false);
