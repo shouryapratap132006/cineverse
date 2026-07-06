@@ -116,7 +116,7 @@ export default function PostComposer({
       content: content.trim(),
       spoilerTag: spoiler,
       imageUrl: attachedImage || undefined,
-      movieId: attachedMovie?.id || undefined,
+      movieId: attachedMovie?.id?.toString() || undefined,
       poll,
     };
 
@@ -134,6 +134,8 @@ export default function PostComposer({
       setPollOptions(["", ""]);
       setAudience("feed");
       if (onPostCreated) onPostCreated();
+    } else {
+      alert("Failed to post: " + res.error);
     }
     setIsSubmitting(false);
   };

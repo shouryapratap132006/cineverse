@@ -9,50 +9,46 @@ import { syncUserAccount, updateProfile } from "@/actions/user";
 import { getTrendingMovies, Movie } from "@/lib/tmdb";
 import { useAuth, useUser } from "@clerk/nextjs";
 
-// Real actor & actress headshot photos
+// Hollywood & Bollywood actor/actress avatars (TMDB profile images)
 const ACTOR_AVATARS = [
-  // Male actors
-  { url: "https://randomuser.me/api/portraits/men/1.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/2.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/3.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/4.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/5.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/6.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/7.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/8.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/9.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/10.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/11.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/12.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/13.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/14.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/15.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/16.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/17.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/18.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/19.jpg" },
-  { url: "https://randomuser.me/api/portraits/men/20.jpg" },
-  // Female actresses
-  { url: "https://randomuser.me/api/portraits/women/1.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/2.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/3.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/4.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/5.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/6.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/7.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/8.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/9.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/10.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/11.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/12.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/13.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/14.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/15.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/16.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/17.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/18.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/19.jpg" },
-  { url: "https://randomuser.me/api/portraits/women/20.jpg" },
+  // Hollywood Male
+  { name: "Leonardo DiCaprio",  url: "https://image.tmdb.org/t/p/w185/mkdRcVIQl4WZhDf1vXKWTD7HZrZ.jpg" },
+  { name: "Tom Hanks",          url: "https://image.tmdb.org/t/p/w185/oFvZoKI6lvU03n4YoNGAll9rkas.jpg" },
+  { name: "Robert Downey Jr.",  url: "https://image.tmdb.org/t/p/w185/5qHNjhtjMD4YWH3UP0rm4tKwxCL.jpg" },
+  { name: "Brad Pitt",          url: "https://image.tmdb.org/t/p/w185/m09Y1YfPPeNYYUSHnnVqahkrC1o.jpg" },
+  { name: "Denzel Washington",  url: "https://image.tmdb.org/t/p/w185/jj2Gcobpopokal0YstuCQW0ldJ4.jpg" },
+  { name: "Morgan Freeman",     url: "https://image.tmdb.org/t/p/w185/jPsLqiYGSofU4s6BjrxnefMfabb.jpg" },
+  { name: "Christian Bale",     url: "https://image.tmdb.org/t/p/w185/7Pxez9J8fuPd2Mn9kex13YALrCQ.jpg" },
+  { name: "Matt Damon",         url: "https://image.tmdb.org/t/p/w185/aCvBXTAR9B1qRjIRzMBYhhbm1fR.jpg" },
+  { name: "Ryan Reynolds",      url: "https://image.tmdb.org/t/p/w185/trzgptffGvAlAT6MEu01fz47cLW.jpg" },
+  { name: "Chris Evans",        url: "https://image.tmdb.org/t/p/w185/3bOGNsHlrswhyW79uvIHH1V43JI.jpg" },
+  { name: "Tom Cruise",         url: "https://image.tmdb.org/t/p/w185/p17SLq4wabXwIYyjXF1Wf5cNnAm.jpg" },
+  { name: "Keanu Reeves",       url: "https://image.tmdb.org/t/p/w185/8RZLOyYGsoRe9p44q3xin9QkMHv.jpg" },
+  // Hollywood Female
+  { name: "Meryl Streep",       url: "https://image.tmdb.org/t/p/w185/g5cVxQBAQ3AXt3LhdBXtbbN47Uc.jpg" },
+  { name: "Scarlett Johansson", url: "https://image.tmdb.org/t/p/w185/druW5adKddizHNSoPbI0q7Mvn0K.jpg" },
+  { name: "Natalie Portman",    url: "https://image.tmdb.org/t/p/w185/edPU5HxncLWa1YkgRPNkSd68ONG.jpg" },
+  { name: "Cate Blanchett",     url: "https://image.tmdb.org/t/p/w185/vUuEHiAR0eD3XEJhg2DWIjymUAA.jpg" },
+  { name: "Jennifer Lawrence",  url: "https://image.tmdb.org/t/p/w185/mDKMsjOMytyBiy7MHNZTa7gp7wj.jpg" },
+  { name: "Emma Stone",         url: "https://image.tmdb.org/t/p/w185/cZ8a3QvAnj2cgcgVL6g4XaqPzpL.jpg" },
+  { name: "Margot Robbie",      url: "https://image.tmdb.org/t/p/w185/8LqG2N6j98lFGMpuYsRUAhOunSd.jpg" },
+  { name: "Zendaya",            url: "https://image.tmdb.org/t/p/w185/3WdOloHpjtjL96uVOhFRRCcYSwq.jpg" },
+  // Bollywood Male
+  { name: "Shah Rukh Khan",     url: "https://image.tmdb.org/t/p/w185/gc3Ul6EtVYKgjBuYAaD8U2qIcSl.jpg" },
+  { name: "Aamir Khan",         url: "https://image.tmdb.org/t/p/w185/6uiZSwi2kvd1jZ7X7Xz9W9VGuV4.jpg" },
+  { name: "Salman Khan",        url: "https://image.tmdb.org/t/p/w185/n7pKtccmf2jVOz8Qn90q2ThqLge.jpg" },
+  { name: "Ranbir Kapoor",      url: "https://image.tmdb.org/t/p/w185/ymYNHV9luwgyrw17NXHqbOWTQkg.jpg" },
+  { name: "Ranveer Singh",      url: "https://image.tmdb.org/t/p/w185/sRiwLmhduFghJo8U2coUafnDD4C.jpg" },
+  { name: "Hrithik Roshan",     url: "https://image.tmdb.org/t/p/w185/5O7WrWe84WDFj7td64NVsobtHf3.jpg" },
+  { name: "Akshay Kumar",       url: "https://image.tmdb.org/t/p/w185/sR8nASRtTpiwXqkFHjG2jdRBZ7a.jpg" },
+  { name: "Prabhas",            url: "https://image.tmdb.org/t/p/w185/u6RVP8ukgLaymeoi5VmX0JRAcCn.jpg" },
+  // Bollywood Female
+  { name: "Deepika Padukone",   url: "https://image.tmdb.org/t/p/w185/rzvvBQ0r6oiqDdzcsdTRB7jN4Rx.jpg" },
+  { name: "Priyanka Chopra",    url: "https://image.tmdb.org/t/p/w185/9n2n3fUFI553HKH0CEAb2TPLtCx.jpg" },
+  { name: "Alia Bhatt",         url: "https://image.tmdb.org/t/p/w185/RBnTJPegPFLBS4VPsNLbf6iAoD.jpg" },
+  { name: "Katrina Kaif",       url: "https://image.tmdb.org/t/p/w185/4EAYTJvGdt4NYl2BUKZMdz4lztR.jpg" },
+  // Hollywood (extra)
+  { name: "Jake Gyllenhaal",    url: "https://image.tmdb.org/t/p/w185/j2Yahha9C0zN5DRaTDzYA7WtdOT.jpg" },
 ];
 
 const BANNERS = [
@@ -274,13 +270,13 @@ function OnboardingForm() {
 
                 <div className="space-y-3">
                   <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400 block">Choose Your Avatar Photo</label>
-                  <div className="grid grid-cols-5 sm:grid-cols-8 gap-2 max-h-52 overflow-y-auto scrollbar-thin pr-1">
-                    {ACTOR_AVATARS.map((a, i) => (
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-64 overflow-y-auto scrollbar-thin pr-1">
+                    {ACTOR_AVATARS.map((a) => (
                       <button
                         key={a.url}
                         type="button"
                         onClick={() => setAvatarUrl(a.url)}
-                        className={`rounded-full border-2 transition overflow-hidden ${
+                        className={`w-14 h-14 flex-shrink-0 rounded-full border-2 transition overflow-hidden ${
                           avatarUrl === a.url
                             ? "border-brand-purple shadow-lg shadow-brand-purple/30 scale-110"
                             : "border-transparent hover:border-white/30 hover:scale-105"
@@ -288,8 +284,9 @@ function OnboardingForm() {
                       >
                         <img
                           src={a.url}
-                          alt={`Avatar ${i + 1}`}
-                          className="w-10 h-10 object-cover block"
+                          alt={a.name}
+                          title={a.name}
+                          className="w-14 h-14 object-cover object-[50%_15%]"
                           loading="lazy"
                         />
                       </button>
@@ -298,8 +295,10 @@ function OnboardingForm() {
                   {/* Preview selected avatar */}
                   {avatarUrl && (
                     <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl">
-                      <img src={avatarUrl} alt="Selected" className="w-10 h-10 rounded-full border-2 border-brand-purple object-cover" />
-                      <span className="text-xs font-semibold text-slate-300">Selected</span>
+                      <img src={avatarUrl} alt="Selected" className="w-14 h-14 rounded-full border-2 border-brand-purple object-cover object-[50%_15%]" />
+                      <span className="text-xs font-semibold text-slate-300">
+                        {ACTOR_AVATARS.find(a => a.url === avatarUrl)?.name || "Selected"}
+                      </span>
                     </div>
                   )}
                 </div>
