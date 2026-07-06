@@ -33,11 +33,7 @@ const GENRES = [
   "Thriller", "Comedy", "Romance", "Documentary", "Horror",
 ];
 
-// Real headshot avatar photos
-const ACTOR_AVATARS = [
-  ...Array.from({ length: 20 }, (_, i) => ({ url: `https://randomuser.me/api/portraits/men/${i + 1}.jpg` })),
-  ...Array.from({ length: 20 }, (_, i) => ({ url: `https://randomuser.me/api/portraits/women/${i + 1}.jpg` })),
-];
+import { ACTOR_AVATARS } from "@/lib/avatars";
 
 export default function ProfilePage() {
   const { user } = useCineverseAuth();
@@ -163,7 +159,7 @@ export default function ProfilePage() {
               {/* Avatar */}
               <div className="relative -mt-20 md:-mt-16">
                 <img
-                  src={profile.avatarUrl || `https://randomuser.me/api/portraits/men/1.jpg`}
+                  src={profile.avatarUrl || `https://image.tmdb.org/t/p/w185/mkdRcVIQl4WZhDf1vXKWTD7HZrZ.jpg`}
                   alt={profile.username}
                   className="w-24 h-24 md:w-28 md:h-28 rounded-full object-cover border-4 border-slate-950 shadow-2xl"
                 />
@@ -430,19 +426,19 @@ export default function ProfilePage() {
                 <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
                   <Camera className="w-3.5 h-3.5" /> Choose Avatar
                 </label>
-                <div className="grid grid-cols-8 gap-1.5 max-h-36 overflow-y-auto pr-1">
-                  {ACTOR_AVATARS.map((a, i) => (
+                <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto pr-1">
+                  {ACTOR_AVATARS.map((a) => (
                     <button
                       key={a.url}
                       type="button"
                       onClick={() => setEditAvatarUrl(a.url)}
-                      className={`rounded-full border-2 overflow-hidden transition ${
+                      className={`w-12 h-12 rounded-full border-2 overflow-hidden transition flex-shrink-0 ${
                         editAvatarUrl === a.url
                           ? "border-brand-purple scale-110 shadow-md shadow-brand-purple/40"
                           : "border-transparent hover:border-white/30 hover:scale-105"
                       }`}
                     >
-                      <img src={a.url} alt={`Avatar ${i + 1}`} className="w-9 h-9 object-cover block" loading="lazy" />
+                      <img src={a.url} alt={a.name} title={a.name} className="w-12 h-12 object-cover object-[50%_15%]" loading="lazy" />
                     </button>
                   ))}
                 </div>

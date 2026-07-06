@@ -11,6 +11,7 @@ import { getCommunity, joinCommunity, leaveCommunity, getUpcomingEvents, createE
 import GlassCard from "@/components/shared/GlassCard";
 import PostComposer from "@/components/social/PostComposer";
 import PostCard from "@/components/social/PostCard";
+import { DEFAULT_AVATAR } from "@/lib/avatars";
 
 export default function CommunityPage() {
   const { slug } = useParams() as { slug: string };
@@ -297,7 +298,7 @@ export default function CommunityPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {community.members?.map((m: any) => (
                     <GlassCard key={m.user.id} hoverGlow={false} className="p-3 border-white/5 bg-slate-900/40 flex items-center gap-3">
-                      <img src={m.user.profile?.avatarUrl || "https://api.dicebear.com/7.x/adventurer/svg"} alt="" className="w-9 h-9 rounded-full object-cover border border-white/15" />
+                      <img src={m.user.profile?.avatarUrl || DEFAULT_AVATAR} alt="" className="w-9 h-9 rounded-full object-cover border border-white/15" />
                       <div className="min-w-0">
                         <Link href={`/dashboard/profile/${m.user.id}`} className="text-xs font-bold text-white hover:underline truncate block">
                           {m.user.profile?.username || "cinephile"}

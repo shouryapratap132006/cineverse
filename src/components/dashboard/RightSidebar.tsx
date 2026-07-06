@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell, UserPlus, Calendar, Sparkles, Star, PanelRightOpen, PanelRightClose, X } from "lucide-react";
 import { getSuggestedUsers } from "@/actions/profile";
+import { DEFAULT_AVATAR } from "@/lib/avatars";
 import { getNotifications, markNotificationRead } from "@/actions/notifications";
 import { formatDistanceToNow } from "date-fns";
 
@@ -213,7 +214,7 @@ export default function RightSidebar() {
                 suggestedUsers.map((u) => (
                   <div key={u.id} className="flex items-center justify-between rounded-xl border border-white/5 bg-white/3 p-3">
                     <Link href={`/dashboard/profile/${u.id}`} className="group flex items-center space-x-2.5">
-                      <img src={u.profile?.avatarUrl || "https://api.dicebear.com/7.x/adventurer/svg"} alt="avatar" className="h-8 w-8 rounded-full border border-white/10 object-cover transition group-hover:border-brand-purple" />
+                      <img src={u.profile?.avatarUrl || DEFAULT_AVATAR} alt="avatar" className="h-8 w-8 rounded-full border border-white/10 object-cover transition group-hover:border-brand-purple" />
                       <div className="max-w-[100px] space-y-0.5 truncate">
                         <h4 className="truncate text-[11px] font-bold text-white transition group-hover:text-brand-blue">{u.profile?.username || "Unknown"}</h4>
                         <span className="block truncate text-[9px] text-slate-500">{u._count?.followers || 0} followers</span>

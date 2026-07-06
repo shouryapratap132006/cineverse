@@ -7,6 +7,7 @@ import {
   Tv, Star, ChevronRight, Loader2, UserCheck, Megaphone
 } from "lucide-react";
 import { globalSearch } from "@/actions/search";
+import { DEFAULT_AVATAR } from "@/lib/avatars";
 import GlassCard from "@/components/shared/GlassCard";
 
 const CATEGORIES = [
@@ -215,7 +216,7 @@ export default function SearchPage() {
                   <Link key={u.id} href={`/dashboard/profile/${u.user?.id || u.id}`} className="group">
                     <GlassCard hoverGlow={false} className="p-4 flex items-center gap-4 border-white/5 bg-slate-900/60 hover:border-brand-purple/30 transition-all">
                       <img
-                        src={u.avatarUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + u.username}
+                        src={u.avatarUrl || DEFAULT_AVATAR}
                         alt={u.username}
                         className="w-12 h-12 rounded-full object-cover border-2 border-white/10 group-hover:border-brand-purple/60 transition"
                       />
@@ -270,7 +271,7 @@ export default function SearchPage() {
                     <GlassCard hoverGlow={false} className="p-4 border-white/5 bg-slate-900/60 hover:border-white/15 transition-all">
                       <div className="flex items-center gap-3 mb-2">
                         <img
-                          src={p.user?.profile?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.user?.id}`}
+                          src={p.user?.profile?.avatarUrl || DEFAULT_AVATAR}
                           alt="avatar"
                           className="w-7 h-7 rounded-full border border-white/10"
                         />

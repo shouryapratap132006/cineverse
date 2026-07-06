@@ -8,6 +8,7 @@ import {
   Film, Send, Flame, Smile, Eye, Star, AlertCircle
 } from "lucide-react";
 import { getPost, getComments, createComment, toggleReaction, toggleBookmark } from "@/actions/social";
+import { DEFAULT_AVATAR } from "@/lib/avatars";
 import { useCineverseAuth } from "@/components/provider";
 import GlassCard from "@/components/shared/GlassCard";
 import { formatDistanceToNow } from "date-fns";
@@ -142,7 +143,7 @@ export default function PostDetailPage() {
         <div className="flex items-start justify-between mb-5">
           <Link href={`/dashboard/profile/${post.user?.id}`} className="flex items-center gap-3 group">
             <img
-              src={profile.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.user?.id}`}
+              src={profile.avatarUrl || DEFAULT_AVATAR}
               alt={profile.username}
               className="w-12 h-12 rounded-full object-cover border-2 border-white/10 group-hover:border-brand-purple/60 transition"
             />
@@ -295,7 +296,7 @@ export default function PostDetailPage() {
         )}
         <form onSubmit={handleComment} className="flex items-end gap-3">
           <img
-            src={user?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id}`}
+            src={user?.avatarUrl || DEFAULT_AVATAR}
             alt="You"
             className="w-9 h-9 rounded-full object-cover border border-white/10 shrink-0"
           />
@@ -375,7 +376,7 @@ function CommentItem({ comment, currentUserId, onReply, depth = 0 }: {
       <div className="flex gap-3">
         <Link href={`/dashboard/profile/${comment.user?.id}`} className="shrink-0">
           <img
-            src={profile.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.user?.id}`}
+            src={profile.avatarUrl || DEFAULT_AVATAR}
             alt={profile.username}
             className="w-8 h-8 rounded-full object-cover border border-white/10 hover:border-brand-purple/60 transition"
           />

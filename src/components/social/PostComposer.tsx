@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Image as ImageIcon, Film, BarChart2, EyeOff, Send, X } from "lucide-react";
 import { createPost } from "@/actions/social";
+import { DEFAULT_AVATAR } from "@/lib/avatars";
 import { useCineverseAuth } from "@/components/provider";
 import { cn } from "@/lib/utils";
 import { createCommunityPost } from "@/actions/community";
@@ -144,7 +145,7 @@ export default function PostComposer({
     <div className="bg-slate-900/60 border border-white/5 rounded-2xl p-5 mb-6 shadow-lg backdrop-blur-md">
       <div className="flex items-start space-x-4">
         <img 
-          src={user?.avatarUrl || "https://api.dicebear.com/7.x/adventurer/svg"} 
+          src={user?.avatarUrl || DEFAULT_AVATAR} 
           alt="Avatar" 
           className="w-11 h-11 rounded-full object-cover border border-white/10"
         />
