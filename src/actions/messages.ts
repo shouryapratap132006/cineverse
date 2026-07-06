@@ -97,6 +97,27 @@ export async function sendMessage(conversationId: string, content: string) {
   }
 }
 
+export async function searchUsers(query: string) {
+  const userId = await getUserId();
+  if (!userId || query.trim().length < 1) return { success: false, users: [] };
+
+  try {
+    const users = await db.user.findMany({
+      where: {
+        id: { not: userId },
+        profile: {
+          username: { contains: query, mode: "insensitive" },
+        },
+      },
+      include: { profile: true },
+      take: 10,
+    });
+    return { success: true, users };
+  } catch (error: any) {
+    return { success: false, users: [] };
+  }
+}
+
 export async function getOrCreateConversation(targetUserId: string) {
   const userId = await getUserId();
   if (!userId) return { success: false, error: "Unauthorized" };

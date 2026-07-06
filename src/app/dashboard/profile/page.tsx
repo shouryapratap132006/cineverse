@@ -139,7 +139,7 @@ export default function ProfilePage() {
     <div className="w-full pb-16">
 
       {/* Banner */}
-      <div className="h-[180px] md:h-[260px] w-full relative overflow-hidden">
+      <div className="h-[180px] md:h-[260px] w-full relative">
         <img
           src={profile.bannerUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1400"}
           alt="Banner"
@@ -148,11 +148,11 @@ export default function ProfilePage() {
         <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/30 to-transparent" />
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 md:px-8 relative z-10 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 md:px-8 relative z-10 space-y-4">
 
-        {/* Avatar — sits between banner and card */}
-        <div className="flex items-end justify-between -mt-12 md:-mt-14 mb-0 px-1">
-          <div className="relative">
+        {/* Avatar row — pulled up by exactly half avatar height so it straddles the banner edge */}
+        <div className="flex items-end justify-between -mt-10 md:-mt-14 px-1">
+          <div className="relative shrink-0">
             <img
               src={profile.avatarUrl || `https://image.tmdb.org/t/p/w185/mkdRcVIQl4WZhDf1vXKWTD7HZrZ.jpg`}
               alt={profile.username}
@@ -162,7 +162,7 @@ export default function ProfilePage() {
           </div>
           <button
             onClick={openEditModal}
-            className="flex items-center gap-2 py-2 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition active:scale-95 mb-1"
+            className="flex items-center gap-2 py-2 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white transition active:scale-95"
           >
             <Edit3 className="w-3.5 h-3.5" />
             Edit Profile
