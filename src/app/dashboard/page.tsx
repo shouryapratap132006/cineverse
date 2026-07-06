@@ -33,11 +33,11 @@ export default function DashboardPage() {
   return (
     <div className="flex w-full min-h-screen">
       {/* Scrollable Center Feed */}
-      <div className="flex-grow w-full px-6 py-8 space-y-8 md:px-12">
+      <div className="flex-grow w-full px-4 py-6 space-y-8 sm:px-6 md:px-10">
         
         {/* Welcome Header */}
         <div className="space-y-1">
-          <h1 className="font-display font-extrabold text-2xl md:text-3xl text-white">
+          <h1 className="font-display font-extrabold text-xl md:text-3xl text-white">
             Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-brand-purple">{user?.username || "Cinephile"}</span>
           </h1>
           <p className="text-sm text-slate-400">Discover trending films, check your watchlists, and connect with your clubs.</p>
@@ -92,7 +92,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Social Feed Column Layout */}
-        <div className="max-w-4xl space-y-6">
+        <div className="max-w-4xl w-full space-y-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-display font-bold text-lg text-white">Your Feed</h3>

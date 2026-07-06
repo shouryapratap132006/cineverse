@@ -242,7 +242,7 @@ export default function PostComposer({
           )}
 
           <hr className="border-white/5" />
-          <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center justify-between pt-1 flex-wrap gap-2">
             <div className="flex items-center space-x-1">
               <input
                 type="file"

@@ -139,7 +139,7 @@ export default function ProfilePage() {
     <div className="w-full pb-16">
 
       {/* Cover Banner */}
-      <div className="h-[260px] w-full relative overflow-hidden">
+      <div className="h-[180px] md:h-[260px] w-full relative overflow-hidden">
         <img
           src={profile.bannerUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1400"}
           alt="Banner"
@@ -194,7 +194,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 border-t border-white/5 pt-5 mt-6">
+          <div className="grid grid-cols-3 md:grid-cols-5 gap-3 border-t border-white/5 pt-5 mt-6">
             {[
               { label: "Followers", value: profileData._count?.followers || 0 },
               { label: "Following", value: profileData._count?.following || 0 },

@@ -69,7 +69,7 @@ export default function CommunityHubPage() {
   const [newCommunity, setNewCommunity] = useState({ name: "", slug: "", description: "", type: "USER_CREATED" });
   const [creatingCommunity, setCreatingCommunity] = useState(false);
   const [featuredIndex, setFeaturedIndex] = useState(0);
-  const heroRef = useRef<NodeJS.Timeout>();
+  const heroRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   // Auto-cycle featured hero
   useEffect(() => {
@@ -141,7 +141,7 @@ export default function CommunityHubPage() {
   const currentFeatured = FEATURED[featuredIndex];
 
   return (
-    <div className="w-full min-h-screen xl:pr-[340px] pb-20">
+    <div className="w-full min-h-screen pb-4">
 
       {/* ═══ HERO CAROUSEL ═══ */}
       <div className="relative h-72 md:h-96 overflow-hidden">
@@ -160,20 +160,20 @@ export default function CommunityHubPage() {
         <div className="absolute top-8 left-24 w-80 h-80 rounded-full bg-brand-purple/20 blur-[100px] pointer-events-none" />
 
         {/* Hero content */}
-        <div className="absolute bottom-0 left-0 right-0 px-4 md:px-8 pb-8">
+        <div className="absolute bottom-0 left-0 right-0 px-4 md:px-8 pb-6">
           <div className="max-w-2xl">
-            <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold border mb-3 ${currentFeatured.tagColor}`}>
+            <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold border mb-2 ${currentFeatured.tagColor}`}>
               {currentFeatured.tag}
             </span>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight">{currentFeatured.name}</h1>
-            <p className="text-slate-300 text-sm mt-2 max-w-lg line-clamp-2">{currentFeatured.description}</p>
-            <div className="flex items-center gap-4 mt-4">
+            <h1 className="text-2xl md:text-4xl font-extrabold text-white tracking-tight leading-tight">{currentFeatured.name}</h1>
+            <p className="hidden sm:block text-slate-300 text-sm mt-2 max-w-lg line-clamp-2">{currentFeatured.description}</p>
+            <div className="flex items-center gap-3 mt-3">
               <Link
                 href={`/dashboard/community/${currentFeatured.slug}`}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-blue to-brand-purple text-white text-sm font-bold hover:opacity-90 transition active:scale-95 shadow-lg shadow-brand-purple/30"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-brand-blue to-brand-purple text-white text-xs font-bold hover:opacity-90 transition active:scale-95 shadow-lg shadow-brand-purple/30"
               >
-                <Users className="w-4 h-4" />
-                Explore Community
+                <Users className="w-3.5 h-3.5" />
+                Explore
               </Link>
               <span className="text-xs text-slate-400 flex items-center gap-1">
                 <Users className="w-3.5 h-3.5" />{currentFeatured.members} members

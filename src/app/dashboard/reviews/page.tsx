@@ -652,7 +652,7 @@ function DiaryTab({ refresh }: { refresh: number }) {
   return (
     <div className="space-y-6">
       {/* Stats Bar */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Films", value: stats.totalWatched, icon: <Film className="w-4 h-4" /> },
           { label: "This Year", value: stats.thisYear, icon: <CalendarDays className="w-4 h-4" /> },
@@ -1098,7 +1098,7 @@ export default function ReviewsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-white/3 border border-white/5 p-1 rounded-2xl w-fit">
+      <div className="flex gap-1 bg-white/3 border border-white/5 p-1 rounded-2xl overflow-x-auto no-scrollbar">
         {TABS.map((tab) => (
           <button
             key={tab.id}

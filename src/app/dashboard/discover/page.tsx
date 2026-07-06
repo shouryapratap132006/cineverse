@@ -302,7 +302,7 @@ function HeroSpotlight({ movie }: { movie: any }) {
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 
       {/* Content */}
-      <div className="absolute bottom-0 left-0 p-8 md:p-12 flex items-end gap-6">
+      <div className="absolute bottom-0 left-0 p-5 md:p-12 flex items-end gap-4 md:gap-6">
         {poster && (
           <img src={poster} alt="" className="hidden md:block w-28 rounded-xl border border-white/20 shadow-2xl shrink-0 group-hover:scale-105 transition duration-500" />
         )}
@@ -318,7 +318,7 @@ function HeroSpotlight({ movie }: { movie: any }) {
               </span>
             )}
           </div>
-          <h1 className="font-display font-black text-3xl md:text-5xl text-white drop-shadow-2xl leading-tight">
+          <h1 className="font-display font-black text-2xl md:text-5xl text-white drop-shadow-2xl leading-tight">
             {movie.title}
           </h1>
           <p className="text-sm text-slate-300 max-w-xl line-clamp-2 leading-relaxed">

@@ -294,7 +294,7 @@ export default function CommunityDetailPage() {
   ];
 
   return (
-    <div className="w-full min-h-screen xl:pr-[340px]">
+    <div className="w-full min-h-screen">
 
       {/* ═══════════ HERO ═══════════ */}
       <div className="relative h-64 md:h-80 overflow-hidden">

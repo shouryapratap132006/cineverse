@@ -35,7 +35,7 @@ export default function MessagesIndex() {
   }, []);
 
   return (
-    <div className="w-full h-screen flex">
+    <div className="w-full h-[calc(100vh-3.5rem)] flex">
       
       {/* Sidebar Inbox List */}
       <div className="w-full md:w-[380px] h-full border-r border-white/5 bg-slate-950/80 backdrop-blur-xl flex flex-col">
