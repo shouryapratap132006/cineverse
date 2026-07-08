@@ -161,30 +161,93 @@ export default function MessagesIndex() {
         </div>
       </div>
 
-      {/* ── Empty state for desktop ── */}
-      <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900/50 to-slate-950 gap-5 relative overflow-hidden">
-        {/* Background decoration */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-brand-blue blur-[100px]" />
-          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full bg-brand-purple blur-[100px]" />
+      {/* ── Rich welcome panel for desktop ── */}
+      <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900/50 to-slate-950 relative overflow-hidden">
+
+        {/* Ambient background blobs */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/4 left-1/3 w-80 h-80 rounded-full bg-brand-blue/8 blur-[120px] animate-pulse" />
+          <div className="absolute bottom-1/4 right-1/3 w-80 h-80 rounded-full bg-brand-purple/8 blur-[120px] animate-pulse" style={{ animationDelay: "1.5s" }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-cyan-500/4 blur-[140px]" />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center gap-5">
-          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-brand-blue/20 to-brand-purple/20 border border-white/10 flex items-center justify-center shadow-2xl">
-            <MessageSquare className="w-9 h-9 text-brand-blue" />
+        {/* Film strip decoration */}
+        <div className="absolute top-0 left-0 right-0 h-16 flex overflow-hidden opacity-5">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <div key={i} className="shrink-0 w-12 h-16 border-r-2 border-white/30 flex flex-col justify-between py-1">
+              <div className="mx-1 h-2 bg-white/50 rounded-sm" />
+              <div className="mx-1 h-8 bg-white/20 rounded-sm" />
+              <div className="mx-1 h-2 bg-white/50 rounded-sm" />
+            </div>
+          ))}
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 h-16 flex overflow-hidden opacity-5">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <div key={i} className="shrink-0 w-12 h-16 border-r-2 border-white/30 flex flex-col justify-between py-1">
+              <div className="mx-1 h-2 bg-white/50 rounded-sm" />
+              <div className="mx-1 h-8 bg-white/20 rounded-sm" />
+              <div className="mx-1 h-2 bg-white/50 rounded-sm" />
+            </div>
+          ))}
+        </div>
+
+        {/* Main content */}
+        <div className="relative z-10 flex flex-col items-center gap-6 px-8 max-w-sm text-center">
+
+          {/* Icon cluster */}
+          <div className="relative">
+            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-brand-blue/25 to-brand-purple/25 border border-white/10 flex items-center justify-center shadow-2xl shadow-brand-purple/10">
+              <MessageSquare className="w-10 h-10 text-brand-blue" />
+            </div>
+            {/* Orbiting dot decorations */}
+            <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-br from-brand-blue to-brand-purple border-2 border-slate-950 flex items-center justify-center">
+              <span className="text-[8px]">✦</span>
+            </div>
+            <div className="absolute -bottom-1 -left-1 w-4 h-4 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 border-2 border-slate-950" />
           </div>
-          <div className="text-center">
-            <h2 className="text-xl font-bold text-white">Your Messages</h2>
-            <p className="text-sm text-slate-400 mt-1.5">Select a conversation or start a new one.</p>
+
+          {/* Heading */}
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black text-white tracking-tight">
+              Your{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-brand-purple">
+                Messages
+              </span>
+            </h2>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Connect with fellow cinephiles, share reviews, and talk about the movies you love.
+            </p>
           </div>
+
+          {/* Stats row */}
+          <div className="flex items-center gap-3">
+            <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/8 text-center">
+              <p className="text-[10px] text-slate-500 font-medium">Conversations</p>
+              <p className="text-sm font-black text-white">{conversations.length}</p>
+            </div>
+            <div className="w-px h-8 bg-white/10" />
+            <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/8 text-center">
+              <p className="text-[10px] text-slate-500 font-medium">Select or</p>
+              <p className="text-sm font-black text-white">Start New</p>
+            </div>
+          </div>
+
+          {/* CTA */}
           <button
             onClick={() => setShowNew(true)}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-brand-blue to-brand-purple text-white text-sm font-bold hover:opacity-90 transition shadow-xl"
+            className="flex items-center gap-2 px-8 py-3 rounded-2xl bg-gradient-to-r from-brand-blue to-brand-purple text-white text-sm font-bold hover:opacity-90 hover:scale-105 transition-all duration-200 shadow-xl shadow-brand-purple/20"
           >
-            <Plus className="w-4 h-4" /> New Message
+            <Plus className="w-4 h-4" />
+            New Conversation
           </button>
+
+          {/* Hint */}
+          <p className="text-xs text-slate-600">
+            Or click any conversation on the left to open it
+          </p>
         </div>
       </div>
+
 
       {/* ── New conversation modal ── */}
       {showNew && (

@@ -162,8 +162,14 @@ export default function ChatThread() {
     getMessages(id).then(res => {
       if (res.success && res.messages) {
         setMessages(res.messages as unknown as Msg[]);
-        const other = res.messages.find((m: any) => m.senderId !== user?.id)?.sender;
-        if (other) setOtherUser(other);
+        // Use the participant returned from the server (works even with 0 messages)
+        if ((res as any).otherUser) {
+          setOtherUser((res as any).otherUser);
+        } else {
+          // Fallback: infer from message senders
+          const other = res.messages.find((m: any) => m.senderId !== user?.id)?.sender;
+          if (other) setOtherUser(other);
+        }
       }
       setLoading(false);
     });

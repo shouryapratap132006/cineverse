@@ -51,18 +51,28 @@ export async function getConversations() {
 
 export async function getMessages(conversationId: string) {
   const userId = await getUserId();
-  if (!userId) return { success: false, messages: [] };
+  if (!userId) return { success: false, messages: [], otherUser: null };
 
   try {
-    const messages = await db.message.findMany({
-      where: { conversationId },
-      include: { sender: { include: { profile: true } } },
-      orderBy: { sentAt: "asc" }
-    });
+    // Fetch messages AND the conversation participants in one query
+    const [messages, conversation] = await Promise.all([
+      db.message.findMany({
+        where: { conversationId },
+        include: { sender: { include: { profile: true } } },
+        orderBy: { sentAt: "asc" }
+      }),
+      db.conversation.findUnique({
+        where: { id: conversationId },
+        include: { users: { include: { profile: true } } }
+      })
+    ]);
 
-    return { success: true, messages };
+    // Find the other participant (not the current user)
+    const otherUser = conversation?.users?.find((u: any) => u.id !== userId) ?? null;
+
+    return { success: true, messages, otherUser };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, otherUser: null };
   }
 }
 

@@ -351,6 +351,11 @@ function DiscoverContent() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [activeGenre, setActiveGenre] = useState("All");
+
+  // Genre browse mode (when user clicks a genre pill without searching)
+  const [genreMode, setGenreMode] = useState(false);
+  const [genreResults, setGenreResults] = useState<any[]>([]);
+  const [genreLoading, setGenreLoading] = useState(false);
   
   const [becauseYouLikedId, setBecauseYouLikedId] = useState("157336"); // Interstellar
   const [becauseYouLikedTitle, setBecauseYouLikedTitle] = useState("Interstellar");
@@ -414,6 +419,32 @@ function DiscoverContent() {
     ? searchResults
     : searchResults.filter(m => m.genre_ids?.includes(GENRE_IDS[activeGenre]));
 
+  // Genre pill click handler
+  const handleGenrePill = (g: string) => {
+    setActiveGenre(g);
+    if (searchMode) {
+      // In search mode: just filter the existing results
+      return;
+    }
+    if (g === "All") {
+      setGenreMode(false);
+      setGenreResults([]);
+      return;
+    }
+    // In browse mode: enter genreMode and fetch movies for that genre
+    setGenreMode(true);
+    setGenreLoading(true);
+    const rowConfig = ROW_CONFIGS.find(r => r.label.toLowerCase().includes(g.toLowerCase()));
+    const genreId = GENRE_IDS[g];
+    const url = rowConfig
+      ? rowConfig.url()
+      : `${BASE}/discover/movie?api_key=${TMDB_KEY}&with_genres=${genreId}&sort_by=popularity.desc`;
+    fetchRow(url).then(data => {
+      setGenreResults(data);
+      setGenreLoading(false);
+    });
+  };
+
   return (
     <div className="min-h-screen pb-16">
 
@@ -445,7 +476,7 @@ function DiscoverContent() {
           {["All", ...Object.keys(GENRE_IDS)].map(g => (
             <button
               key={g}
-              onClick={() => setActiveGenre(g)}
+              onClick={() => handleGenrePill(g)}
               className={`shrink-0 px-3.5 py-1.5 rounded-xl text-[11px] font-bold border transition ${
                 activeGenre === g
                   ? "bg-gradient-to-r from-brand-blue/20 to-brand-purple/20 border-brand-purple/50 text-white"
@@ -498,6 +529,53 @@ function DiscoverContent() {
               </div>
             )}
           </section>
+
+        ) : genreMode ? (
+          /* GENRE BROWSE MODE */
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <button
+                onClick={() => { setGenreMode(false); setGenreResults([]); setActiveGenre("All"); }}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <div className="flex items-center gap-2">
+                <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${ROW_CONFIGS.find(r => r.label.toLowerCase().includes(activeGenre.toLowerCase()))?.color ?? "from-brand-blue/20 to-brand-purple/20"} border border-white/10 flex items-center justify-center`}>
+                  <Filter className="w-3.5 h-3.5 text-white" />
+                </div>
+                <h2 className="text-lg font-extrabold text-white">{activeGenre} Films</h2>
+                {!genreLoading && (
+                  <span className="text-xs text-slate-500">({genreResults.length} titles)</span>
+                )}
+              </div>
+            </div>
+
+            {genreLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 animate-pulse">
+                {Array.from({ length: 15 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="aspect-[2/3] rounded-xl bg-slate-800 border border-white/5" />
+                    <div className="h-3 bg-slate-800 rounded w-3/4" />
+                    <div className="h-2.5 bg-slate-800 rounded w-1/2" />
+                  </div>
+                ))}
+              </div>
+            ) : genreResults.length === 0 ? (
+              <div className="text-center py-20 text-slate-500">
+                <Film className="w-16 h-16 mx-auto mb-4 text-slate-700" />
+                <p className="font-bold text-lg text-slate-300">No {activeGenre} films found</p>
+                <p className="text-sm mt-1">Try a different genre.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {genreResults.map((m, i) => (
+                  <MovieCard key={m.id} movie={m} priority={i < 5} />
+                ))}
+              </div>
+            )}
+          </section>
+
         ) : (
           /* BROWSE MODE — All rows */
           <>
