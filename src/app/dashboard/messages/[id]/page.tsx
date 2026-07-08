@@ -465,6 +465,28 @@ export default function ChatThread() {
     }
   };
 
+  const handleReaction = (msgId: string, emoji: string) => {
+    setMessages(prev => prev.map(m => {
+      if (m.id !== msgId) return m;
+      const reactions = m.reactions ? [...m.reactions] : [];
+      const existing = reactions.find(r => r.emoji === emoji);
+      if (existing) {
+        const hasUser = existing.users.includes(user?.id ?? "");
+        if (hasUser) {
+          existing.users = existing.users.filter(u => u !== user?.id);
+          if (existing.users.length === 0) return { ...m, reactions: reactions.filter(r => r.emoji !== emoji) };
+        } else {
+          existing.users = [...existing.users, user?.id ?? ""];
+        }
+      } else {
+        reactions.push({ emoji, users: [user?.id ?? ""] });
+      }
+      return { ...m, reactions };
+    }));
+    setReactingTo(null);
+    setHoveredMsg(null);
+  };
+
   const scrollToMessage = (msgId: string) => {
     const el = document.getElementById(`msg-${msgId}`);
     if (el) {

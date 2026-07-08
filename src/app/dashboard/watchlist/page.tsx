@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getUserLibrary, removeFromAllLists } from "@/actions/watchlist";
-import { Star, Bookmark, Trash2, Compass } from "lucide-react";
+import { Star, Bookmark, Trash2, Compass, Search, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function WatchlistPage() {
@@ -13,6 +13,12 @@ export default function WatchlistPage() {
   const [dbFavorites, setDbFavorites] = useState<any[]>([]);
   const [moviesList, setMoviesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Filters State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedGenre, setSelectedGenre] = useState("All");
+  const [sortBy, setSortBy] = useState("default");
+  const [filteredMovies, setFilteredMovies] = useState<any[]>([]);
 
   const fetchLibrary = () => {
     setLoading(true);
@@ -37,6 +43,49 @@ export default function WatchlistPage() {
     }
   }, [dbWatchlist, dbFavorites, activeTab]);
 
+  // Reset filters on tab switch
+  useEffect(() => {
+    setSearchQuery("");
+    setSelectedGenre("All");
+    setSortBy("default");
+  }, [activeTab]);
+
+  // Filter and Sort logic
+  useEffect(() => {
+    let result = [...moviesList];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      result = result.filter(m =>
+        m.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Genre filter
+    if (selectedGenre && selectedGenre !== "All") {
+      result = result.filter(m =>
+        m.genres && m.genres.some((g: string) => g.toLowerCase() === selectedGenre.toLowerCase())
+      );
+    }
+
+    // Sorting
+    if (sortBy === "rating-desc") {
+      result.sort((a, b) => b.rating - a.rating);
+    } else if (sortBy === "rating-asc") {
+      result.sort((a, b) => a.rating - b.rating);
+    } else if (sortBy === "year-desc") {
+      result.sort((a, b) => b.releaseYear - a.releaseYear);
+    } else if (sortBy === "year-asc") {
+      result.sort((a, b) => a.releaseYear - b.releaseYear);
+    } else if (sortBy === "title-asc") {
+      result.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (sortBy === "title-desc") {
+      result.sort((a, b) => b.title.localeCompare(a.title));
+    }
+
+    setFilteredMovies(result);
+  }, [moviesList, searchQuery, selectedGenre, sortBy]);
+
   const handleRemove = async (id: string) => {
     const res = await removeFromAllLists(id);
     if (res.success) {
@@ -50,6 +99,9 @@ export default function WatchlistPage() {
     { key: "watched", label: "Already Watched" },
     { key: "favorite", label: "My Favorites" }
   ];
+
+  // Derive unique genres from the current tab's list of movies
+  const genres = ["All", ...Array.from(new Set(moviesList.flatMap(m => m.genres || [])))].sort();
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 space-y-6">
@@ -84,8 +136,63 @@ export default function WatchlistPage() {
         ))}
       </div>
 
+      {/* Filters Section (only show if loading is complete and moviesList has items) */}
+      {!loading && moviesList.length > 0 && (
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white/2 border border-white/5 p-4 rounded-2xl">
+          {/* Search bar */}
+          <div className="relative w-full md:max-w-xs shrink-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Search by title..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-brand-purple/50 transition"
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+            {/* Genre filter */}
+            <div className="relative w-full sm:w-44">
+              <select
+                value={selectedGenre}
+                onChange={(e) => setSelectedGenre(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-brand-purple/50 cursor-pointer"
+              >
+                {genres.map((g) => (
+                  <option key={g} value={g} className="bg-slate-950">
+                    {g === "All" ? "All Genres" : g}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Sorting */}
+            <div className="relative w-full sm:w-48">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-brand-purple/50 cursor-pointer"
+              >
+                <option value="default" className="bg-slate-950">Default Order</option>
+                <option value="rating-desc" className="bg-slate-950">Rating: High to Low</option>
+                <option value="rating-asc" className="bg-slate-950">Rating: Low to High</option>
+                <option value="year-desc" className="bg-slate-950">Release: Newest First</option>
+                <option value="year-asc" className="bg-slate-950">Release: Oldest First</option>
+                <option value="title-asc" className="bg-slate-950">Title: A-Z</option>
+                <option value="title-desc" className="bg-slate-950">Title: Z-A</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Watchlist Grid */}
-      {moviesList.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-24">
+          <Loader2 className="w-8 h-8 text-brand-purple animate-spin mx-auto" />
+        </div>
+      ) : moviesList.length === 0 ? (
         <div className="text-center py-24 bg-white/2 rounded-2xl border border-white/5 space-y-4">
           <div className="p-3 bg-white/5 border border-white/10 rounded-full inline-block text-slate-500">
             <Bookmark className="w-6 h-6" />
@@ -104,9 +211,14 @@ export default function WatchlistPage() {
             <span>Discover Films</span>
           </Link>
         </div>
+      ) : filteredMovies.length === 0 ? (
+        <div className="text-center py-24 bg-white/2 rounded-2xl border border-white/5 space-y-2">
+          <p className="text-sm font-semibold text-slate-400">No movies found</p>
+          <p className="text-xs text-slate-500">Try matching a different keyword or genre filter.</p>
+        </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 animate-fadeIn">
-          {moviesList.map((movie) => (
+          {filteredMovies.map((movie) => (
             <div
               key={movie.id}
               className="group space-y-2.5 block relative"
@@ -121,7 +233,7 @@ export default function WatchlistPage() {
                 {/* Rating Badge */}
                 <div className="absolute top-3 right-3 px-1.5 py-0.5 rounded bg-slate-950/80 border border-white/10 flex items-center text-[9px] font-bold text-brand-gold">
                   <Star className="w-3.5 h-3.5 fill-brand-gold text-brand-gold mr-0.5" />
-                  <span>{movie.rating}</span>
+                  <span>{movie.rating ? movie.rating.toFixed(1) : "0.0"}</span>
                 </div>
 
                 {/* Action Hover Controls */}
@@ -147,7 +259,7 @@ export default function WatchlistPage() {
                   {movie.title}
                 </h4>
                 <span className="text-[10px] text-slate-500 font-medium block">
-                  {movie.releaseYear} • {movie.genres[0]}
+                  {movie.releaseYear} • {movie.genres[0] || "Unknown"}
                 </span>
               </div>
             </div>

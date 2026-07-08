@@ -437,6 +437,10 @@ function ReviewsTab({ refresh }: { refresh: number }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Filters State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [ratingFilter, setRatingFilter] = useState("all");
+
   const load = useCallback(async () => {
     setLoading(true);
     const res = await getUserReviews();
@@ -446,7 +450,26 @@ function ReviewsTab({ refresh }: { refresh: number }) {
 
   useEffect(() => { load(); }, [load, refresh]);
 
-  const sorted = [...reviews].sort((a, b) => {
+  // Filter logic
+  const filtered = reviews.filter(r => {
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matchesTitle = r.movieTitle.toLowerCase().includes(query);
+      const matchesContent = r.content.toLowerCase().includes(query);
+      if (!matchesTitle && !matchesContent) return false;
+    }
+
+    // Rating filter
+    if (ratingFilter === "excellent") return r.rating >= 9; // 4.5+ stars (stored as 0-10)
+    if (ratingFilter === "good") return r.rating >= 7 && r.rating < 9; // 3.5 - 4.0 stars
+    if (ratingFilter === "average") return r.rating >= 5 && r.rating < 7; // 2.5 - 3.0 stars
+    if (ratingFilter === "bad") return r.rating < 5; // <= 2.0 stars
+
+    return true;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
     if (sort === "newest") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     if (sort === "oldest") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     if (sort === "highest") return b.rating - a.rating;
@@ -489,6 +512,36 @@ function ReviewsTab({ refresh }: { refresh: number }) {
 
   return (
     <div className="space-y-5">
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white/2 border border-white/5 p-3 rounded-2xl">
+        {/* Search */}
+        <div className="relative w-full sm:max-w-xs shrink-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <input
+            type="text"
+            placeholder="Search reviews..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-violet-500/50 transition"
+          />
+        </div>
+
+        {/* Rating Filter Dropdown */}
+        <div className="relative w-full sm:w-40">
+          <select
+            value={ratingFilter}
+            onChange={(e) => setRatingFilter(e.target.value)}
+            className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-violet-500/50 cursor-pointer"
+          >
+            <option value="all" className="bg-slate-950">All Ratings</option>
+            <option value="excellent" className="bg-slate-950">Excellent (4.5 - 5★)</option>
+            <option value="good" className="bg-slate-950">Good (3.5 - 4★)</option>
+            <option value="average" className="bg-slate-950">Average (2.5 - 3★)</option>
+            <option value="bad" className="bg-slate-950">Poor (Under 2.5★)</option>
+          </select>
+        </div>
+      </div>
+
       {/* Sort */}
       <div className="flex items-center gap-2">
         <SortAsc className="w-4 h-4 text-slate-500" />
@@ -507,7 +560,13 @@ function ReviewsTab({ refresh }: { refresh: number }) {
         ))}
       </div>
 
-      {sorted.map((r) => (
+      {sorted.length === 0 ? (
+        <div className="text-center py-12 bg-white/2 rounded-2xl border border-white/5">
+          <p className="text-sm font-semibold text-slate-400">No reviews match your filters</p>
+          <p className="text-xs text-slate-500 mt-1">Try resetting your search query or rating filter.</p>
+        </div>
+      ) : (
+        sorted.map((r) => (
         <div
           key={r.id}
           className="group border border-white/5 bg-white/2 hover:border-white/10 rounded-2xl overflow-hidden transition"
@@ -603,7 +662,8 @@ function ReviewsTab({ refresh }: { refresh: number }) {
             </div>
           </div>
         </div>
-      ))}
+        ))
+      )}
     </div>
   );
 }
