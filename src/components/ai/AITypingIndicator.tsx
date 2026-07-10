@@ -12,7 +12,7 @@ export default function AITypingIndicator() {
   const dotTransition = (delay: number) => ({
     duration: 0.6,
     repeat: Infinity,
-    ease: "easeInOut",
+    ease: "easeInOut" as any,
     delay
   });
 

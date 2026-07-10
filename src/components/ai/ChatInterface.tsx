@@ -512,7 +512,7 @@ export default function ChatInterface() {
                       : "bg-white/5 border-white/10 text-slate-200 rounded-tl-none prose prose-invert prose-xs"
                   }`}
                   dangerouslySetInnerHTML={{
-                    __html: marked.parseSync(m.content)
+                    __html: marked.parse(m.content) as string
                   }}
                 />
               </div>

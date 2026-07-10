@@ -550,3 +550,131 @@ model Report {
 
 // Hashtags can be extracted from text at runtime, or stored in a separate table for fast trending calculations
 // We will rely on simple text search or Post array for now
+
+model AIConversation {
+  id          String      @id @default(uuid())
+  userId      String
+  title       String
+  type        String      @default("general") // movie, search, professor, general
+  isPinned    Boolean     @default(false)
+  folderId    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  messages    AIMessage[]
+
+  @@index([userId])
+}
+
+model AIMessage {
+  id             String         @id @default(uuid())
+  conversationId String
+  role           String         // user, assistant, system
+  content        String         @db.Text
+  metadata       Json?          // Stores optional parsed payloads
+  createdAt      DateTime       @default(now())
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+}
+
+model TasteProfile {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  tasteScore        Int      @default(50)
+  genres            Json     // percentage matrix
+  countries         String[]
+  directors         String[]
+  actors            String[]
+  themes            String[]
+  visualStyle       String[]
+  pacing            String   @default("Medium")
+  favoriteDecade    String   @default("2010s")
+  personality       String   @default("The Cinephile")
+  profileSummary    String   @db.Text
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model RecommendationHistory {
+  id           String   @id @default(uuid())
+  userId       String
+  type         String   // today_pick, hidden_gems, etc.
+  movieIds     String[] // TMDB IDs
+  reasoning    String   @db.Text
+  generatedAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
+model GeneratedWatchlist {
+  id          String   @id @default(uuid())
+  userId      String
+  prompt      String
+  name        String
+  movies      Json     // list of movies with reasoning
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model CommunitySummary {
+  id          String   @id @default(uuid())
+  communityId String
+  type        String   // daily, weekly
+  content     Json     // complete summary structure
+  period      String   // date range or key
+  generatedAt DateTime @default(now())
+
+  @@index([communityId])
+}
+
+model PromptTemplate {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  category    String
+  template    String   @db.Text
+  variables   Json
+
+  @@index([category])
+}
+
+model SceneAnalysis {
+  id          String   @id @default(uuid())
+  movieId     String
+  sceneName   String
+  analysis    Json
+  createdAt   DateTime @default(now())
+
+  @@unique([movieId, sceneName])
+  @@index([movieId])
+}
+
+model KnowledgeGraphCache {
+  id          String   @id @default(uuid())
+  movieId     String   @unique
+  graph       Json
+  updatedAt   DateTime @updatedAt
+
+  @@index([movieId])
+}
+
+model MovieInsight {
+  id          String   @id @default(uuid())
+  movieId     String
+  type        String   // ending, symbolism, trivia
+  content     String   @db.Text
+  generatedAt DateTime @default(now())
+
+  @@index([movieId])
+}
+
+model AIUsage {
+  id          String   @id @default(uuid())
+  userId      String
+  endpoint    String
+  tokens      Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
