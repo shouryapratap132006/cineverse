@@ -10,6 +10,10 @@ import { createReview, getMovieReviews } from "@/actions/review";
 import { getRecommendations } from "@/lib/tmdb";
 import { ArrowLeft, Star, Clock, Calendar, Bookmark, Flame, Heart, Sparkles, Send } from "lucide-react";
 import GlassCard from "@/components/shared/GlassCard";
+import MovieCompanion from "@/components/ai/MovieCompanion";
+import SceneExplorer from "@/components/ai/SceneExplorer";
+import KnowledgeGraph from "@/components/ai/KnowledgeGraph";
+import ReviewAssistant from "@/components/ai/ReviewAssistant";
 
 export default function MovieDetailsClient({ id }: { id: string }) {
   const router = useRouter();
@@ -380,6 +384,12 @@ export default function MovieDetailsClient({ id }: { id: string }) {
                   />
                 </div>
 
+                <ReviewAssistant
+                  content={reviewText}
+                  movieTitle={movie.title}
+                  onApplyChange={setReviewText}
+                />
+
                 <div className="flex justify-end">
                   <button
                     type="submit"
@@ -426,6 +436,15 @@ export default function MovieDetailsClient({ id }: { id: string }) {
 
           </div>
 
+          {/* AI Insights & Deconstructions */}
+          <div className="space-y-6">
+            <h3 className="font-display font-bold text-lg text-slate-200 border-b border-white/5 pb-2.5">
+              AI Insights & Deconstructions
+            </h3>
+            <KnowledgeGraph movieId={id} movieTitle={movie.title} />
+            <SceneExplorer movieId={id} movieTitle={movie.title} />
+          </div>
+
           {/* Similar Movies */}
           <div className="space-y-4.5">
             <h3 className="font-display font-bold text-lg text-slate-200 border-b border-white/5 pb-2.5">
@@ -456,6 +475,16 @@ export default function MovieDetailsClient({ id }: { id: string }) {
         </div>
 
       </div>
+
+      {/* Floating Movie Companion */}
+      <MovieCompanion
+        movieId={id}
+        movieTitle={movie.title}
+        movieOverview={movie.overview}
+        genres={movie.genres}
+        director={movie.crew.find((c) => c.job === "Director")?.name}
+        year={movie.releaseYear}
+      />
 
     </div>
   );

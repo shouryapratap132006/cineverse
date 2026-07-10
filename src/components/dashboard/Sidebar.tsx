@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCineverseAuth } from "@/components/provider";
-import { Film, Home, Compass, Bookmark, Star, User, LogOut, Search, Globe, MessageSquare, Shield, Wifi } from "lucide-react";
+import { Film, Home, Compass, Bookmark, Star, User, LogOut, Search, Globe, MessageSquare, Shield, Wifi, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@clerk/nextjs";
 
@@ -32,6 +32,7 @@ export default function Sidebar() {
 
   const menuItems = [
     { name: "Home", href: "/dashboard", icon: Home },
+    { name: "CineVerse AI", href: "/dashboard/ai", icon: Sparkles },
     { name: "Search", href: "/dashboard/search", icon: Search },
     { name: "Communities", href: "/dashboard/community", icon: Globe },
     { name: "Discover", href: "/dashboard/discover", icon: Compass },

@@ -3,16 +3,15 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Globe, Compass, Bookmark, Star, MessageSquare, User } from "lucide-react";
+import { Home, Search, Globe, Compass, Bookmark, Star, MessageSquare, User, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/dashboard", icon: Home, label: "Home" },
+  { href: "/dashboard/ai", icon: Sparkles, label: "AI" },
   { href: "/dashboard/search", icon: Search, label: "Search" },
   { href: "/dashboard/community", icon: Globe, label: "Community" },
-  { href: "/dashboard/discover", icon: Compass, label: "Discover" },
   { href: "/dashboard/watchlist", icon: Bookmark, label: "Watchlist" },
-  { href: "/dashboard/reviews", icon: Star, label: "Reviews" },
   { href: "/dashboard/messages", icon: MessageSquare, label: "Messages" },
   { href: "/dashboard/profile", icon: User, label: "Profile" },
 ];
