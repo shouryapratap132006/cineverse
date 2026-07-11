@@ -6,7 +6,8 @@ import { useCineverseAuth } from "@/components/provider";
 import { Film, User, Compass, Star, ChevronRight, ChevronLeft, Check } from "lucide-react";
 import GlassCard from "@/components/shared/GlassCard";
 import { syncUserAccount, updateProfile } from "@/actions/user";
-import { getTrendingMovies, Movie } from "@/lib/tmdb";
+import { getTrendingMovies } from "@/lib/tmdb";
+import { Movie } from "@/lib/mockData";
 import { useAuth, useUser } from "@clerk/nextjs";
 
 import { ACTOR_AVATARS } from "@/lib/avatars";

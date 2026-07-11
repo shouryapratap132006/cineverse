@@ -50,12 +50,16 @@ export default function WatchlistBuilder() {
         body: JSON.stringify({ prompt })
       });
 
-      if (!res.ok) throw new Error("Watchlist generation failed");
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || `Watchlist generation failed (${res.status})`);
+      }
       setWatchlist(data);
     } catch (e) {
       console.error(e);
-      triggerToast("Failed to generate custom watchlist.");
+      triggerToast(
+        e instanceof Error ? e.message : "Failed to generate custom watchlist."
+      );
     } finally {
       setIsLoading(false);
     }

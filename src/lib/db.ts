@@ -8,7 +8,7 @@ const globalForPrisma = globalThis as unknown as {
 
 let prismaInstance: PrismaClient;
 
-if (typeof window === "undefined") {
+if (typeof globalThis === "undefined" || typeof (globalThis as any).window === "undefined") {
   // Instantiated only on the server
   const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL || "postgresql://shouryapratap@localhost:5432/cineverse",

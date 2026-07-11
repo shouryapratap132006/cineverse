@@ -94,5 +94,19 @@ export function parseAIJson<T>(content: string): T {
   if (cleaned.endsWith("```")) {
     cleaned = cleaned.slice(0, -3);
   }
-  return JSON.parse(cleaned.trim()) as T;
+  cleaned = cleaned.trim();
+
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch {
+    // Model may include prose before/after the JSON object
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start !== -1 && end > start) {
+      return JSON.parse(cleaned.slice(start, end + 1)) as T;
+    }
+    throw new Error(
+      `Failed to parse AI JSON response (${cleaned.length} chars): ${cleaned.slice(0, 120)}...`
+    );
+  }
 }

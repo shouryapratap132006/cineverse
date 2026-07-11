@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "ts-node --project tsconfig.server.json server.ts",
-    "build": "next build",
-    "start": "NODE_ENV=production ts-node --project tsconfig.server.json server.ts",
+    "dev": "NODE_OPTIONS='--max-old-space-size=4096' ts-node --project tsconfig.server.json server.ts",
+    "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
+    "start": "NODE_ENV=production NODE_OPTIONS='--max-old-space-size=4096' ts-node --project tsconfig.server.json server.ts",
     "lint": "eslint"
   },
   "dependencies": {

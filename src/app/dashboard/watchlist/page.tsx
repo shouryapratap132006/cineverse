@@ -5,9 +5,10 @@ import Link from "next/link";
 import { getUserLibrary, removeFromAllLists } from "@/actions/watchlist";
 import { Star, Bookmark, Trash2, Compass, Search, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import WatchlistBuilder from "@/components/ai/WatchlistBuilder";
 
 export default function WatchlistPage() {
-  const [activeTab, setActiveTab] = useState<"want-to-watch" | "watched" | "favorite">("want-to-watch");
+  const [activeTab, setActiveTab] = useState<"want-to-watch" | "watched" | "favorite" | "ai-builder">("want-to-watch");
   
   const [dbWatchlist, setDbWatchlist] = useState<any[]>([]);
   const [dbFavorites, setDbFavorites] = useState<any[]>([]);
@@ -38,6 +39,8 @@ export default function WatchlistPage() {
   useEffect(() => {
     if (activeTab === "favorite") {
       setMoviesList(dbFavorites);
+    } else if (activeTab === "ai-builder") {
+      setMoviesList([]);
     } else {
       setMoviesList(dbWatchlist.filter(m => m.status === activeTab));
     }
@@ -52,6 +55,7 @@ export default function WatchlistPage() {
 
   // Filter and Sort logic
   useEffect(() => {
+    if (activeTab === "ai-builder") return;
     let result = [...moviesList];
 
     // Search filter
@@ -84,7 +88,7 @@ export default function WatchlistPage() {
     }
 
     setFilteredMovies(result);
-  }, [moviesList, searchQuery, selectedGenre, sortBy]);
+  }, [moviesList, searchQuery, selectedGenre, sortBy, activeTab]);
 
   const handleRemove = async (id: string) => {
     const res = await removeFromAllLists(id);
@@ -97,7 +101,8 @@ export default function WatchlistPage() {
   const tabs = [
     { key: "want-to-watch", label: "Want to Watch" },
     { key: "watched", label: "Already Watched" },
-    { key: "favorite", label: "My Favorites" }
+    { key: "favorite", label: "My Favorites" },
+    { key: "ai-builder", label: "AI Watchlist Builder ✨" }
   ];
 
   // Derive unique genres from the current tab's list of movies
@@ -137,7 +142,7 @@ export default function WatchlistPage() {
       </div>
 
       {/* Filters Section (only show if loading is complete and moviesList has items) */}
-      {!loading && moviesList.length > 0 && (
+      {!loading && moviesList.length > 0 && activeTab !== "ai-builder" && (
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white/2 border border-white/5 p-4 rounded-2xl">
           {/* Search bar */}
           <div className="relative w-full md:max-w-xs shrink-0">
@@ -188,7 +193,9 @@ export default function WatchlistPage() {
       )}
 
       {/* Watchlist Grid */}
-      {loading ? (
+      {activeTab === "ai-builder" ? (
+        <WatchlistBuilder />
+      ) : loading ? (
         <div className="text-center py-24">
           <Loader2 className="w-8 h-8 text-brand-purple animate-spin mx-auto" />
         </div>

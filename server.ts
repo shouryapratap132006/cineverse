@@ -1,7 +1,11 @@
+import { loadEnvConfig } from "@next/env";
 import { createServer } from "http";
 import { parse } from "url";
 import next from "next";
 import { Server as SocketIOServer } from "socket.io";
+
+// Ensure .env is loaded before Next.js initializes (custom server)
+loadEnvConfig(process.cwd());
 
 const dev = process.env.NODE_ENV !== "production";
 const app = next({ dev });

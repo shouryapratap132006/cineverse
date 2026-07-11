@@ -11,6 +11,7 @@ import GlassCard from "@/components/shared/GlassCard";
 import { getUserProfile, getUserPosts } from "@/actions/profile";
 import { updateProfile } from "@/actions/user";
 import { formatDistanceToNow } from "date-fns";
+import MovieDNACard from "@/components/ai/MovieDNACard";
 
 const TABS = [
   { id: "activity", label: "Activity", icon: Clock },
@@ -66,6 +67,25 @@ export default function ProfilePage() {
   }, [user]);
 
   // Re-fetch posts and reviews whenever their tab becomes active
+  const [dnaData, setDnaData] = useState<any | null>(null);
+  const [loadingDna, setLoadingDna] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === "genres" && !dnaData) {
+      setLoadingDna(true);
+      fetch("/api/ai/profile")
+        .then((res) => res.json())
+        .then((data) => {
+          setDnaData(data.dna);
+          setLoadingDna(false);
+        })
+        .catch((err) => {
+          console.error(err);
+          setLoadingDna(false);
+        });
+    }
+  }, [activeTab, dnaData]);
+
   useEffect(() => {
     if (activeTab === "posts" && profileData) {
       getUserPosts(profileData.id).then(res => {
@@ -325,44 +345,55 @@ export default function ProfilePage() {
           {/* TASTE TAB */}
           {activeTab === "genres" && (
             <div className="space-y-6">
-              <div className="space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Favorite Genres</h3>
-                <div className="flex flex-wrap gap-2">
-                  {profile.favoriteGenres?.length > 0 ? (
-                    profile.favoriteGenres.map((g: string) => (
-                      <span key={g} className="px-4 py-2 rounded-xl bg-brand-purple/10 border border-brand-purple/30 text-sm font-bold text-brand-purple">
-                        {g}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-xs text-slate-500">No favorite genres set. Edit your profile.</span>
+              {loadingDna ? (
+                <div className="py-16 flex flex-col items-center justify-center gap-3 bg-white/2 rounded-2xl border border-white/5">
+                  <div className="w-8 h-8 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
+                  <p className="text-xs font-bold text-slate-400">Sequencing your cinematic DNA...</p>
+                </div>
+              ) : dnaData ? (
+                <MovieDNACard dna={dnaData} />
+              ) : (
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Favorite Genres</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {profile.favoriteGenres?.length > 0 ? (
+                        profile.favoriteGenres.map((g: string) => (
+                          <span key={g} className="px-4 py-2 rounded-xl bg-brand-purple/10 border border-brand-purple/30 text-sm font-bold text-brand-purple">
+                            {g}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-slate-500">No favorite genres set. Edit your profile.</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {profile.favoriteActors?.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Favorite Actors</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {profile.favoriteActors.map((a: string) => (
+                          <span key={a} className="px-3 py-1.5 rounded-xl bg-pink-500/10 border border-pink-500/20 text-xs font-bold text-pink-400">
+                            {a}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                </div>
-              </div>
 
-              {profile.favoriteActors?.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Favorite Actors</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {profile.favoriteActors.map((a: string) => (
-                      <span key={a} className="px-3 py-1.5 rounded-xl bg-pink-500/10 border border-pink-500/20 text-xs font-bold text-pink-400">
-                        {a}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {profile.favoriteDirectors?.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Favorite Directors</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {profile.favoriteDirectors.map((d: string) => (
-                      <span key={d} className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs font-bold text-amber-400">
-                        {d}
-                      </span>
-                    ))}
-                  </div>
+                  {profile.favoriteDirectors?.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Favorite Directors</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {profile.favoriteDirectors.map((d: string) => (
+                          <span key={d} className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs font-bold text-amber-400">
+                            {d}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

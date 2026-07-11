@@ -4,11 +4,14 @@ import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Search, Film, Users, Globe, MessageSquare, Camera, Clapperboard,
-  Tv, Star, ChevronRight, Loader2, UserCheck, Megaphone
+  Tv, Star, ChevronRight, Loader2, UserCheck, Megaphone, Sparkles, HelpCircle
 } from "lucide-react";
 import { globalSearch } from "@/actions/search";
 import { DEFAULT_AVATAR } from "@/lib/avatars";
 import GlassCard from "@/components/shared/GlassCard";
+import AISearchBar from "@/components/ai/AISearchBar";
+import AIMovieCard from "@/components/ai/AIMovieCard";
+import { motion, AnimatePresence } from "framer-motion";
 
 const CATEGORIES = [
   { id: "all", label: "All", icon: Search },
@@ -28,6 +31,11 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
+  // AI Semantic Search states
+  const [searchMode, setSearchMode] = useState<"traditional" | "ai">("ai");
+  const [aiResults, setAiResults] = useState<any>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
   const doSearch = useCallback(async (q: string, cat: string) => {
     if (q.trim().length < 2) {
       setResults(null);
@@ -43,10 +51,38 @@ export default function SearchPage() {
     setLoading(false);
   }, []);
 
+  const handleSearchSubmit = async (q: string, mode: "traditional" | "ai") => {
+    setSearchMode(mode);
+    setQuery(q);
+    if (mode === "traditional") {
+      doSearch(q, category);
+    } else {
+      setAiLoading(true);
+      setAiResults(null);
+      try {
+        const res = await fetch("/api/ai/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: q })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAiResults(data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setAiLoading(false);
+      }
+    }
+  };
+
   useEffect(() => {
-    const timer = setTimeout(() => doSearch(query, category), 500);
-    return () => clearTimeout(timer);
-  }, [query, category, doSearch]);
+    if (searchMode === "traditional") {
+      const timer = setTimeout(() => doSearch(query, category), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [query, category, doSearch, searchMode]);
 
   const imgUrl = (path: string | null | undefined, size = "w300") =>
     path ? `https://image.tmdb.org/t/p/${size}${path}` : null;
@@ -66,49 +102,36 @@ export default function SearchPage() {
       </div>
 
       {/* Search Bar */}
-      <div className="relative mb-6">
-        <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-slate-400" />
-        </div>
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search movies, actors, directors, critics..."
-          className="w-full pl-14 pr-14 py-5 bg-slate-900/80 border border-white/10 rounded-2xl text-white placeholder-slate-500 outline-none focus:border-brand-purple/60 focus:bg-slate-900 transition-all shadow-xl text-base font-medium"
-          autoFocus
-        />
-        {loading && (
-          <div className="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none">
-            <Loader2 className="w-5 h-5 text-brand-purple animate-spin" />
-          </div>
-        )}
+      <div className="mb-8">
+        <AISearchBar onSearch={handleSearchSubmit} isLoading={aiLoading || loading} />
       </div>
 
-      {/* Category Tabs */}
-      <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 no-scrollbar">
-        {CATEGORIES.map((cat) => {
-          const Icon = cat.icon;
-          const active = category === cat.id;
-          return (
-            <button
-              key={cat.id}
-              onClick={() => setCategory(cat.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap border transition-all ${
-                active
-                  ? "bg-gradient-to-r from-brand-blue/20 to-brand-purple/20 border-brand-purple/50 text-white shadow"
-                  : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
-              }`}
-            >
-              <Icon className={`w-3.5 h-3.5 ${active ? "text-brand-purple" : ""}`} />
-              {cat.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* Category Tabs (only for Traditional search) */}
+      {searchMode === "traditional" && (
+        <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 no-scrollbar">
+          {CATEGORIES.map((cat) => {
+            const Icon = cat.icon;
+            const active = category === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setCategory(cat.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap border transition-all ${
+                  active
+                    ? "bg-gradient-to-r from-brand-blue/20 to-brand-purple/20 border-brand-purple/50 text-white shadow"
+                    : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 ${active ? "text-brand-purple" : ""}`} />
+                {cat.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Empty State */}
-      {!query && !searched && (
+      {!query && !searched && searchMode === "traditional" && (
         <div className="flex flex-col items-center justify-center py-24 opacity-40">
           <Search className="w-20 h-20 text-slate-600 mb-4" />
           <p className="text-slate-400 font-medium text-lg">Type to search the CineVerse universe</p>
@@ -116,8 +139,64 @@ export default function SearchPage() {
         </div>
       )}
 
-      {/* Results */}
-      {results && (
+      {/* AI Search Empty State */}
+      {searchMode === "ai" && !aiResults && !aiLoading && (
+        <div className="flex flex-col items-center justify-center py-24 opacity-40">
+          <Sparkles className="w-16 h-16 text-brand-purple mb-4 animate-pulse" />
+          <p className="text-slate-400 font-medium text-lg">AI Semantic Search Active</p>
+          <p className="text-slate-500 text-sm mt-1 max-w-md text-center">
+            Describe the type of movie you want to find. We'll search by atmosphere, mood, narration type, and themes.
+          </p>
+        </div>
+      )}
+
+      {/* AI Semantic Search Results */}
+      {searchMode === "ai" && aiResults && (
+        <div className="space-y-8 animate-fadeIn">
+          {aiResults.explanation && (
+            <div className="p-5 rounded-2xl bg-white/5 border border-white/5 space-y-2">
+              <span className="text-[9px] font-bold text-brand-blue tracking-widest uppercase">
+                Search Philosophy
+              </span>
+              <p className="text-xs text-slate-300 leading-relaxed italic">
+                "{aiResults.explanation}"
+              </p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {aiResults.movies.map((movie: any) => (
+              <AIMovieCard
+                key={movie.tmdbId}
+                movie={movie}
+              />
+            ))}
+          </div>
+
+          {aiResults.relatedSearches?.length > 0 && (
+            <div className="space-y-3 pt-6 border-t border-white/5">
+              <h4 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5">
+                <HelpCircle className="w-4 h-4 text-slate-500" />
+                Related AI Searches
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {aiResults.relatedSearches.map((rel: string) => (
+                  <button
+                    key={rel}
+                    onClick={() => handleSearchSubmit(rel, "ai")}
+                    className="px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 hover:border-brand-purple text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer"
+                  >
+                    {rel}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Traditional Results */}
+      {searchMode === "traditional" && results && (
         <div className="space-y-12">
 
           {/* MOVIES */}
