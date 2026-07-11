@@ -28,6 +28,39 @@ async function getUserId() {
   return null;
 }
 
+export async function addMoviesToWatchlist(movies: { id: string; title: string; posterPath: string }[], status: "WANT_TO_WATCH" | "WATCHED") {
+  const userId = await getUserId();
+  if (!userId) return { success: false, error: "Unauthorized" };
+
+  try {
+    for (const movie of movies) {
+      await db.movie.upsert({
+        where: { id: movie.id },
+        update: { title: movie.title, posterPath: movie.posterPath },
+        create: { id: movie.id, title: movie.title, posterPath: movie.posterPath },
+      });
+
+      await db.watchlist.upsert({
+        where: {
+          userId_movieId: { userId, movieId: movie.id }
+        },
+        update: { status },
+        create: {
+          userId,
+          movieId: movie.id,
+          status
+        }
+      });
+    }
+
+    revalidatePath("/dashboard/watchlist");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Batch watchlist add error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
 export async function toggleWatchlist(movieId: string, title: string, posterPath: string, status: "WANT_TO_WATCH" | "WATCHED") {
   const userId = await getUserId();
   if (!userId) return { success: false, error: "Unauthorized" };

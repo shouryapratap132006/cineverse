@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Calendar, BookOpen, Share2, Download, Save, Clock, ArrowRight } from "lucide-react";
+import { Sparkles, Calendar, BookOpen, Share2, Download, Save, Clock, ArrowRight, CheckCircle2, Circle } from "lucide-react";
 
 interface WatchlistMovie {
   tmdbId: string;
@@ -28,7 +28,9 @@ interface GeneratedWatchlist {
 export default function WatchlistBuilder() {
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [watchlist, setWatchlist] = useState<GeneratedWatchlist | null>(null);
+  const [selections, setSelections] = useState<Record<string, boolean>>({});
   const [showToast, setShowToast] = useState<string | null>(null);
 
   const triggerToast = (msg: string) => {
@@ -42,6 +44,7 @@ export default function WatchlistBuilder() {
 
     setIsLoading(true);
     setWatchlist(null);
+    setSelections({});
 
     try {
       const res = await fetch("/api/ai/watchlist", {
@@ -55,6 +58,13 @@ export default function WatchlistBuilder() {
         throw new Error(data?.error || `Watchlist generation failed (${res.status})`);
       }
       setWatchlist(data);
+      if (data?.movies) {
+        const next: Record<string, boolean> = {};
+        data.movies.forEach((m: any) => {
+          next[m.tmdbId] = true;
+        });
+        setSelections(next);
+      }
     } catch (e) {
       console.error(e);
       triggerToast(
@@ -65,8 +75,48 @@ export default function WatchlistBuilder() {
     }
   };
 
-  const handleSave = () => {
-    triggerToast("Watchlist saved successfully to library!");
+  const toggleSelect = (movieId: string) => {
+    setSelections((prev) => ({ ...prev, [movieId]: !prev[movieId] }));
+  };
+
+  const toggleSelectAll = () => {
+    if (!watchlist) return;
+    const allSelected = watchlist.movies.every((m) => selections[m.tmdbId]);
+    const next: Record<string, boolean> = {};
+    watchlist.movies.forEach((m) => {
+      next[m.tmdbId] = !allSelected;
+    });
+    setSelections(next);
+  };
+
+  const handleSave = async () => {
+    if (!watchlist || isSaving) return;
+    const selectedList = watchlist.movies.filter((m) => selections[m.tmdbId]);
+    if (selectedList.length === 0) {
+      triggerToast("No movies selected to add to watchlist!");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { addMoviesToWatchlist } = await import("@/actions/watchlist");
+      const payload = selectedList.map((m) => ({
+        id: m.tmdbId,
+        title: m.title,
+        posterPath: m.posterPath || ""
+      }));
+      const res = await addMoviesToWatchlist(payload, "WANT_TO_WATCH");
+      if (res.success) {
+        triggerToast(`Added ${selectedList.length} movies to your Watchlist!`);
+      } else {
+        triggerToast(res.error || "Failed to add movies.");
+      }
+    } catch (e) {
+      console.error(e);
+      triggerToast("Failed to save movies.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleShare = () => {
@@ -169,9 +219,15 @@ export default function WatchlistBuilder() {
             <div className="flex gap-2">
               <button
                 onClick={handleSave}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-gradient-to-r from-brand-blue to-brand-purple text-xs font-bold text-white shadow-lg cursor-pointer"
+                disabled={isSaving}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-gradient-to-r from-brand-blue to-brand-purple text-xs font-bold text-white shadow-lg cursor-pointer disabled:opacity-50"
               >
-                <Save className="w-4 h-4" /> Save
+                {isSaving ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {isSaving ? "Saving..." : `Add Selected (${watchlist.movies.filter((m) => selections[m.tmdbId]).length})`}
               </button>
               <button
                 onClick={handleShare}
@@ -188,18 +244,49 @@ export default function WatchlistBuilder() {
             </div>
           </div>
 
+          {/* Selection Stats and Select All bar */}
+          <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5 text-xs font-bold text-slate-400">
+            <button
+              onClick={toggleSelectAll}
+              className="hover:text-white transition flex items-center gap-2 cursor-pointer select-none"
+            >
+              {watchlist.movies.every((m) => selections[m.tmdbId]) ? (
+                <CheckCircle2 className="w-4.5 h-4.5 text-brand-purple" />
+              ) : (
+                <Circle className="w-4.5 h-4.5 text-slate-500" />
+              )}
+              {watchlist.movies.every((m) => selections[m.tmdbId]) ? "Deselect All" : "Select All"}
+            </button>
+            <span className="text-[10px] text-slate-500 tracking-wider uppercase font-black">
+              {watchlist.movies.filter((m) => selections[m.tmdbId]).length} of {watchlist.movies.length} selected
+            </span>
+          </div>
+
           {/* List of films */}
           <div className="space-y-4">
             {watchlist.movies.map((movie, idx) => {
               const posterUrl = movie.posterPath
                 ? `https://image.tmdb.org/t/p/w185${movie.posterPath}`
                 : "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=200";
+              const isSelected = !!selections[movie.tmdbId];
 
               return (
                 <div
                   key={movie.tmdbId}
-                  className="flex gap-4 p-4 rounded-2xl bg-slate-950/40 border border-white/5 hover:border-white/10 transition-all"
+                  onClick={() => toggleSelect(movie.tmdbId)}
+                  className={`flex gap-4 p-4 rounded-2xl border transition-all cursor-pointer select-none ${
+                    isSelected
+                      ? "bg-slate-900/60 border-brand-purple/40"
+                      : "bg-slate-950/40 border-white/5 hover:border-white/10"
+                  }`}
                 >
+                  <div className="flex items-center shrink-0">
+                    {isSelected ? (
+                      <CheckCircle2 className="w-5 h-5 text-brand-purple" />
+                    ) : (
+                      <Circle className="w-5 h-5 text-slate-600 hover:text-slate-400" />
+                    )}
+                  </div>
                   <img
                     src={posterUrl}
                     alt={movie.title}
