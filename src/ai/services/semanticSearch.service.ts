@@ -10,7 +10,7 @@ import { resolveMovieMetadata } from "@/lib/tmdb";
 
 export class SemanticSearchService {
   async search(request: SemanticSearchRequest): Promise<SemanticSearchResult> {
-    const cacheKey = aiCache.key("semantic_search", request.query);
+    const cacheKey = aiCache.key("semantic_search_v2", request.query);
     
     const cached = await aiCache.get<SemanticSearchResult>(cacheKey);
     if (cached) return cached;

@@ -320,30 +320,38 @@ const TMDB_GENRES: Record<number, string> = {
   37: "Western"
 };
 
-// Search and resolve exact details from TMDB to correct AI hallucinations or empty paths
 export async function resolveMovieMetadata(title: string, year?: number): Promise<{ tmdbId: string; posterPath: string; genres: string[]; rating: number; year: number } | null> {
   if (!TMDB_API_KEY) return null;
   try {
-    const query = `${title} ${year ? year : ""}`.trim();
-    const response = await fetchWithTimeout(
-      `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=en-US&page=1`
-    );
-    if (response.ok) {
-      const data = await response.json();
-      const results = data.results || [];
-      if (results.length > 0) {
-        // Grab first match
-        const bestMatch = results[0];
-        return {
-          tmdbId: String(bestMatch.id),
-          posterPath: bestMatch.poster_path || "",
-          genres: bestMatch.genre_ids 
-            ? bestMatch.genre_ids.map((id: number) => TMDB_GENRES[id] || "Drama").slice(0, 3)
-            : ["Drama"],
-          rating: Number(bestMatch.vote_average) || 0,
-          year: bestMatch.release_date ? new Date(bestMatch.release_date).getFullYear() : (year ?? 2024)
-        };
-      }
+    let url = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}&language=en-US&page=1`;
+    if (year) {
+      url += `&primary_release_year=${year}`;
+    }
+    
+    let response = await fetchWithTimeout(url);
+    let data = (await response.json()) as any;
+    let results = data.results || [];
+    
+    // Resilient fallback: if no results found with year parameter, try title-only search
+    if (results.length === 0 && year) {
+      const fallbackUrl = `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}&language=en-US&page=1`;
+      response = await fetchWithTimeout(fallbackUrl);
+      data = (await response.json()) as any;
+      results = data.results || [];
+    }
+
+    if (results.length > 0) {
+      // Grab first match
+      const bestMatch = results[0];
+      return {
+        tmdbId: String(bestMatch.id),
+        posterPath: bestMatch.poster_path || "",
+        genres: bestMatch.genre_ids 
+          ? bestMatch.genre_ids.map((id: number) => TMDB_GENRES[id] || "Drama").slice(0, 3)
+          : ["Drama"],
+        rating: Number(bestMatch.vote_average) || 0,
+        year: bestMatch.release_date ? new Date(bestMatch.release_date).getFullYear() : (year ?? 2024)
+      };
     }
   } catch (error) {
     console.error(`Error resolving metadata for ${title}:`, error);

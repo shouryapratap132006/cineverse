@@ -19,7 +19,7 @@ import { resolveMovieMetadata } from "@/lib/tmdb";
 export class RecommendationService {
   async getRecommendations(request: RecommendationRequest): Promise<RecommendationSet> {
     const cacheKey = aiCache.key(
-      "recommendations",
+      "recommendations_v3",
       request.userId,
       request.type,
       // Include profile hash for cache invalidation

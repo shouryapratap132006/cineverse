@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
     // Use today's date as cache key — same content for all users each day
     const today = new Date().toISOString().split("T")[0];
-    const cacheKey = aiCache.key("daily_content", today);
+    const cacheKey = aiCache.key("daily_content_v2", today);
 
     const cached = await aiCache.get<DailyContent>(cacheKey);
     if (cached) return NextResponse.json(cached);
