@@ -6,6 +6,7 @@ import { orchestrateCompletion, parseAIJson } from "../orchestrator";
 import { aiCache } from "../utils/cache";
 import { getSemanticSearchPrompt } from "../prompts/search.prompts";
 import type { SemanticSearchRequest, SemanticSearchResult } from "../types";
+import { resolveMovieMetadata } from "@/lib/tmdb";
 
 export class SemanticSearchService {
   async search(request: SemanticSearchRequest): Promise<SemanticSearchResult> {
@@ -30,6 +31,26 @@ export class SemanticSearchService {
     });
 
     const result = parseAIJson<SemanticSearchResult>(response.content);
+
+    // Resolve real TMDB movie details to prevent empty poster path or wrong IDs
+    if (result && result.movies && result.movies.length > 0) {
+      const resolvedMovies = await Promise.all(
+        result.movies.map(async (movie) => {
+          const resolved = await resolveMovieMetadata(movie.title, movie.year);
+          if (resolved) {
+            return {
+              ...movie,
+              tmdbId: resolved.tmdbId,
+              posterPath: resolved.posterPath,
+              genres: resolved.genres,
+              year: resolved.year,
+            };
+          }
+          return movie;
+        })
+      );
+      result.movies = resolvedMovies;
+    }
 
     await aiCache.set(cacheKey, result, 60 * 60 * 6); // 6 hour cache
     return result;

@@ -49,6 +49,25 @@ export async function GET(req: NextRequest) {
 
     const content = parseAIJson<DailyContent>(response.content);
     
+    // Resolve real TMDB movie details to prevent empty poster path or wrong IDs
+    const { resolveMovieMetadata } = await import("@/lib/tmdb");
+    if (content.todaysMovie) {
+      const resolved = await resolveMovieMetadata(content.todaysMovie.title, content.todaysMovie.year);
+      if (resolved) {
+        content.todaysMovie.tmdbId = resolved.tmdbId;
+        content.todaysMovie.posterPath = resolved.posterPath;
+        content.todaysMovie.year = resolved.year;
+      }
+    }
+    if (content.hiddenGem) {
+      const resolved = await resolveMovieMetadata(content.hiddenGem.title, content.hiddenGem.year);
+      if (resolved) {
+        content.hiddenGem.tmdbId = resolved.tmdbId;
+        content.hiddenGem.posterPath = resolved.posterPath;
+        content.hiddenGem.year = resolved.year;
+      }
+    }
+    
     // Cache for 12 hours — fresh daily content
     await aiCache.set(cacheKey, content, 60 * 60 * 12);
 

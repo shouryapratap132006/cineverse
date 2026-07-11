@@ -5,6 +5,7 @@
 import { orchestrateCompletion, parseAIJson } from "../orchestrator";
 import { getWatchlistBuilderPrompt } from "../prompts/watchlist.prompts";
 import type { WatchlistBuilderRequest, GeneratedWatchlist } from "../types";
+import { resolveMovieMetadata } from "@/lib/tmdb";
 
 export class WatchlistService {
   async buildWatchlist(request: WatchlistBuilderRequest): Promise<GeneratedWatchlist> {
@@ -33,10 +34,12 @@ export class WatchlistService {
     }
 
     try {
-      return parseAIJson<GeneratedWatchlist>(response.content);
+      const parsed = parseAIJson<GeneratedWatchlist>(response.content);
+      return this.resolveWatchlistMovies(parsed);
     } catch (parseError) {
       console.warn("[WatchlistService] JSON parse failed, retrying with compact prompt:", parseError);
-      return this.buildWatchlistCompact(request, count);
+      const parsedCompact = await this.buildWatchlistCompact(request, count);
+      return this.resolveWatchlistMovies(parsedCompact);
     }
   }
 
@@ -66,6 +69,28 @@ export class WatchlistService {
     }
 
     return parseAIJson<GeneratedWatchlist>(response.content);
+  }
+
+  private async resolveWatchlistMovies(watchlist: GeneratedWatchlist): Promise<GeneratedWatchlist> {
+    if (watchlist && watchlist.movies && watchlist.movies.length > 0) {
+      const resolvedMovies = await Promise.all(
+        watchlist.movies.map(async (movie) => {
+          const resolved = await resolveMovieMetadata(movie.title, movie.year);
+          if (resolved) {
+            return {
+              ...movie,
+              tmdbId: resolved.tmdbId,
+              posterPath: resolved.posterPath,
+              genres: resolved.genres,
+              year: resolved.year,
+            };
+          }
+          return movie;
+        })
+      );
+      watchlist.movies = resolvedMovies;
+    }
+    return watchlist;
   }
 }
 

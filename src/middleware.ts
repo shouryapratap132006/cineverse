@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import type { NextRequest, NextFetchEvent } from "next/server";
 
 const hasClerkKey = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
@@ -10,7 +10,7 @@ function isProtected(pathname: string) {
   return protectedPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 
-export default async function middleware(request: NextRequest) {
+export default async function middleware(request: NextRequest, event: NextFetchEvent) {
   const { pathname } = request.nextUrl;
 
   if (hasClerkKey) {
@@ -22,7 +22,7 @@ export default async function middleware(request: NextRequest) {
         if (isProtectedRoute(req)) {
           await auth.protect();
         }
-      })(request, {} as any);
+      })(request, event);
     } catch (e) {
       console.warn("Clerk middleware failed, falling back to basic routing:", e);
     }

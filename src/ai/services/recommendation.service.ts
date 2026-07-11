@@ -14,6 +14,7 @@ import type {
   RecommendationType,
   UserTasteProfile,
 } from "../types";
+import { resolveMovieMetadata } from "@/lib/tmdb";
 
 export class RecommendationService {
   async getRecommendations(request: RecommendationRequest): Promise<RecommendationSet> {
@@ -40,6 +41,27 @@ export class RecommendationService {
     });
 
     const result = parseAIJson<RecommendationSet>(response.content);
+
+    // Resolve real TMDB movie details to prevent empty poster path or wrong IDs
+    if (result && result.movies && result.movies.length > 0) {
+      const resolvedMovies = await Promise.all(
+        result.movies.map(async (movie) => {
+          const resolved = await resolveMovieMetadata(movie.title, movie.year);
+          if (resolved) {
+            return {
+              ...movie,
+              tmdbId: resolved.tmdbId,
+              posterPath: resolved.posterPath,
+              genres: resolved.genres,
+              rating: resolved.rating,
+              year: resolved.year,
+            };
+          }
+          return movie;
+        })
+      );
+      result.movies = resolvedMovies;
+    }
 
     await aiCache.set(cacheKey, result, 60 * 60 * 4); // 4 hour cache
     return result;

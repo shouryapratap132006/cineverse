@@ -297,3 +297,56 @@ export async function getRecommendations(id: string): Promise<Movie[]> {
     return getFallbackMovies();
   });
 }
+
+const TMDB_GENRES: Record<number, string> = {
+  28: "Action",
+  12: "Adventure",
+  16: "Animation",
+  35: "Comedy",
+  80: "Crime",
+  99: "Documentary",
+  18: "Drama",
+  10751: "Family",
+  14: "Fantasy",
+  36: "History",
+  27: "Horror",
+  10402: "Music",
+  9648: "Mystery",
+  10749: "Romance",
+  878: "Science Fiction",
+  10770: "TV Movie",
+  53: "Thriller",
+  10752: "War",
+  37: "Western"
+};
+
+// Search and resolve exact details from TMDB to correct AI hallucinations or empty paths
+export async function resolveMovieMetadata(title: string, year?: number): Promise<{ tmdbId: string; posterPath: string; genres: string[]; rating: number; year: number } | null> {
+  if (!TMDB_API_KEY) return null;
+  try {
+    const query = `${title} ${year ? year : ""}`.trim();
+    const response = await fetchWithTimeout(
+      `${TMDB_BASE_URL}/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=en-US&page=1`
+    );
+    if (response.ok) {
+      const data = await response.json();
+      const results = data.results || [];
+      if (results.length > 0) {
+        // Grab first match
+        const bestMatch = results[0];
+        return {
+          tmdbId: String(bestMatch.id),
+          posterPath: bestMatch.poster_path || "",
+          genres: bestMatch.genre_ids 
+            ? bestMatch.genre_ids.map((id: number) => TMDB_GENRES[id] || "Drama").slice(0, 3)
+            : ["Drama"],
+          rating: Number(bestMatch.vote_average) || 0,
+          year: bestMatch.release_date ? new Date(bestMatch.release_date).getFullYear() : (year ?? 2024)
+        };
+      }
+    }
+  } catch (error) {
+    console.error(`Error resolving metadata for ${title}:`, error);
+  }
+  return null;
+}
