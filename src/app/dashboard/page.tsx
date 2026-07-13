@@ -17,9 +17,11 @@ export default function DashboardPage() {
   const [feedPosts, setFeedPosts] = useState<any[]>([]);
   const [loadingFeed, setLoadingFeed] = useState(true);
 
+  const [feedType, setFeedType] = useState<"following" | "trending">("following");
+
   const fetchFeed = async () => {
     setLoadingFeed(true);
-    const res = await getFeed();
+    const res = await getFeed(1, 15, feedType);
     if (res.success && res.posts) {
       setFeedPosts(res.posts);
     }
@@ -28,7 +30,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchFeed();
-  }, [user]);
+  }, [user, feedType]);
 
   return (
     <div className="flex w-full min-h-screen">
@@ -97,8 +99,18 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-display font-bold text-lg text-white">Your Feed</h3>
               <div className="flex space-x-4 text-sm font-semibold text-slate-400">
-                <button className="text-white border-b-2 border-brand-blue pb-1">Following</button>
-                <button className="hover:text-white transition">Trending</button>
+                <button 
+                  onClick={() => setFeedType("following")}
+                  className={feedType === "following" ? "text-white border-b-2 border-brand-blue pb-1" : "hover:text-white transition"}
+                >
+                  Following
+                </button>
+                <button 
+                  onClick={() => setFeedType("trending")}
+                  className={feedType === "trending" ? "text-white border-b-2 border-brand-blue pb-1" : "hover:text-white transition"}
+                >
+                  Trending
+                </button>
               </div>
             </div>
 

@@ -119,14 +119,31 @@ export async function createPost(data: {
   }
 }
 
-export async function getFeed(page = 1, limit = 15) {
+export async function getFeed(page = 1, limit = 15, feedType: "following" | "trending" = "following") {
   const userId = await getUserId();
   
   try {
+    let whereClause: any = {};
+    if (feedType === "following" && userId) {
+      // Get IDs of users the current user follows
+      const follows = await db.follow.findMany({
+        where: { followerId: userId },
+        select: { followingId: true }
+      });
+      const followingIds = follows.map(f => f.followingId);
+      followingIds.push(userId); // Include own posts
+      whereClause = { userId: { in: followingIds } };
+    }
+
+    const orderByClause: any = feedType === "trending" 
+      ? { reactions: { _count: "desc" } } 
+      : { createdAt: "desc" };
+
     const posts = await db.post.findMany({
+      where: whereClause,
       take: limit,
       skip: (page - 1) * limit,
-      orderBy: { createdAt: "desc" },
+      orderBy: orderByClause,
       include: {
         user: { include: { profile: true } },
         movie: true,

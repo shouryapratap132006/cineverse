@@ -11,11 +11,6 @@ import { formatDistanceToNow } from "date-fns";
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 const BASE = "https://api.themoviedb.org/3";
 
-const UPCOMING_MOVIES = [
-  { title: "Blade Runner 2099", date: "July 24", genre: "Sci-Fi" },
-  { title: "Nolan's Next Project", date: "August 12", genre: "Thriller" },
-];
-
 export default function RightSidebar() {
   const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -23,6 +18,7 @@ export default function RightSidebar() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiSuggested, setAiSuggested] = useState<any>(null);
   const [aiSearching, setAiSearching] = useState(false);
+  const [upcomingMovies, setUpcomingMovies] = useState<any[]>([]);
 
   useEffect(() => {
     getSuggestedUsers().then((res) => {
@@ -32,6 +28,23 @@ export default function RightSidebar() {
     getNotifications(1, 5).then((res) => {
       if (res.success && res.notifications) setNotifications(res.notifications);
     });
+
+    fetch(`${BASE}/movie/upcoming?api_key=${TMDB_KEY}&language=en-US&page=1`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.results) {
+          const formatted = data.results.slice(0, 3).map((m: any) => {
+            const date = new Date(m.release_date);
+            return {
+              title: m.title,
+              date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+              genre: m.genre_ids ? "New Release" : "Unknown",
+            };
+          });
+          setUpcomingMovies(formatted);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const handleReadNotification = async (id: string) => {
@@ -239,17 +252,23 @@ export default function RightSidebar() {
               <span>Release Calendar</span>
             </h3>
             <div className="space-y-2.5">
-              {UPCOMING_MOVIES.map((m) => (
-                <div key={m.title} className="flex items-center justify-between rounded-xl border border-white/5 bg-white/3 p-3">
-                  <div className="max-w-[150px] space-y-0.5">
-                    <h4 className="truncate text-[11px] font-bold text-white">{m.title}</h4>
-                    <span className="text-[9px] font-semibold text-slate-500">{m.genre}</span>
+              {upcomingMovies.length > 0 ? (
+                upcomingMovies.map((m, idx) => (
+                  <div key={idx} className="flex items-center justify-between rounded-xl border border-white/5 bg-white/3 p-3">
+                    <div className="max-w-[150px] space-y-0.5">
+                      <h4 className="truncate text-[11px] font-bold text-white">{m.title}</h4>
+                      <span className="text-[9px] font-semibold text-slate-500">{m.genre}</span>
+                    </div>
+                    <span className="rounded-lg border border-brand-gold/20 bg-brand-gold/15 px-2 py-1 text-center text-[9px] font-bold leading-none text-brand-gold whitespace-nowrap">
+                      {m.date}
+                    </span>
                   </div>
-                  <span className="rounded-lg border border-brand-gold/20 bg-brand-gold/15 px-2 py-1 text-center text-[9px] font-bold leading-none text-brand-gold">
-                    {m.date}
-                  </span>
+                ))
+              ) : (
+                <div className="rounded-xl border border-white/5 bg-white/3 p-3 text-center">
+                  <span className="text-[10px] text-slate-500">Loading upcoming...</span>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

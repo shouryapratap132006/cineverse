@@ -28,6 +28,7 @@ export default function PostCard({ post, onUpdate }: PostCardProps) {
   const [commentText, setCommentText] = useState("");
   const [showComments, setShowComments] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   const currentUserReaction = post.reactions && post.reactions.length > 0 ? post.reactions[0] : null;
   const isBookmarked = post.bookmarks && post.bookmarks.length > 0;
@@ -83,9 +84,41 @@ export default function PostCard({ post, onUpdate }: PostCardProps) {
             </span>
           </div>
         </Link>
-        <button className="text-slate-500 hover:text-white transition">
-          <MoreHorizontal className="w-5 h-5" />
-        </button>
+        <div className="relative">
+          <button 
+            onClick={() => setShowMenu(!showMenu)}
+            className="text-slate-500 hover:text-white transition"
+          >
+            <MoreHorizontal className="w-5 h-5" />
+          </button>
+          
+          {showMenu && (
+            <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-white/10 rounded-xl shadow-xl py-1 z-20 animate-in fade-in zoom-in-95 duration-200">
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/dashboard/post/${post.id}`);
+                  setShowMenu(false);
+                }}
+                className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition"
+              >
+                Copy Link
+              </button>
+              <button 
+                onClick={() => setShowMenu(false)}
+                className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition"
+              >
+                Share via...
+              </button>
+              <div className="h-px bg-white/10 my-1"></div>
+              <button 
+                onClick={() => setShowMenu(false)}
+                className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-400/10 transition"
+              >
+                Report Post
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="mb-4">

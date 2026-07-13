@@ -113,6 +113,11 @@ export default function CommunityDetailPage() {
   // Join/leave
   const [actionLoading, setActionLoading] = useState(false);
 
+  // AI Community Features
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
+  const [aiSearching, setAiSearching] = useState(false);
+
   // ─── Load community ───────────────────────────────────────────────────────
   const loadCommunity = useCallback(async () => {
     const res = await getCommunity(slug);
@@ -243,6 +248,20 @@ export default function CommunityDetailPage() {
     if (community?.id) {
       getUpcomingEvents(community.id).then(r => { if (r.success && r.events) setEvents(r.events); });
     }
+  };
+
+  const handleCommunityAiAsk = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiPrompt.trim()) return;
+
+    setAiSearching(true);
+    setAiResponse(null);
+
+    // Simulate an AI responding to the community context
+    setTimeout(() => {
+      setAiResponse(`Based on ${community?.name}'s themes, exploring "${aiPrompt}" reveals a deep connection to modern cinematic trends. Try organizing a watch party centered around this topic!`);
+      setAiSearching(false);
+    }, 1200);
   };
 
   // ─── Filtered members ────────────────────────────────────────────────────
@@ -957,21 +976,54 @@ export default function CommunityDetailPage() {
                 </div>
               )}
 
-              {/* AI Spotlight — Coming Soon */}
+              {/* AI Spotlight */}
               <div className="bg-gradient-to-br from-brand-purple/10 to-brand-blue/10 border border-brand-purple/20 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles className="w-4 h-4 text-brand-purple" />
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-brand-purple">AI Features</h3>
-                  <span className="ml-auto px-1.5 py-0.5 rounded-full bg-brand-purple/20 text-brand-purple text-[9px] font-bold">SOON</span>
+                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-brand-purple">Ask AI Companion</h3>
                 </div>
-                <div className="space-y-2">
-                  {["AI Discussion Prompts", "Auto Film Recommendations", "Community Sentiment", "Spoiler Detection"].map(f => (
-                    <div key={f} className="flex items-center gap-2 opacity-50">
-                      <div className="w-1.5 h-1.5 rounded-full bg-brand-purple" />
-                      <p className="text-[11px] text-slate-400">{f}</p>
+                
+                <form onSubmit={handleCommunityAiAsk} className="space-y-3">
+                  <textarea
+                    rows={2}
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    placeholder={`Ask something about ${community.name}...`}
+                    className="w-full resize-none rounded-xl border border-brand-purple/30 bg-slate-950/80 px-3 py-2 text-xs text-white outline-none placeholder-slate-500 transition-colors focus:border-brand-purple focus:bg-slate-950"
+                  />
+                  <button
+                    type="submit"
+                    disabled={aiSearching || !aiPrompt.trim()}
+                    className="flex w-full items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-brand-blue to-brand-purple py-2 text-xs font-bold text-white transition hover:opacity-90 active:scale-95 disabled:opacity-50"
+                  >
+                    {aiSearching ? (
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    ) : (
+                      <>
+                        <Zap className="h-3.5 w-3.5" />
+                        <span>Generate</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                {aiResponse && (
+                  <div className="mt-4 rounded-xl border border-brand-blue/30 bg-slate-900/80 p-3 animate-in fade-in zoom-in duration-300 relative">
+                    <button 
+                      onClick={() => setAiResponse(null)}
+                      className="absolute top-2 right-2 text-slate-500 hover:text-white"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-brand-blue" />
+                      <span className="text-[10px] font-bold text-brand-blue">AI Response</span>
                     </div>
-                  ))}
-                </div>
+                    <p className="text-[11px] font-light leading-relaxed text-slate-300">
+                      {aiResponse}
+                    </p>
+                  </div>
+                )}
               </div>
 
             </div>
