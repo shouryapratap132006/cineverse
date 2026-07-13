@@ -52,46 +52,55 @@ export default function RightSidebar() {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
   };
 
-  const handleQuickAiAsk = (e: React.FormEvent) => {
+  const handleQuickAiAsk = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!aiPrompt.trim()) return;
 
     setAiSearching(true);
     setAiSuggested(null);
 
-    fetch(`${BASE}/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(aiPrompt)}&page=1`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.results && data.results[0]) {
-          const m = data.results[0];
-          setAiSuggested({
-            title: m.title,
-            year: m.release_date ? m.release_date.split("-")[0] : "Unknown",
-            id: String(m.id),
-            reason: `Based on your request, this film matches with an average rating of ${m.vote_average?.toFixed(1)}. Overview: ${m.overview}`,
-            rating: m.vote_average || 7.0,
-          });
-        } else {
-          setAiSuggested({
-            title: "Interstellar",
-            year: "2014",
-            id: "157336",
-            reason: "Could not find an exact match. Here is a universal recommendation matching deep themes and sci-fi grandeur.",
-            rating: 8.4,
-          });
-        }
-        setAiSearching(false);
-      })
-      .catch(() => {
-        setAiSuggested({
-          title: "Inception",
-          year: "2010",
-          id: "27205",
-          reason: "Error query matching. Recommending a timeless mind-bending thriller.",
-          rating: 8.3,
-        });
-        setAiSearching(false);
+    try {
+      const res = await fetch("/api/ai/companion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: aiPrompt }),
       });
+      const data = await res.json();
+
+      if (data.success) {
+        setAiSuggested({
+          title: data.tmdb?.title || data.movieTitle,
+          year: data.movieYear,
+          id: data.tmdb?.id || null,
+          reason: data.response,
+          rating: data.tmdb?.rating || null,
+          posterPath: data.tmdb?.posterPath || null,
+          tags: data.tags || [],
+        });
+      } else {
+        setAiSuggested({
+          title: "Error",
+          year: null,
+          id: null,
+          reason: data.error || "Something went wrong. Please try again.",
+          rating: null,
+          posterPath: null,
+          tags: [],
+        });
+      }
+    } catch {
+      setAiSuggested({
+        title: "Network Error",
+        year: null,
+        id: null,
+        reason: "Could not reach the AI companion. Check your connection.",
+        rating: null,
+        posterPath: null,
+        tags: [],
+      });
+    } finally {
+      setAiSearching(false);
+    }
   };
 
   return (
@@ -162,18 +171,45 @@ export default function RightSidebar() {
               </form>
 
               {aiSuggested && (
-                <div className="mt-3 space-y-2 rounded-xl border border-brand-purple/30 bg-slate-800/40 p-3 animate-in fade-in zoom-in duration-300">
-                  <div className="flex items-center justify-between">
-                    <h4 className="max-w-[120px] truncate text-xs font-bold text-white">{aiSuggested.title}</h4>
-                    <div className="flex items-center text-[10px] font-bold text-brand-gold">
-                      <Star className="mr-0.5 h-3 w-3 fill-brand-gold text-brand-gold" />
-                      <span>{aiSuggested.rating?.toFixed(1)}</span>
+                <div className="mt-3 rounded-2xl border border-brand-purple/30 bg-slate-800/50 overflow-hidden animate-in fade-in zoom-in duration-300">
+                  {/* Poster + info row */}
+                  <div className="flex gap-3 p-3">
+                    {aiSuggested.posterPath ? (
+                      <img
+                        src={`https://image.tmdb.org/t/p/w92${aiSuggested.posterPath}`}
+                        alt={aiSuggested.title}
+                        className="w-12 h-16 object-cover rounded-lg border border-white/10 shrink-0"
+                      />
+                    ) : null}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <h4 className="text-xs font-bold text-white truncate">{aiSuggested.title}</h4>
+                        {aiSuggested.rating && (
+                          <div className="flex items-center text-[10px] font-bold text-brand-gold shrink-0">
+                            <Star className="mr-0.5 h-3 w-3 fill-brand-gold text-brand-gold" />
+                            <span>{Number(aiSuggested.rating).toFixed(1)}</span>
+                          </div>
+                        )}
+                      </div>
+                      {aiSuggested.year && <p className="text-[10px] text-slate-500 mt-0.5">{aiSuggested.year}</p>}
+                      {aiSuggested.tags?.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {aiSuggested.tags.slice(0, 3).map((tag: string) => (
+                            <span key={tag} className="px-1.5 py-0.5 rounded-full bg-brand-purple/20 text-brand-purple text-[9px] font-bold">{tag}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <p className="text-[10px] font-light leading-normal text-slate-300 line-clamp-3">{aiSuggested.reason}</p>
-                  <Link href={`/dashboard/movies/${aiSuggested.id}`} className="inline-block pt-1 text-[10px] font-bold text-brand-purple transition-colors hover:text-brand-blue">
-                    View Details
-                  </Link>
+                  {/* AI explanation */}
+                  <div className="px-3 pb-3">
+                    <p className="text-[11px] leading-relaxed text-slate-300">{aiSuggested.reason}</p>
+                    {aiSuggested.id && (
+                      <Link href={`/dashboard/movies/${aiSuggested.id}`} className="inline-block mt-2 text-[10px] font-bold text-brand-purple hover:text-brand-blue transition-colors">
+                        View Details →
+                      </Link>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
