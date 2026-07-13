@@ -186,3 +186,37 @@ export async function getUserProfile(username: string) {
     return null;
   }
 }
+
+// Save top 5 favourite movies (stores TMDB IDs in favoriteMovies string[])
+export async function updateTopFavoriteMovies(movieIds: string[]) {
+  const { cookies } = await import("next/headers");
+  let userId: string | null = null;
+
+  if (hasClerkKey) {
+    try {
+      const { auth } = await import("@clerk/nextjs/server");
+      const session = await auth();
+      userId = session.userId;
+    } catch (e) {}
+  } else {
+    const cookieStore = await cookies();
+    const mockSession = cookieStore.get("cineverse_session");
+    if (mockSession) {
+      userId = JSON.parse(mockSession.value).id;
+    }
+  }
+
+  if (!userId) return { success: false, error: "Unauthorized" };
+
+  try {
+    // Ensure movies exist in the Movie table (upsert stubs)
+    // The actual movie data is stored in TMDB; we just need the IDs
+    const updated = await db.profile.update({
+      where: { id: userId },
+      data: { favoriteMovies: movieIds.slice(0, 5) },
+    });
+    return { success: true, profile: updated };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

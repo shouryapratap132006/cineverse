@@ -48,8 +48,60 @@ export async function getUserProfile(targetId?: string) {
           include: { movie: true }
         },
         activities: {
-          take: 5,
+          take: 10,
           orderBy: { createdAt: "desc" }
+        },
+        // Liked posts (reactions user made on posts)
+        reactions: {
+          where: { postId: { not: null } },
+          take: 20,
+          orderBy: { createdAt: "desc" },
+          include: {
+            post: {
+              include: {
+                user: { include: { profile: true } },
+                movie: true,
+                _count: { select: { reactions: true, comments: true } }
+              }
+            }
+          }
+        },
+        // Comments user made
+        comments: {
+          take: 20,
+          orderBy: { createdAt: "desc" },
+          include: {
+            post: {
+              include: {
+                user: { include: { profile: true } },
+                _count: { select: { reactions: true, comments: true } }
+              }
+            }
+          }
+        },
+        // Bookmarked posts
+        bookmarks: {
+          take: 20,
+          orderBy: { createdAt: "desc" },
+          include: {
+            post: {
+              include: {
+                user: { include: { profile: true } },
+                movie: true,
+                _count: { select: { reactions: true, comments: true } }
+              }
+            }
+          }
+        },
+        // Recent diary entries (watched movies)
+        diaryEntries: {
+          take: 20,
+          orderBy: { watchedAt: "desc" },
+          include: { movie: true }
+        },
+        // Favorited movies
+        favorites: {
+          include: { movie: true }
         }
       }
     });
