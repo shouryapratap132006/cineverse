@@ -117,6 +117,7 @@ export default function CommunityDetailPage() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [aiSearching, setAiSearching] = useState(false);
+  const [aiSuggested, setAiSuggested] = useState<any>(null);
 
   // ─── Load community ───────────────────────────────────────────────────────
   const loadCommunity = useCallback(async () => {
@@ -250,18 +251,46 @@ export default function CommunityDetailPage() {
     }
   };
 
-  const handleCommunityAiAsk = (e: React.FormEvent) => {
+  const handleCommunityAiAsk = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!aiPrompt.trim()) return;
 
     setAiSearching(true);
     setAiResponse(null);
 
-    // Simulate an AI responding to the community context
-    setTimeout(() => {
-      setAiResponse(`Based on ${community?.name}'s themes, exploring "${aiPrompt}" reveals a deep connection to modern cinematic trends. Try organizing a watch party centered around this topic!`);
+    try {
+      const res = await fetch("/api/ai/companion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: aiPrompt,
+          context: `This is the "${community?.name}" film community. ${community?.description || ""}`,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setAiResponse(
+          `🎬 **${data.tmdb?.title || data.movieTitle}** (${data.movieYear})\n\n${data.response}`
+        );
+        // Also store tmdb data for a link/poster
+        setAiSuggested(data.tmdb ? {
+          id: data.tmdb.id,
+          title: data.tmdb.title,
+          posterPath: data.tmdb.posterPath,
+          rating: data.tmdb.rating,
+          tags: data.tags || [],
+        } : null);
+      } else {
+        setAiResponse(data.error || "Something went wrong. Please try again.");
+        setAiSuggested(null);
+      }
+    } catch {
+      setAiResponse("Could not reach AI companion. Check your connection.");
+      setAiSuggested(null);
+    } finally {
       setAiSearching(false);
-    }, 1200);
+    }
   };
 
   // ─── Filtered members ────────────────────────────────────────────────────
@@ -1007,21 +1036,55 @@ export default function CommunityDetailPage() {
                   </button>
                 </form>
 
+
                 {aiResponse && (
-                  <div className="mt-4 rounded-xl border border-brand-blue/30 bg-slate-900/80 p-3 animate-in fade-in zoom-in duration-300 relative">
-                    <button 
-                      onClick={() => setAiResponse(null)}
-                      className="absolute top-2 right-2 text-slate-500 hover:text-white"
+                  <div className="mt-4 rounded-2xl border border-brand-blue/30 bg-slate-900/80 overflow-hidden animate-in fade-in zoom-in duration-300 relative">
+                    <button
+                      onClick={() => { setAiResponse(null); setAiSuggested(null); }}
+                      className="absolute top-2 right-2 text-slate-500 hover:text-white z-10"
                     >
                       <X className="w-3 h-3" />
                     </button>
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-brand-blue" />
-                      <span className="text-[10px] font-bold text-brand-blue">AI Response</span>
+                    {/* Poster row */}
+                    {aiSuggested?.posterPath && (
+                      <div className="flex gap-3 p-3 border-b border-white/5">
+                        <img
+                          src={`https://image.tmdb.org/t/p/w92${aiSuggested.posterPath}`}
+                          alt={aiSuggested.title}
+                          className="w-10 h-14 object-cover rounded-lg border border-white/10 shrink-0"
+                        />
+                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                          <p className="text-xs font-bold text-white truncate">{aiSuggested.title}</p>
+                          {aiSuggested.rating && (
+                            <div className="flex items-center gap-0.5 mt-0.5">
+                              <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                              <span className="text-[10px] font-bold text-amber-400">{Number(aiSuggested.rating).toFixed(1)}</span>
+                            </div>
+                          )}
+                          {aiSuggested.tags?.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {aiSuggested.tags.slice(0, 3).map((tag: string) => (
+                                <span key={tag} className="px-1.5 py-0.5 rounded-full bg-brand-purple/20 text-brand-purple text-[9px] font-bold">{tag}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    <div className="p-3">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-brand-blue" />
+                        <span className="text-[10px] font-bold text-brand-blue">AI Companion</span>
+                      </div>
+                      <p className="text-[11px] font-light leading-relaxed text-slate-300 whitespace-pre-line">
+                        {aiResponse.replace(/\*\*(.*?)\*\*/g, '$1')}
+                      </p>
+                      {aiSuggested?.id && (
+                        <Link href={`/dashboard/movies/${aiSuggested.id}`} className="inline-block mt-2 text-[10px] font-bold text-brand-purple hover:text-brand-blue transition-colors">
+                          View Movie →
+                        </Link>
+                      )}
                     </div>
-                    <p className="text-[11px] font-light leading-relaxed text-slate-300">
-                      {aiResponse}
-                    </p>
                   </div>
                 )}
               </div>
