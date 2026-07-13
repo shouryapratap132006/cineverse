@@ -234,6 +234,8 @@ export default function ProfilePage() {
   const [favSaved, setFavSaved] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [pickerSlot, setPickerSlot] = useState(0);
+  // Guard so favIds are only seeded from DB on the FIRST load, never overwritten by re-renders
+  const favsInitialized = useRef(false);
 
   // DNA
   const [dnaData, setDnaData] = useState<any | null>(null);
@@ -244,11 +246,14 @@ export default function ProfilePage() {
     if (res.success && res.user) {
       setProfileData(res.user);
       setLoading(false);
-      // Load favourite movie IDs from profile
-      const ids: (string | undefined)[] = Array(5).fill(undefined);
-      const savedIds: string[] = res.user.profile?.favoriteMovies || [];
-      savedIds.forEach((id: string, i: number) => { ids[i] = id; });
-      setFavIds(ids);
+      // Only seed favIds from DB on the very first fetch — never overwrite user edits
+      if (!favsInitialized.current) {
+        const ids: (string | undefined)[] = Array(5).fill(undefined);
+        const savedIds: string[] = res.user.profile?.favoriteMovies || [];
+        savedIds.forEach((id: string, i: number) => { ids[i] = id; });
+        setFavIds(ids);
+        favsInitialized.current = true;
+      }
     } else {
       window.location.href = "/onboarding";
     }

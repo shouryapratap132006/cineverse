@@ -1879,6 +1879,75 @@
       "The Mirisch Company"
     ]
   },
+  "293": {
+    "id": "293",
+    "title": "A River Runs Through It",
+    "overview": "The Maclean brothers, Paul and Norman, live a relatively idyllic life in rural Montana, spending much of their time fly fishing. The sons of a minister, the boys eventually part company when Norman moves east to attend college, leaving his rebellious brother to find trouble back home. When Norman finally returns, the siblings resume their fishing outings, and assess where they've been and where they're going.",
+    "rating": 7,
+    "releaseYear": 1992,
+    "releaseDate": "October 9, 1992",
+    "backdropUrl": "https://image.tmdb.org/t/p/w1280/85dLdBCBbuZYde0T6L1CKXd707u.jpg",
+    "posterUrl": "https://image.tmdb.org/t/p/w500/aVP45oS2cBL4WtZ1kB7r8uarruB.jpg",
+    "genres": [
+      "Drama"
+    ],
+    "runtime": 123,
+    "cast": [
+      {
+        "name": "Craig Sheffer",
+        "character": "Norman Maclean",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/w8wAAyXDifuxZDgvuL8U0fuLsLG.jpg"
+      },
+      {
+        "name": "Brad Pitt",
+        "character": "Paul Maclean",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/m09Y1YfPPeNYYUSHnnVqahkrC1o.jpg"
+      },
+      {
+        "name": "Tom Skerritt",
+        "character": "Rev. Maclean",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/oWFCyBLm1lsbsbT5Nmx3SPMaqFZ.jpg"
+      },
+      {
+        "name": "Brenda Blethyn",
+        "character": "Mrs. Maclean",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/mxENo8tEvN0998PrNidYkN4wGGO.jpg"
+      },
+      {
+        "name": "Emily Lloyd",
+        "character": "Jessie Burns",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/2OrKRl9Vel31ihbeMYb4Z5XZvGF.jpg"
+      }
+    ],
+    "crew": [
+      {
+        "name": "Robert Redford",
+        "job": "Director"
+      },
+      {
+        "name": "Mark Isham",
+        "job": "Original Music Composer"
+      }
+    ],
+    "reviews": [
+      {
+        "id": "5fee03aef18ce70040feeca2",
+        "user": "Wuchak",
+        "rating": 8,
+        "content": "_**Two brothers growing up in Montana during the 20s**_\r\n\r\nAfter WW1, two brothers come-of-age in the Missoula area of Montana; one prudent (Craig Sheffer) and the other imprudent (Brad Pitt). Tom Skerritt plays their father, a wise Presbyterian minister, while Emily Lloyd plays the sensible son’s potential romantic interest.    \r\n\r\n\"A River Runs through It\" (1992) was based on the memoir of American author Norman Maclean and is similar to “Legends of the Fall” (1994), but understandably more mundane (in a positive sense). This was Robert Redford’s third directorial effort and it was very successful. It effectively brings to life the Prohibition Era of the 20s and early 30s with their Model T's and speakeasies. \r\n\r\nAside from Lloyd, Susan Traylor appears on the feminine front as a woman with, um, rather loose morals while Nicole Burdette plays the Indian lass that Pitt’s character brings to a speakeasy. \r\n\r\nThe moral is deep and a little murky, but clear if you reflect on it. Regardless, it’s a great drama that takes you back to rural America during the roaring 20s. If you like “Legends of the Fall” and “The Horse Whisperer” (1998) it’s a must.  \r\n\r\nThe film runs 2 hours, 3 minutes, and was shot in western Montana (Livingston, Granite Falls & Bozeman) with one scene done in Wyoming. Needless to say, the locations are a highlight.\r\n\r\nGRADE: A-/B+",
+        "date": "12/31/2020",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/4KVM1VkqmXLOuwj1jjaSdxbvBDk.jpg"
+      }
+    ],
+    "trailerUrl": "QIwRKnn30EI",
+    "streamingPlatforms": [
+      "Amazon Prime Video"
+    ],
+    "production": [
+      "Allied Filmmakers",
+      "Columbia Pictures"
+    ]
+  },
   "311": {
     "id": "311",
     "title": "Once Upon a Time in America",
@@ -2063,6 +2132,98 @@
       "Village Roadshow Pictures",
       "NPV Entertainment",
       "Malpaso Productions"
+    ]
+  },
+  "404": {
+    "id": "404",
+    "title": "The Straight Story",
+    "overview": "Retired farmer and widower Alvin Straight learns one day that his distant brother Lyle has suffered a stroke and may not recover. Alvin is determined to make things right with Lyle while he still can, but his brother lives in Wisconsin, while Alvin is stuck in Iowa with no car and no driver's license. He then has the idea of making the trip on his old lawnmower, thus beginning a picturesque and at times deeply spiritual odyssey.",
+    "rating": 7.7,
+    "releaseYear": 1999,
+    "releaseDate": "October 15, 1999",
+    "backdropUrl": "https://image.tmdb.org/t/p/w1280/1S81PpyGwS8eVx4W75uSKzMw4B0.jpg",
+    "posterUrl": "https://image.tmdb.org/t/p/w500/tT9cMiVDdtlcdZxOoFy3VRmEoKk.jpg",
+    "genres": [
+      "Drama"
+    ],
+    "runtime": 112,
+    "cast": [
+      {
+        "name": "Richard Farnsworth",
+        "character": "Alvin",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/zwomo8lekrM7dkJ00JmqsslwrIB.jpg"
+      },
+      {
+        "name": "Sissy Spacek",
+        "character": "Rose",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/xAxenjxjLNQFq4v1ccS2to3Mnoq.jpg"
+      },
+      {
+        "name": "Jane Galloway Heitz",
+        "character": "Dorothy",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/5vsWPq7v8r4eqLtc7uqWzQSk2hr.jpg"
+      },
+      {
+        "name": "Joseph A. Carpenter",
+        "character": "Bud",
+        "avatarUrl": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"
+      },
+      {
+        "name": "Donald Wiegert",
+        "character": "Sig",
+        "avatarUrl": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"
+      }
+    ],
+    "crew": [
+      {
+        "name": "David Lynch",
+        "job": "Director"
+      },
+      {
+        "name": "Angelo Badalamenti",
+        "job": "Original Music Composer"
+      },
+      {
+        "name": "John Roach",
+        "job": "Writer"
+      }
+    ],
+    "reviews": [
+      {
+        "id": "56c9f693c3a36840870085a1",
+        "user": "John Chard",
+        "rating": 9,
+        "content": "I want to thank you for your kindness to a stranger.\r\n\r\nAn absolute delight. From director David Lynch, The Straight Story finds the famous purveyor of the oblique on wonderfully mellow form. Story finds a superb Richard Farnsworth as Alvin Straight, an old boy long in the tooth who sets off across America on his lawn mower to visit his estranged brother. You see, he doesn't have a driving licence, so lawn mower is the viable form of transport.\r\n\r\nLynch and writers John Roach & Mary Sweeney have offered up a wry and astute observation of Americana. The journey Alvin takes involves him meeting a number of eccentrics and confused souls, which pitches Alvin as our conduit to a rich view of the life we have - or will - live. Culminating in a finale that rewards anyone with an intelligent soul. The message is clear.\r\n\r\nA beautiful film for the beautiful of heart. 9/10",
+        "date": "2/21/2016",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/utEXl2EDiXBK6f41wCLsvprvMg4.jpg"
+      },
+      {
+        "id": "5f837ca333ec260038471fd3",
+        "user": "r96sk",
+        "rating": 9,
+        "content": "Beautifully made film.\r\n\r\nIt's a difficult one to describe. <em>'The Straight Story'</em> features a very touching, true life, story about Alvin Straight. It's a very simple premise but one that the film brings to life wonderfully. There's a crap tonne of heart, alongside some brilliant cinematography and a top notch score.\r\n\r\nRichard Farnsworth plays the role of Alvin expertly, it's an outstanding performance from him. Credit also to Sissy Spacek, who makes an impact as Rose despite not really being in the film for all that long. Harry Dean Stanton (Lyle) makes an appearance, too.\r\n\r\nIt's a slow burn but one that's totally worth the 112 minute run time. What a great way to end the millennium for Disney's live-action theatrical releases.",
+        "date": "10/12/2020",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/mwR7rFHoDcobAx1i61I3skzMW3U.jpg"
+      },
+      {
+        "id": "695d269b53d7288e2b02956a",
+        "user": "CinemaSerf",
+        "rating": 7,
+        "content": "I’ve seen loads of road movies over the years, but never one that involved an elderly gent travelling from Iowa to the adjacent Wisconsin driving his lawnmower! “Alvin” (Richard Farnsworth) is a curmudgeonly seventy-something whose health and mobility are failing and who lives with his daughter “Rose” (Sissy Spacek) - a lady without her own problems to seek, too! When he learns that his estranged brother “Lyle” has had a stroke, he determines to visit him after a ten year hiatus. The bus, the train, a plane? Nope. He hitches a trailer to his grass cutter and off he goes. Unsurprisingly, he doesn’t get very far before it blows a gasket. Back to square one, he still chooses to shun more traditional (and comfortable) modes of transport and spends what’s left of his savings on a slightly more upmarket tractor - think a wheeled version of a pygmy hippo. As he travels, he encounters a selection of people with whom he engages, eats, shares stories, venison, and even essential repairs and this journey of reflection helps him to put into better perspective just what led to their sibling separation; what caused his daughter’s “illness” and what the future could hold for him if only he gave it a chance. It’s also quite a pleasing vindication of the human spirit as those he meets up with are invariably helpful, interested and sympathetic - even when he isn’t always the easiest to get on with. Farnsworth is entirely natural here (he reminded me a lot of Will Geer) as his rut-like existence becomes laid bare to his own eyes. There’s nothing really contentious here either, it’s just a quirky first-gear cruise down a road of memories, friendship and opportunity and it’s almost entirely devoid of any cloying sentiment, too.",
+        "date": "1/6/2026",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/9HcQx0Yfbxy8eqr3ft66X9uWMf0.jpg"
+      }
+    ],
+    "trailerUrl": "lcMyFckt_Hs",
+    "streamingPlatforms": [
+      "Disney Plus",
+      "Criterion Channel"
+    ],
+    "production": [
+      "Les Films Alain Sarde",
+      "Picture Factory",
+      "Le Studio Canal+",
+      "Film4 Productions"
     ]
   },
   "411": {
@@ -6098,6 +6259,68 @@
       "Primal Foe Productions"
     ]
   },
+  "2887": {
+    "id": "2887",
+    "title": "And the Band Played On",
+    "overview": "The story of the discovery of the AIDS epidemic and the political infighting of the scientific community hampering the early fight with it.",
+    "rating": 6.5,
+    "releaseYear": 1993,
+    "releaseDate": "September 11, 1993",
+    "backdropUrl": "https://image.tmdb.org/t/p/w1280/9EjHUb6xNrHUsjxMu16p8KmR7Cy.jpg",
+    "posterUrl": "https://image.tmdb.org/t/p/w500/4fyZ6SZaZuerfZWaIp0niFW7Yar.jpg",
+    "genres": [
+      "Drama",
+      "TV Movie"
+    ],
+    "runtime": 140,
+    "cast": [
+      {
+        "name": "Matthew Modine",
+        "character": "Dr. Don Francis",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/z974QEHL12qUvLyk6hlWGAmDgom.jpg"
+      },
+      {
+        "name": "Alan Alda",
+        "character": "Dr. Robert Gallo",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/dJBtCXUwWnAxhveiPdXQS6e71pw.jpg"
+      },
+      {
+        "name": "Patrick Bauchau",
+        "character": "Dr. Luc Montagnier",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/kdrFAJJFdfQaYUETTHQw77gim9O.jpg"
+      },
+      {
+        "name": "Nathalie Baye",
+        "character": "Dr. Françoise Barre",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/9WZnFcyqdixlOfqHKBXq0l0Rc4L.jpg"
+      },
+      {
+        "name": "Christian Clemenson",
+        "character": "Dr. Dale Lawrence",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/uki9bmhoR4V4x0E7uVTCj9iZwNy.jpg"
+      }
+    ],
+    "crew": [
+      {
+        "name": "Roger Spottiswoode",
+        "job": "Director"
+      },
+      {
+        "name": "Carter Burwell",
+        "job": "Original Music Composer"
+      }
+    ],
+    "reviews": [],
+    "trailerUrl": "PaHUzy-A05U",
+    "streamingPlatforms": [
+      "HBO Max Amazon Channel",
+      "YouTube TV",
+      "HBO Max"
+    ],
+    "production": [
+      "HBO Films"
+    ]
+  },
   "3072": {
     "id": "3072",
     "title": "Frankenstein Unbound",
@@ -7662,6 +7885,68 @@
       "Aura Films"
     ]
   },
+  "8987": {
+    "id": "8987",
+    "title": "The River Wild",
+    "overview": "Gail and Tom Hartman are struggling to stay together and decide to take a white-water rafting holiday adventure in Montana for their son Roarke's 10th birthday, only to meet up with a pair of mysterious men whose desperation grows, turning their vacation into a nightmare.",
+    "rating": 6.5,
+    "releaseYear": 1994,
+    "releaseDate": "September 30, 1994",
+    "backdropUrl": "https://image.tmdb.org/t/p/w1280/8KcvxZCwkahVDphIzRENl7rZECy.jpg",
+    "posterUrl": "https://image.tmdb.org/t/p/w500/wVgQ2T63ThjIsY4R0qoHXjyllql.jpg",
+    "genres": [
+      "Adventure",
+      "Thriller",
+      "Drama"
+    ],
+    "runtime": 111,
+    "cast": [
+      {
+        "name": "Meryl Streep",
+        "character": "Gail Hartman",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/g5cVxQBAQ3AXt3LhdBXtbbN47Uc.jpg"
+      },
+      {
+        "name": "David Strathairn",
+        "character": "Tom Hartman",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/w5YM2cGefPnkoyIXCi2UrCQW53r.jpg"
+      },
+      {
+        "name": "Kevin Bacon",
+        "character": "Wade",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/rjX2Oz3tCZMfSwOoIAyEhdtXnTE.jpg"
+      },
+      {
+        "name": "John C. Reilly",
+        "character": "Terry",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/iDQ8w4qcxU3le5ZWoCKpHs1QNok.jpg"
+      },
+      {
+        "name": "Joseph Mazzello",
+        "character": "Roarke Hartman",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/4O3sx4YcgxRKvCuImCda2aoe2Hv.jpg"
+      }
+    ],
+    "crew": [
+      {
+        "name": "Jerry Goldsmith",
+        "job": "Original Music Composer"
+      },
+      {
+        "name": "Curtis Hanson",
+        "job": "Director"
+      }
+    ],
+    "reviews": [],
+    "trailerUrl": "WbGD81wUgC0",
+    "streamingPlatforms": [
+      "Purchase Only / Rent"
+    ],
+    "production": [
+      "The Turman-Foster Company",
+      "Universal Pictures"
+    ]
+  },
   "9003": {
     "id": "9003",
     "title": "Hellraiser",
@@ -8679,6 +8964,85 @@
       "Tom Ward Enterprises",
       "Columbia Pictures",
       "Rastar Productions"
+    ]
+  },
+  "10386": {
+    "id": "10386",
+    "title": "The Iron Giant",
+    "overview": "In the small town of Rockwell, Maine in October 1957, a giant metal machine befriends a nine-year-old boy and ultimately finds its humanity by unselfishly saving people from their own fears and prejudices.",
+    "rating": 8,
+    "releaseYear": 1999,
+    "releaseDate": "August 6, 1999",
+    "backdropUrl": "https://image.tmdb.org/t/p/w1280/gZ78dyRH9hXeH94ASjuvD9Vw4b5.jpg",
+    "posterUrl": "https://image.tmdb.org/t/p/w500/ct04FCFLPImNG5thcPLRnVsZlmS.jpg",
+    "genres": [
+      "Animation",
+      "Drama",
+      "Family",
+      "Science Fiction"
+    ],
+    "runtime": 86,
+    "cast": [
+      {
+        "name": "Jennifer Aniston",
+        "character": "Annie Hughes (voice)",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/qPXG41rYdUGldZhMhuZFvmpZKRp.jpg"
+      },
+      {
+        "name": "Harry Connick Jr.",
+        "character": "Dean McCoppin (voice)",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/cMagjJsa0nSZzEueihV721dgxNn.jpg"
+      },
+      {
+        "name": "Vin Diesel",
+        "character": "The Iron Giant (voice)",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/nZdVry7lnUkE24PnXakok9okvL4.jpg"
+      },
+      {
+        "name": "James Gammon",
+        "character": "Foreman Marv Loach / Floyd Turbeaux (voice)",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/ar7am7PST1c91LYPYnrmJJxc9zH.jpg"
+      },
+      {
+        "name": "Cloris Leachman",
+        "character": "Mrs. Lynley Tensedge (voice)",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/o8pnV9urjuHZDAR2u4UjPy2CR1u.jpg"
+      }
+    ],
+    "crew": [
+      {
+        "name": "Brad Bird",
+        "job": "Director"
+      },
+      {
+        "name": "Michael Kamen",
+        "job": "Original Music Composer"
+      }
+    ],
+    "reviews": [
+      {
+        "id": "5e94f992a3491100144107c2",
+        "user": "John Chard",
+        "rating": 9,
+        "content": "You are who you choose to be.\r\n\r\nIt's the 1950s and young Hogarth Hughes happens upon a visitor from space ..... in the form of a giant iron man.\r\n\r\nDelightful animation adaptation of Ted Hughes' much beloved 1968 novel \"The Iron Man\". Set during the period of time when Cold War and sci-fi paranoia was prevalent, The Iron Giant embraces these themes and stokes them with lessons of friendship, hatred, death and pertinent reminders of pacifism. Directed by Brad Bird and scripted by Tim McCanilies and Andy Brent Forrester, The Iron Giant is one of those rare animation animals that delights the kids as much as it does the watching adults. Though the actual giant himself, with all his dazzling weaponry, is the star attraction on show, it's the iron colossus' inner conflict that gives the film its heart. Aided by his friend, young Hogarth, good old iron decides he doesn't want to be a big weapon, but the authorities, as is nearly always the way, just can't let it be. The unflinching attitude that ran through many of the 50s sci-fi schlockers was one of being \"because we don't understand it, lets destroy it\" is something that Ted Hughes and the film makers here capture perfectly. Sophisticated and intelligent in its approach and delivery, this is definitely one of the better animated film's from the modern age. 9/10\r\n\r\nVoice work comes from Jennifer Anniston, Harry Connick Jr, Vin Diesel, James Gammon, Christopher McDonald, M. Emmet Walsh and Eli Marienthal.",
+        "date": "4/14/2020",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/utEXl2EDiXBK6f41wCLsvprvMg4.jpg"
+      },
+      {
+        "id": "6683d91d6b4f43adc91b9565",
+        "user": "CinemaSerf",
+        "rating": 7,
+        "content": "When a ship is caught up in a storm, it's captain finds the most unlikely of saviours - but nobody back in the town of \"Rockwell\" believes him! Hardly surprising as he claimed to have been rescued by an hundred foot robot with bright yellow eyes. \"Hogarth\" is an enthusiastic young lad who wants to keep a pet. His mother (\"Annie\") is having nothing to do with this, especially after one of his candidates manages to just about wreck the diner where she works and turn scrap man \"Dean\" into \"Deana\" in the process. Dejected at home alone, he hears some strange noises and armed with his pop gun and a torch, sets off into the forest to find the source. When he discovers that the fisherman's tale wasn't so long after all, the pair begin to bond and the story takes on a familiar look. It does have shades of \"The Day The Earth Stood Still\" as it shows clearly the typical reaction to something strange, new and big - the government and the army are soon in hot pursuit with little intent on diplomacy but with plenty of tanks, missiles and ultimately the \"bomb\" - just as destructive to them as to the \"monster\". It's really the characterisations that help this stand out. The style of animation is simple yet potent, the creature positively emanates a degree of decency and charisma and the relationship with the young boy that manifests itself to us is one that amiably resonates whether that be with a real friend, an imaginary one - or one from outer space who doesn't much like guns and has an almost infantile approach to life. Proof that when you have a solid story and tell it well, the gadgets, gismos (and there are a few, here) and visual effects don't matter so much as the soul of the thing.",
+        "date": "7/2/2024",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/9HcQx0Yfbxy8eqr3ft66X9uWMf0.jpg"
+      }
+    ],
+    "trailerUrl": "1XHf94YqGyQ",
+    "streamingPlatforms": [
+      "Purchase Only / Rent"
+    ],
+    "production": [
+      "Warner Bros. Feature Animation"
     ]
   },
   "10431": {
@@ -11167,6 +11531,81 @@
       "Summit Entertainment",
       "A Band Apart",
       "Stark Raving Productions Inc."
+    ]
+  },
+  "15397": {
+    "id": "15397",
+    "title": "I Am David",
+    "overview": "A 12-year-old boy manages to flee a Communist concentration camp on his own, through sheer will and determination. All he has in his possession is a loaf of bread, a letter to deliver to someone in Denmark, and a compass to help get him there.",
+    "rating": 6.9,
+    "releaseYear": 2003,
+    "releaseDate": "December 3, 2003",
+    "backdropUrl": "https://image.tmdb.org/t/p/w1280/5RNH0Pscp4hke5HisiCGxmdRpOU.jpg",
+    "posterUrl": "https://image.tmdb.org/t/p/w500/cPoiPR15ylyBCNIr9zmUAzEb1Jm.jpg",
+    "genres": [
+      "Drama",
+      "Adventure"
+    ],
+    "runtime": 90,
+    "cast": [
+      {
+        "name": "Ben Tibber",
+        "character": "David",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/5V3rF5w6WVoep2F2ormiQNfoHGq.jpg"
+      },
+      {
+        "name": "Jim Caviezel",
+        "character": "Johannes",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/hVcUKAl8qc3jpWlpUfTeEcumOCW.jpg"
+      },
+      {
+        "name": "Joan Plowright",
+        "character": "Sophie",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/un5wsOnz22Rvl82niE0LGAVxggQ.jpg"
+      },
+      {
+        "name": "Hristo Shopov",
+        "character": "The Man",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/5b3xNLQwZK15eUiy8QiTGQjJVCA.jpg"
+      },
+      {
+        "name": "Silvia De Santis",
+        "character": "Elsa",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/yJvSdSWFF49Msdzx91E1E5Syozi.jpg"
+      }
+    ],
+    "crew": [
+      {
+        "name": "Paul Feig",
+        "job": "Writer"
+      },
+      {
+        "name": "Paul Feig",
+        "job": "Director"
+      },
+      {
+        "name": "Anne Holm",
+        "job": "Novel"
+      }
+    ],
+    "reviews": [
+      {
+        "id": "5f36d3e111c0660035366953",
+        "user": "Wuchak",
+        "rating": 6,
+        "content": "_**A boy flees the Iron Curtain for a new life in Western Europe**_\r\n\r\nEscaping a concentration camp in 1952 Bulgaria, a cynical boy (Ben Tibber) stows away to Italy, traveling the peninsula to Switzerland on his way to Denmark. Will he find liberty and love or more distrust and hatred? Jim Caviezel plays a prisoner at the camp while Joan Plowright is on hand as a warm elderly woman. \r\n\r\nBased on Anne Holm’s novel “North to Freedom,”  “I Am David” (2003) is an indie drama/adventure by Paul Feig (writer/director). The movie effectively reminds us that there was an Iron Curtain from 1945-1989 and that crimes against humanity were pretty much business-as-usual for Communistic governments in USSR and Eastern Bloc countries. \r\n\r\nThe tone is realistic and low-key with a balance of cruelty, mundaneness, tenderness and amusement. Don’t expect earth-shattering events. The human potential for ugliness & atrocities or beauty & goodwill is explored. There are stereotypes but so what? Stereotypes are stereotypes for good reason (they’re often TRUE). This is a testimony to those who escaped to freedom or died trying. It’s relatively moving, but in a subdued way.\r\n\r\nThe film runs 1 hour, 31 minutes, and was shot in Bulgaria.\r\n\r\nGRADE: B-/B",
+        "date": "8/14/2020",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/4KVM1VkqmXLOuwj1jjaSdxbvBDk.jpg"
+      }
+    ],
+    "trailerUrl": "j_GeHxTIYwA",
+    "streamingPlatforms": [
+      "Lionsgate+ Amazon Channels"
+    ],
+    "production": [
+      "Walden Media",
+      "Summit Entertainment",
+      "Lions Gate Films"
     ]
   },
   "15659": {
@@ -14629,6 +15068,75 @@
       "North by Northwest Entertainment"
     ]
   },
+  "80219": {
+    "id": "80219",
+    "title": "Homeless to Harvard: The Liz Murray Story",
+    "overview": "Based on a true story. Liz Murray is a young girl who is taken care of by her loving, but drug-addicted parents. Liz becomes homeless at 15 and after a tragedy comes upon her, she begins her work to finish high school.",
+    "rating": 7.3,
+    "releaseYear": 2003,
+    "releaseDate": "April 7, 2003",
+    "backdropUrl": "https://image.tmdb.org/t/p/w1280/4nxRVDs64m7kTdwuSx4Qc3kjl6S.jpg",
+    "posterUrl": "https://image.tmdb.org/t/p/w500/oI6BivZQsKj5uZLsudJOke8rc1S.jpg",
+    "genres": [
+      "Drama",
+      "TV Movie"
+    ],
+    "runtime": 104,
+    "cast": [
+      {
+        "name": "Thora Birch",
+        "character": "Liz Murray",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/xJ6Bb3C8f0ior5LlWdNzxlb8cgV.jpg"
+      },
+      {
+        "name": "Michael Riley",
+        "character": "Peter",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/bqE0sgajno18ddjxGJhV417v2Jm.jpg"
+      },
+      {
+        "name": "Kelly Lynch",
+        "character": "Jean Murray",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/lYpcMbWOpZ552VHPCjwjyZ2jvvw.jpg"
+      },
+      {
+        "name": "Robert Bockstael",
+        "character": "David",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/jDSaEKivomnhHisZoxD3N501HRB.jpg"
+      },
+      {
+        "name": "Makyla Smith",
+        "character": "Chris",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/2YB6jC5ypu3mwqDIxtgNEFO90AR.jpg"
+      }
+    ],
+    "crew": [
+      {
+        "name": "Ronni Kern",
+        "job": "Writer"
+      },
+      {
+        "name": "Peter Levin",
+        "job": "Director"
+      },
+      {
+        "name": "Louis Febre",
+        "job": "Original Music Composer"
+      }
+    ],
+    "reviews": [],
+    "trailerUrl": "zSWdZVtXT7E",
+    "streamingPlatforms": [
+      "Philo",
+      "Lifetime Movie Club",
+      "Lifetime Movie Club Apple TV Channel"
+    ],
+    "production": [
+      "Barnet Bain Films",
+      "Metafilmics",
+      "Patriarch Pictures Inc.",
+      "Lifetime"
+    ]
+  },
   "81128": {
     "id": "81128",
     "title": "A Moment of Romance",
@@ -15006,6 +15514,89 @@
     "production": [
       "AFI",
       "The Kennedy/Marshall Company"
+    ]
+  },
+  "103731": {
+    "id": "103731",
+    "title": "Mud",
+    "overview": "Two teenage boys find a fugitive hiding out on an island in the Mississippi River and help him reunite with his lover and escape an avenging family and their armed posse.",
+    "rating": 7.1,
+    "releaseYear": 2013,
+    "releaseDate": "April 26, 2013",
+    "backdropUrl": "https://image.tmdb.org/t/p/w1280/otmqSaptLwYutON1oZEgBLZeBEQ.jpg",
+    "posterUrl": "https://image.tmdb.org/t/p/w500/o2jT5jQdKh1HAF0fMKuGwBOwOYB.jpg",
+    "genres": [
+      "Drama"
+    ],
+    "runtime": 130,
+    "cast": [
+      {
+        "name": "Matthew McConaughey",
+        "character": "Mud",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/lCySuYjhXix3FzQdS4oceDDrXKI.jpg"
+      },
+      {
+        "name": "Reese Witherspoon",
+        "character": "Juniper",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/mfjunuTHrd0wnh8UG1ImMN9FSws.jpg"
+      },
+      {
+        "name": "Tye Sheridan",
+        "character": "Ellis",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/d5ZS2fjqC98cIGkhEGX0fRYhku4.jpg"
+      },
+      {
+        "name": "Jacob Lofland",
+        "character": "Neckbone",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/jU1eW9oOTC4ILfLNFeNUC7Fa5ya.jpg"
+      },
+      {
+        "name": "Sam Shepard",
+        "character": "Tom",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/mVR3Le1rSGIbQmld3Ve42RVFcyI.jpg"
+      }
+    ],
+    "crew": [
+      {
+        "name": "Jeff Nichols",
+        "job": "Writer"
+      },
+      {
+        "name": "Jeff Nichols",
+        "job": "Director"
+      },
+      {
+        "name": "David Wingo",
+        "job": "Original Music Composer"
+      }
+    ],
+    "reviews": [
+      {
+        "id": "5ab6a260925141395500ed61",
+        "user": "Wuchak",
+        "rating": 7,
+        "content": "To love or not love in Arkansas along the Mississippi\r\n\r\nRELEASED IN 2012-2013 and written & directed by Jeff Nichols, “Mud” is a southern gothic crime drama taking place in Arkansas along the Mississippi River where two boys discover a fugitive named Mud (Matthew McConaughey) hiding out on an island and decide to help him evade the authorities & vigilantes that are on his trail in hope of reuniting him with his true love, Juniper (Reese Witherspoon).   \r\n\r\nThis is a film about authentic Southern people and the code by which they live. Urbanized types usually refer to them as “rednecks.” While some of them may be “white trash,” most of them are not. They’re independent of the government, hardworking and respectful citizens, not to mention rooted in Christian morality, although not necessarily Christians. The film respects the intelligence of the viewer, leaving it to him/her to read between the lines. It’s similar to “Joe,” which was released a year later, but not as abrasively pessimistic and is overall better. In tone, it’s akin to “Undertow” (2004) and “Snow Angels” (2007). If you appreciate those flicks, you’ll like “Mud.” \r\n\r\nThere are a lot of gems to mine: Ellis (Tye Sheridan) mirrors Mud as an adolescent. Will he make the same mistakes that brought Mud to his current state? The movie’s basically a rumination on the potential in both masculinity and femininity for good or bad, but the focus is more on the toxicity of some women, which is refreshing, as Hollywood tends to paint men as evil incarnate or thoroughly inept while women are usually sterling examples of eminent nobility (Why Sure!). The film also reveals the idealization of love and how “love is blind.” Just because you truly love someone in a romantic sense doesn’t mean s/he is good for you and that you should develop & maintain a relationship. \r\n\r\nI was never a fan of Witherspoon, but didn’t dislike her either. In any case, she’s quite good as the seemingly innocent-yet-toxic love interest. Bonnie Sturdivant is excellent as her teenage counterpart, May Pearl; they should’ve done more with her.             \r\n\r\nTHE MOVIE RUNS 2 hour 10 minutes and was shot in Arkansas (Crocketts Bluff, Eudora, Dumas and Stuttgart). ADDITIONAL CAST: Sam Shepard, Michael Shannon, Paul Sparks and Joe Don Baker. \r\n\r\nGRADE: B/B+",
+        "date": "3/25/2018",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/4KVM1VkqmXLOuwj1jjaSdxbvBDk.jpg"
+      },
+      {
+        "id": "66c0a5e1de13608b8703be7f",
+        "user": "CinemaSerf",
+        "rating": 7,
+        "content": "In a way, there was something slightly Dickensian about this story of two small urchins who regularly zip about the Mississippi river on their boat. There must have been an hurricane recently as on one stop, they discover a boat lodged firmly in the branches of a tree. After a quick inspection, they realise it's had a recent resident and as they are about to leave they are introduced to \"Mud\" (Matthew McConaughey). \"Ellis\" (Tye Sheridan) is a bit more engaged with this enigmatic stranger than his pal \"Neckbone\" (a solid effort from Jacob Lofland) and agrees to bring him some food and then help him fix the boat - so long as the boys can have it after! As their relationship slowly develops, we discover that there's no shortage of baggage across the lives of the youngster whose parents are separating and who is about to lose his houseboat home and the fugitive who has a story of his own to tell of love with the gorgeous \"Juniper\" (Reese Witherspoon) and violence. With the temperature rising and the hunt for \"Mud\" closing in on the boys, things become perilous and the characters have to take a good long look at themselves as they come to terms with actions past and present that will impact on their futures. McConaughey is at his most natural here; his charisma does much of the heavy lifting but it's really Sheridan who steals the show as his curiously decent character evolves from an innocence to something altogether more mature, more aware and - thanks to \"Mae Pearl\" (Bonnie Sturdivant) - frustratingly hormonal, too! The setting works well offering us a look at a community that has it's own way of doing things, as does the judicious amount of dialogue allowing the story to develop effectively under it's own steam delivering a bond between these two unlikely characters that emerges in quite an unexpected, and risky, fashion. It's a little more intricate than might appear on first inspection, and is worth a couple of hours.",
+        "date": "8/17/2024",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/9HcQx0Yfbxy8eqr3ft66X9uWMf0.jpg"
+      }
+    ],
+    "trailerUrl": "DTEDfEhKwLo",
+    "streamingPlatforms": [
+      "Amazon Prime Video",
+      "MovistarTV"
+    ],
+    "production": [
+      "Everest Entertainment",
+      "FilmNation Entertainment",
+      "Brace Cove Productions"
     ]
   },
   "118340": {
@@ -20424,6 +21015,81 @@
       "Summit Entertainment"
     ]
   },
+  "441183": {
+    "id": "441183",
+    "title": "Light of My Life",
+    "overview": "Parent and child journey through the outskirts of society a decade after a pandemic has wiped out half the world's population. As a father struggles to protect his child, their bond—and the character of humanity—is tested.",
+    "rating": 6.5,
+    "releaseYear": 2019,
+    "releaseDate": "August 9, 2019",
+    "backdropUrl": "https://image.tmdb.org/t/p/w1280/aBqbubKhglCkD8riJddlXsQDF2N.jpg",
+    "posterUrl": "https://image.tmdb.org/t/p/w500/zbQQrOclR6G4r3T3EuOjp0f6VG9.jpg",
+    "genres": [
+      "Science Fiction",
+      "Drama"
+    ],
+    "runtime": 119,
+    "cast": [
+      {
+        "name": "Casey Affleck",
+        "character": "Dad",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/304ilSygaCRWykoBWAL67TOw8g9.jpg"
+      },
+      {
+        "name": "Anna Pniowsky",
+        "character": "Rag",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/lOMwBARAcgXMYTTFYKcDebSlDZX.jpg"
+      },
+      {
+        "name": "Elisabeth Moss",
+        "character": "Mom",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/vZDe22EtLtcHvPr28l4ZM0b7qjG.jpg"
+      },
+      {
+        "name": "Tom Bower",
+        "character": "Tom",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/q26z6T3QZfpirZV3Ex885zUgUR4.jpg"
+      },
+      {
+        "name": "Timothy Webber",
+        "character": "Lemmy",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/Av0mtgZ9DeopXP9NQjzd8q9ZPd6.jpg"
+      }
+    ],
+    "crew": [
+      {
+        "name": "Casey Affleck",
+        "job": "Writer"
+      },
+      {
+        "name": "Casey Affleck",
+        "job": "Director"
+      },
+      {
+        "name": "Daniel Hart",
+        "job": "Original Music Composer"
+      }
+    ],
+    "reviews": [
+      {
+        "id": "5ed47c6baaec7100216cf7a1",
+        "user": "SWITCH.",
+        "rating": 8,
+        "content": "It's a shame that Casey Affleck's actions off-screen meant that 'Light of My Life' was destined to be lost in the movie release wilderness. Newcomer Anna Pniowsky matches Affleck's typically delicate, mumbling performance perfectly and they share a genuine, easy rapport onscreen, anchoring a touching (if intense) relationship drama.\r\n- Jake Watt\r\n\r\nRead Jake's full article...\r\nhttps://www.maketheswitch.com.au/article/review-light-of-my-life-an-intense-test-of-the-father-daughter-bond",
+        "date": "6/1/2020",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/klZ9hebmc8biG1RC4WmzNFnciJN.jpg"
+      }
+    ],
+    "trailerUrl": "nWkAtNpSIrY",
+    "streamingPlatforms": [
+      "Paramount Plus Essential",
+      "YouTube TV"
+    ],
+    "production": [
+      "Black Bear Pictures",
+      "Company A"
+    ]
+  },
   "445040": {
     "id": "445040",
     "title": "My Friend Dahmer",
@@ -23560,6 +24226,64 @@
       "Feigco Entertainment",
       "Jane Startz Productions",
       "Roth Films"
+    ]
+  },
+  "785522": {
+    "id": "785522",
+    "title": "Skater Girl",
+    "overview": "Prerna, a teenager growing up in rural India, comes of age when she’s introduced to the sport of skateboarding. As a result, she has to fight the odds to follow her dreams and compete in the national championship.",
+    "rating": 7.2,
+    "releaseYear": 2021,
+    "releaseDate": "June 11, 2021",
+    "backdropUrl": "https://image.tmdb.org/t/p/w1280/kFZAu1g0f7bpunIumUY8Gb3Y9WU.jpg",
+    "posterUrl": "https://image.tmdb.org/t/p/w500/e8yxFPOvNmhlfUXBqiNvvpMI4t5.jpg",
+    "genres": [
+      "Drama",
+      "Family"
+    ],
+    "runtime": 107,
+    "cast": [
+      {
+        "name": "Rachel Sanchita Gupta",
+        "character": "Prerna",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/lJNpGOzJ2lt1mqBZGyqs1y7JQob.jpg"
+      },
+      {
+        "name": "Amy Maghera",
+        "character": "Jessica",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/uCiIWDpwEuRXmuUOhm3QriBAo2S.jpg"
+      },
+      {
+        "name": "Waheeda Rehman",
+        "character": "Maharani",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/h7GkZUbiexxIHAODJzPYlNgJ2ue.jpg"
+      },
+      {
+        "name": "Shafin Patel",
+        "character": "Ankush",
+        "avatarUrl": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"
+      },
+      {
+        "name": "Anuraag Arora",
+        "character": "Mahesh",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/tLqQ0RVvU7OXaPMyFI7AWKeaE97.jpg"
+      }
+    ],
+    "crew": [
+      {
+        "name": "Manjari Makijany",
+        "job": "Director"
+      }
+    ],
+    "reviews": [],
+    "trailerUrl": "k5Fn99wmFCQ",
+    "streamingPlatforms": [
+      "Netflix",
+      "Netflix Standard with Ads"
+    ],
+    "production": [
+      "Skatepark Films",
+      "Mac Productions"
     ]
   },
   "799876": {
