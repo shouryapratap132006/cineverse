@@ -28328,6 +28328,73 @@
       "Lemming Film"
     ]
   },
+  "1248832": {
+    "id": "1248832",
+    "title": "Digger",
+    "overview": "The most powerful man in the world embarks on a frantic mission to prove he is humanity's savior before the disaster he's unleashed destroys everything.",
+    "rating": 0,
+    "releaseYear": 2026,
+    "releaseDate": "September 30, 2026",
+    "backdropUrl": "https://image.tmdb.org/t/p/w1280/hG1tXuommFDedfdrzaEHfMY1Q3W.jpg",
+    "posterUrl": "https://image.tmdb.org/t/p/w500/1ATXKrIPJyKNwnJ6lcG088Sa6zi.jpg",
+    "genres": [
+      "Comedy"
+    ],
+    "runtime": 106,
+    "cast": [
+      {
+        "name": "Tom Cruise",
+        "character": "Digger Rockwell",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/p17SLq4wabXwIYyjXF1Wf5cNnAm.jpg"
+      },
+      {
+        "name": "Riz Ahmed",
+        "character": "Ganesh",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/1uP9RaX7BGVx7XGTEmwObBJJzsC.jpg"
+      },
+      {
+        "name": "John Goodman",
+        "character": "President of the United States",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/yyYqoyKHO7hE1zpgEV2XlqYWcNV.jpg"
+      },
+      {
+        "name": "Sandra Hüller",
+        "character": "",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/t7wGqC2dRwTEnt9Fk5pxQ0uXTqs.jpg"
+      },
+      {
+        "name": "Michael Stuhlbarg",
+        "character": "",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/aYB3SQm3h6ZyAdlbGyiNfakjx56.jpg"
+      }
+    ],
+    "crew": [
+      {
+        "name": "Alejandro G. Iñárritu",
+        "job": "Director"
+      },
+      {
+        "name": "Alejandro G. Iñárritu",
+        "job": "Writer"
+      },
+      {
+        "name": "Alexander Dinelaris",
+        "job": "Writer"
+      }
+    ],
+    "reviews": [],
+    "trailerUrl": "qORTe1wW3Wg",
+    "streamingPlatforms": [
+      "Purchase Only / Rent"
+    ],
+    "production": [
+      "Warner Bros. Pictures",
+      "Legendary Pictures",
+      "TC Productions",
+      "M Productions",
+      "Domain Entertainment"
+    ]
+  },
   "1253000": {
     "id": "1253000",
     "title": "Deathstalker",
@@ -29546,6 +29613,83 @@
       "Jonas Pate",
       "TFC Productions",
       "BondIt Media Capital"
+    ]
+  },
+  "1440050": {
+    "id": "1440050",
+    "title": "The Breadwinner",
+    "overview": "After his wife Katie lands a once-in-a-lifetime deal on Shark Tank that takes her on a prolonged business trip - lifelong breadwinner Nate Wilcox now has to fend for his family as a first-time stay-at-home dad.",
+    "rating": 6.4,
+    "releaseYear": 2026,
+    "releaseDate": "May 29, 2026",
+    "backdropUrl": "https://image.tmdb.org/t/p/w1280/jQ89PbSNQ1mcd4YZiaLsiIaflFM.jpg",
+    "posterUrl": "https://image.tmdb.org/t/p/w500/4apG9Xk6HQvV48JKEjSUeiebju7.jpg",
+    "genres": [
+      "Comedy",
+      "Family"
+    ],
+    "runtime": 100,
+    "cast": [
+      {
+        "name": "Nate Bargatze",
+        "character": "Nate Wilcox",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/60KdELrwXRuNAKJveTaZIpHyDUU.jpg"
+      },
+      {
+        "name": "Mandy Moore",
+        "character": "Katie Wilcox",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/2n0rqUGojRNEHrmtPeCEptHREEY.jpg"
+      },
+      {
+        "name": "Stella Grace Fitzgerald",
+        "character": "Gracie Wilcox",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/xiSvi4zwTIUlSFm34ovk3JJBqYO.jpg"
+      },
+      {
+        "name": "Birdie Borria",
+        "character": "Hadley Wilcox",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/1e8iouPs7g0kXuvWoSu6S4nqdIo.jpg"
+      },
+      {
+        "name": "Charlotte Ann Tucker",
+        "character": "Sam Wilcox",
+        "avatarUrl": "https://image.tmdb.org/t/p/w185/56fIr7bqvuJsZkhoG8nBoo40TzK.jpg"
+      }
+    ],
+    "crew": [
+      {
+        "name": "Eric Appel",
+        "job": "Director"
+      },
+      {
+        "name": "Nate Bargatze",
+        "job": "Writer"
+      },
+      {
+        "name": "Dan Lagana",
+        "job": "Writer"
+      }
+    ],
+    "reviews": [
+      {
+        "id": "6a3f1458727c0e95773ccbc8",
+        "user": "RoyMcKenzie",
+        "rating": 10,
+        "content": "“The Breadwinner” with Nate Bargatze is a genuinely delightful, laugh‑out‑loud family comedy that feels like a modern, cleaner heir to classics like “Mr. Mom,” anchored by Bargatze’s dry, self‑deprecating charm and a surprisingly heartfelt story about marriage, parenting, and identity. It’s the rare PG movie that parents, kids, and even comedy snobs can watch together without anyone feeling talked down to—or needing to dive for the remote.\r\n\r\nTone and Humor\r\nBargatze brings his trademark clean, relatable stand‑up style to the screen, and it translates beautifully. The jokes are rooted in real‑life parenting chaos—missed school pickups, breakfast disasters, and the sheer confusion of being suddenly in charge of everything at home—so the laughs feel earned rather than forced.\r\n\r\nBest of all, it’s actually funny from start to finish: multiple reviewers and audience reactions highlight “lots of laughs,” “soooo funny,” and the kind of warm, chuckle‑filled experience that leaves you smiling all the way out of the theater.\r\n\r\nFamily‑Friendly and Accessible\r\nOne of the movie’s biggest strengths is how accessible it is: it’s PG, deliberately clean, and clearly designed so the whole family can watch together. There’s no mean‑spirited edge or raunchy detours; instead, it’s packed with the kind of observational humor that both parents and older kids can appreciate for different reasons.\r\n\r\nAudience comments consistently praise it as “great, clean family humor,” “good movie to watch as a family,” and even call it the best family movie of 2026, which is no small compliment in an era of over‑caffeinated, effects‑driven kids’ films.\r\n\r\nCast Chemistry and Performances\r\nNate Bargatze is perfectly cast as Nate Wilcox, the bewildered car salesman suddenly thrust into full‑time dad mode, and he’s smart enough not to hog the spotlight. He often plays the straight man to his kids, letting their personalities and reactions drive some of the best comedic beats, which gives the movie a grounded, lived‑in feel.\r\n\r\nMandy Moore is a standout as Katie, the mom‑turned‑entrepreneur whose big break propels the entire story, bringing warmth and credibility to the role of a woman balancing ambition and family. The daughters and supporting cast (including fun turns from Colin Jost and Will Forte) add layers of charm and absurdity that keep the movie from ever feeling flat.\r\n\r\nStory, Themes, and Heart\r\nUnder all the jokes, “The Breadwinner” tells a surprisingly thoughtful story about identity—what it means to be “the breadwinner,” where we find our worth, and how roles inside a family can evolve. Watching Nate, who initially defines himself by his success at the dealership, stumble and grow as he learns the invisible mental load of running a household is both funny and quietly moving.\r\n\r\nThe film gently flips traditional expectations without turning it into a lecture or a battle of the sexes; it respects both parents’ contributions and emphasizes that real strength comes from partnership, love, and shared responsibility. By the time the credits roll, you’re left not just with sore cheeks from laughing, but with a renewed appreciation for the everyday grind that keeps a family afloat.\r\n\r\nOverall Impression\r\nIs “The Breadwinner” reinventing cinema? No—and that’s exactly the point. It’s a throwback in the best sense: a breezy, wholesome, crowd‑pleasing family comedy that delivers heart, humor, and real relatability without cynicism or cheap shots. For anyone craving a movie night where you can relax, laugh hard, and see your own family’s beautiful mess reflected on screen, Nate Bargatze’s “The Breadwinner” absolutely deserves a spot at the top of your watchlist.",
+        "date": "6/27/2026",
+        "avatarUrl": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"
+      }
+    ],
+    "trailerUrl": "m76VzoDfQWQ",
+    "streamingPlatforms": [
+      "Purchase Only / Rent"
+    ],
+    "production": [
+      "Wonder Project",
+      "TriStar Pictures",
+      "The Nateland Company",
+      "One Man Canoe",
+      "TSG Entertainment"
     ]
   },
   "1457515": {
