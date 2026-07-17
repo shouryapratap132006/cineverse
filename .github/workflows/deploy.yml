@@ -55,6 +55,19 @@ jobs:
           ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o BatchMode=yes \
             "$EC2_USER@$EC2_HOST" "echo connected as \$(whoami) on \$(hostname)"
 
+      - name: Grow root filesystem to fill the EBS volume
+        run: |
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes "$EC2_USER@$EC2_HOST" '
+            set -e
+            ROOT_PART=$(findmnt -no SOURCE /)
+            ROOT_DISK=$(lsblk -no PKNAME "$ROOT_PART")
+            PART_NUM=$(echo "$ROOT_PART" | grep -o "[0-9]*$")
+            echo "root part=$ROOT_PART disk=$ROOT_DISK partnum=$PART_NUM"
+            sudo growpart "/dev/$ROOT_DISK" "$PART_NUM" || echo "growpart: no change"
+            sudo resize2fs "$ROOT_PART" || echo "resize2fs: no change"
+            df -h /
+          '
+
       - name: Fetch build-time .env from host
         run: |
           ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes "$EC2_USER@$EC2_HOST" "test -f ~/$REMOTE_DIR/.env" \
