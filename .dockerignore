@@ -27,7 +27,6 @@ coverage
 scratch
 README.md
 AGENTS.md
-CLAUDE.md
 migrate_routes.py
 rewrite_routes.py
 Dockerfile
