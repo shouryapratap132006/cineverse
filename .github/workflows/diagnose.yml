@@ -1,0 +1,32 @@
+name: Diagnose host
+
+# On-demand: SSH to the EC2 host and dump container status + logs. No build.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    env:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USER: ${{ vars.EC2_USER || 'ubuntu' }}
+      REMOTE_DIR: cineverse
+    steps:
+      - name: Configure SSH
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" | tr -d '\r' > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Dump status + logs
+        run: |
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes "$EC2_USER@$EC2_HOST" '
+            cd ~/'"$REMOTE_DIR"'
+            echo "===== SITE_ADDRESS ====="; grep -E "^SITE_ADDRESS=" .env || echo "(not set)"
+            echo "===== docker compose ps ====="; docker compose ps
+            echo "===== caddy logs ====="; docker compose logs caddy --tail 60 2>&1 || true
+            echo "===== app logs ====="; docker compose logs app --tail 60 2>&1 || true
+          '
