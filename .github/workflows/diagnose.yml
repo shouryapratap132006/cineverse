@@ -29,7 +29,7 @@ jobs:
           ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes "$EC2_USER@$EC2_HOST" '
             cd ~/'"$REMOTE_DIR"'
             echo "===== SITE_ADDRESS ====="; grep -E "^SITE_ADDRESS=" .env || echo "(not set)"
-            echo "===== docker compose ps ====="; docker compose ps
-            echo "===== caddy logs ====="; docker compose logs caddy --tail 60 2>&1 || true
-            echo "===== app logs ====="; docker compose logs app --tail 60 2>&1 || true
+            echo "===== docker ps -a ====="; docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            echo "===== caddy logs ====="; docker logs cineverse-caddy-1 --tail 60 2>&1 || true
+            echo "===== app logs ====="; docker logs cineverse-app-1 --tail 80 2>&1 || true
           '
