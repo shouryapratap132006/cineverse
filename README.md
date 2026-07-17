@@ -192,7 +192,7 @@ Generates daily/weekly AI summaries of community activity, top discussions, and 
 
 ## 🗄️ Database Schema
 
-**34 Prisma models** across two logical layers:
+**43 Prisma models** across three logical layers:
 
 **Core Social**
 ```
@@ -221,19 +221,19 @@ KnowledgeGraphCache  MovieInsight  AIUsage
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js >= 18
+- Node.js >= 20.9
 - PostgreSQL database
 - API keys for: TMDB, Clerk, Groq, Cloudinary, Pusher
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your-username/cineverse.git
+git clone https://github.com/shouryapratap132006/cineverse.git
 cd cineverse
 ```
 
 ### 2. Install dependencies
 ```bash
-npm install
+npm ci
 ```
 
 ### 3. Configure environment variables
@@ -278,7 +278,7 @@ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=...
 ### 4. Set up the database
 ```bash
 npx prisma generate
-npx prisma db push
+npx prisma migrate dev
 ```
 
 ### 5. Run the development server
@@ -287,6 +287,20 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## 🚀 Production workflow
+
+Before releasing schema changes, apply committed migrations to the production database:
+
+```bash
+npx prisma migrate deploy
+npm run build
+npm run start
+```
+
+Use production environment variables for Clerk, Neon/PostgreSQL, TMDB, Groq, Cloudinary, and Pusher. Never commit `.env` files or service credentials.
 
 ---
 
