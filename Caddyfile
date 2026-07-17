@@ -4,7 +4,7 @@
 #   - a domain name    -> Caddy auto-provisions a Let's Encrypt HTTPS cert
 # Socket.IO (/api/socket) is proxied transparently — Caddy upgrades WebSockets automatically.
 
-{$SITE_ADDRESS::80} {
+{$SITE_ADDRESS} {
 	encode zstd gzip
 	reverse_proxy app:3000
 }
