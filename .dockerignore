@@ -1,0 +1,34 @@
+# deps & build output (regenerated inside the image)
+node_modules
+.next
+.server-out
+out
+build
+
+# vcs & local
+.git
+.gitignore
+.DS_Store
+*.pem
+
+# env — inject these at runtime on EC2, never bake them into the image
+.env
+.env.*
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# misc / not needed at runtime
+coverage
+.vercel
+scratch
+README.md
+AGENTS.md
+migrate_routes.py
+rewrite_routes.py
+Dockerfile
+.dockerignore
+*.tsbuildinfo

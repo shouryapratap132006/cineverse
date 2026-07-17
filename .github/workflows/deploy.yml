@@ -1,0 +1,117 @@
+name: Deploy to EC2
+
+# Builds the image on GitHub's runner (native linux/amd64), pushes it to GHCR, then SSHes to
+# the EC2 host to pull + run. The 1 GB t3.micro only pulls + runs; it never builds.
+#
+# Secrets required: EC2_HOST, EC2_SSH_KEY, GHCR_USERNAME, GHCR_PAT
+# The NEXT_PUBLIC_* build args are read from the host's ~/cineverse/.env (fetched over SSH),
+# so there is no separate ENV_FILE secret to maintain.
+
+on:
+  push:
+    branches: [main, docker-ec2-deploy]
+    paths-ignore:              # docs/diagnostic-only changes shouldn't trigger a full deploy
+      - '**.md'
+      - '.github/workflows/diagnose.yml'
+      - '.github/workflows/docker-build.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USER: ${{ vars.EC2_USER || 'ubuntu' }}
+      REMOTE_DIR: cineverse
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_USERNAME }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Compute image refs
+        run: |
+          OWNER=$(echo "${{ secrets.GHCR_USERNAME }}" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_BASE=ghcr.io/$OWNER/cineverse" >> "$GITHUB_ENV"
+          echo "TAG=${GITHUB_SHA::12}" >> "$GITHUB_ENV"
+
+      - name: Configure SSH
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          # Normalize: strip CRLF and guarantee a trailing newline (PEM keys require it)
+          printf '%s\n' "$EC2_SSH_KEY" | tr -d '\r' > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Verify SSH connectivity
+        run: |
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o BatchMode=yes \
+            "$EC2_USER@$EC2_HOST" "echo connected as \$(whoami) on \$(hostname)"
+
+      - name: Grow root filesystem to fill the EBS volume
+        run: |
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes "$EC2_USER@$EC2_HOST" '
+            set -e
+            ROOT_PART=$(findmnt -no SOURCE /)
+            ROOT_DISK=$(lsblk -no PKNAME "$ROOT_PART")
+            PART_NUM=$(echo "$ROOT_PART" | grep -o "[0-9]*$")
+            echo "root part=$ROOT_PART disk=$ROOT_DISK partnum=$PART_NUM"
+            sudo growpart "/dev/$ROOT_DISK" "$PART_NUM" || echo "growpart: no change"
+            sudo resize2fs "$ROOT_PART" || echo "resize2fs: no change"
+            df -h /
+          '
+
+      - name: Fetch build-time .env from host
+        run: |
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes "$EC2_USER@$EC2_HOST" "test -f ~/$REMOTE_DIR/.env" \
+            || { echo "::error::~/$REMOTE_DIR/.env not found on host (or SSH failed). Create it once (see DEPLOY.md)."; exit 1; }
+          scp -i ~/.ssh/id_deploy -o IdentitiesOnly=yes "$EC2_USER@$EC2_HOST:~/$REMOTE_DIR/.env" ./.env
+
+      - name: Build & push images (linux/amd64)
+        run: |
+          set -a; . ./.env; set +a
+          docker buildx build --platform linux/amd64 --target runner --push \
+            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}" \
+            --build-arg NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:-}" \
+            --build-arg NEXT_PUBLIC_PUSHER_KEY="${NEXT_PUBLIC_PUSHER_KEY:-}" \
+            --build-arg NEXT_PUBLIC_PUSHER_CLUSTER="${NEXT_PUBLIC_PUSHER_CLUSTER:-}" \
+            --build-arg NEXT_PUBLIC_TMDB_API_KEY="${NEXT_PUBLIC_TMDB_API_KEY:-}" \
+            --build-arg DATABASE_URL="${DATABASE_URL:-}" \
+            -t "$IMAGE_BASE:app-$TAG" -t "$IMAGE_BASE:app-latest" .
+          docker buildx build --platform linux/amd64 --target migrator --push \
+            -t "$IMAGE_BASE:migrate-$TAG" -t "$IMAGE_BASE:migrate-latest" .
+          rm -f ./.env
+
+      - name: Ship compose + proxy config
+        run: |
+          scp -i ~/.ssh/id_deploy -o IdentitiesOnly=yes docker-compose.ghcr.yml "$EC2_USER@$EC2_HOST:~/$REMOTE_DIR/docker-compose.yml"
+          scp -i ~/.ssh/id_deploy -o IdentitiesOnly=yes Caddyfile              "$EC2_USER@$EC2_HOST:~/$REMOTE_DIR/Caddyfile"
+
+      - name: Deploy on host (login, pull, migrate, restart)
+        env:
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes "$EC2_USER@$EC2_HOST" \
+            "set -e; \
+             echo '=== disk before ==='; df -h /; \
+             echo '$GHCR_PAT' | docker login ghcr.io -u '$GHCR_USERNAME' --password-stdin; \
+             cd ~/$REMOTE_DIR; \
+             docker system prune -af || true; \
+             export APP_IMAGE='$IMAGE_BASE:app-$TAG' MIGRATE_IMAGE='$IMAGE_BASE:migrate-$TAG'; \
+             docker compose pull; \
+             docker compose up -d; \
+             docker image prune -f; \
+             echo '=== disk after ==='; df -h /; \
+             docker compose ps"
