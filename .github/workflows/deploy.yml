@@ -87,7 +87,14 @@ jobs:
           GHCR_PAT: ${{ secrets.GHCR_PAT }}
         run: |
           ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes "$EC2_USER@$EC2_HOST" \
-            "echo '$GHCR_PAT' | docker login ghcr.io -u '$GHCR_USERNAME' --password-stdin && \
-             cd ~/$REMOTE_DIR && \
-             export APP_IMAGE='$IMAGE_BASE:app-$TAG' MIGRATE_IMAGE='$IMAGE_BASE:migrate-$TAG' && \
-             docker compose pull && docker compose up -d && docker image prune -f && docker compose ps"
+            "set -e; \
+             echo '=== disk before ==='; df -h /; \
+             echo '$GHCR_PAT' | docker login ghcr.io -u '$GHCR_USERNAME' --password-stdin; \
+             cd ~/$REMOTE_DIR; \
+             docker system prune -af || true; \
+             export APP_IMAGE='$IMAGE_BASE:app-$TAG' MIGRATE_IMAGE='$IMAGE_BASE:migrate-$TAG'; \
+             docker compose pull; \
+             docker compose up -d; \
+             docker image prune -f; \
+             echo '=== disk after ==='; df -h /; \
+             docker compose ps"
