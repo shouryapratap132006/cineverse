@@ -1,0 +1,32 @@
+# Build + run on the EC2 host directly:  docker compose up -d --build
+# Migrations run first (via the `builder` stage, which has the Prisma CLR),
+# then the app starts once they complete successfully.
+
+services:
+  # Runs `prisma migrate deploy` against your DATABASE_URL, then exits.
+  migrate:
+    build:
+      context: .
+      target: builder          # builder stage has devDeps incl. the Prisma CLI + schema
+    env_file: .env
+    command: npx prisma migrate deploy
+    restart: "no"
+
+  app:
+    build:
+      context: .               # defaults to the final `runner` stage
+      args:                    # NEXT_PUBLIC_* are inlined at build time; compose reads them from ./.env
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}
+        NEXT_PUBLIC_PUSHER_KEY: ${NEXT_PUBLIC_PUSHER_KEY}
+        NEXT_PUBLIC_PUSHER_CLUSTER: ${NEXT_PUBLIC_PUSHER_CLUSTER}
+        NEXT_PUBLIC_TMDB_API_KEY: ${NEXT_PUBLIC_TMDB_API_KEY}
+        DATABASE_URL: ${DATABASE_URL}
+    image: cineverse:latest
+    env_file: .env
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully

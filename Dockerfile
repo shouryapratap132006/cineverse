@@ -1,0 +1,69 @@
+# syntax=docker/dockerfile:1
+
+# ---- Base image ----
+FROM node:22-alpine AS base
+# libc6-compat + openssl keep Prisma/Next native bits happy on Alpine
+RUN apk add --no-cache libc6-compat openssl
+WORKDIR /app
+
+# ---- Install ALL deps (needed to build) ----
+FROM base AS deps
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# ---- Build Next.js + compile the custom Socket.IO server ----
+FROM base AS builder
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# NEXT_PUBLIC_* vars are inlined into the client bundle at BUILD time, so they
+# must be passed as build args (compose reads them from ./.env — see docker-compose.yml).
+# These are public values, safe to bake into the image.
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ARG NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+ARG NEXT_PUBLIC_PUSHER_KEY
+ARG NEXT_PUBLIC_PUSHER_CLUSTER
+ARG NEXT_PUBLIC_TMDB_API_KEY
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY \
+    NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=$NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME \
+    NEXT_PUBLIC_PUSHER_KEY=$NEXT_PUBLIC_PUSHER_KEY \
+    NEXT_PUBLIC_PUSHER_CLUSTER=$NEXT_PUBLIC_PUSHER_CLUSTER \
+    NEXT_PUBLIC_TMDB_API_KEY=$NEXT_PUBLIC_TMDB_API_KEY
+
+# DATABASE_URL is only needed here if `next build` statically renders pages that hit the DB.
+ARG DATABASE_URL
+ENV DATABASE_URL=$DATABASE_URL
+
+# Generate the Prisma client
+RUN npx prisma generate
+# Build the Next.js app
+RUN npm run build
+# Compile server.ts -> .server-out/server.js so the runtime needs plain node (no ts-node)
+RUN npx tsc --project tsconfig.server.json
+
+# ---- Install PRODUCTION deps only (drops ts-node, typescript, eslint, tailwind, @types, prisma CLI...) ----
+FROM base AS prod-deps
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+# The generated Prisma client is created by the CLI (a devDep), so copy it over
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+
+# ---- Final runtime image ----
+FROM base AS runner
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Run as non-root
+RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+
+# Only the artifacts required to run
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=builder   /app/.next        ./.next
+COPY --from=builder   /app/public       ./public
+COPY --from=builder   /app/.server-out  ./.server-out
+COPY --from=builder   /app/next.config.ts ./next.config.ts
+COPY package.json ./
+
+USER nextjs
+EXPOSE 3000
+CMD ["node", ".server-out/server.js"]
