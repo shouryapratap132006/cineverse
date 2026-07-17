@@ -15,9 +15,29 @@ services:
     image: cineverse:latest
     pull_policy: never
     env_file: .env
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"                 # internal only — reached by caddy, not published to the host
     restart: unless-stopped
     depends_on:
       migrate:
         condition: service_completed_successfully
+
+  # Reverse proxy: serves 80/443, auto-HTTPS when SITE_ADDRESS is a domain.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  caddy_data:
+  caddy_config:

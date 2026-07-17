@@ -41,8 +41,9 @@ $SSH "test -f $REMOTE_DIR/.env" || {
   exit 1
 }
 
-echo "==> [3/5] Copying compose file to the host"
+echo "==> [3/5] Copying compose + proxy config to the host"
 scp -i "$SSH_KEY" docker-compose.prebuilt.yml "$SSH_USER@$EC2_HOST:$REMOTE_DIR/docker-compose.yml"
+scp -i "$SSH_KEY" Caddyfile "$SSH_USER@$EC2_HOST:$REMOTE_DIR/Caddyfile"
 
 echo "==> [4/5] Shipping images (gzipped over SSH)"
 docker save cineverse:latest cineverse:migrate | gzip | $SSH "gunzip | docker load"
@@ -51,5 +52,5 @@ echo "==> [5/5] Starting on the host (migrations run first, then the app)"
 $SSH "cd $REMOTE_DIR && docker compose up -d && docker compose ps"
 
 echo ""
-echo "Done. App should be live at: http://$EC2_HOST:3000"
+echo "Done. App should be live at: http://$EC2_HOST  (or your SITE_ADDRESS domain over HTTPS)"
 echo "Logs: $SSH 'cd $REMOTE_DIR && docker compose logs -f app'"

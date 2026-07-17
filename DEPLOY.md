@@ -108,8 +108,9 @@ docker compose up -d --build           # builds here, runs migrations, starts ap
 
 ## Before it works — checklist
 
-1. **Security group inbound:** open `22` (SSH, your IP) and `3000` (app). EC2 → instance →
-   **Security** tab → edit inbound rules. Then browse `http://16.16.173.58:3000`.
+1. **Security group inbound:** open `22` (SSH), `80` and `443` (Caddy). EC2 → instance →
+   **Security** tab → edit inbound rules. Then browse `http://16.16.173.58`.
+   (For CD, `22` must allow GitHub runners — see Method A.)
 2. **Database reachable:** if Postgres is RDS, its security group must allow inbound from this
    EC2 instance. Migrations (`migrate` service) need the DB reachable.
 3. **`.env` present on the host** at `~/cineverse/.env` (Methods A & B) or repo root (Method C).
@@ -139,17 +140,35 @@ AI_FALLBACK_MODEL=...
 AI_SERVICE_URL=...
 
 NEXT_PUBLIC_TMDB_API_KEY=...
+
+# Reverse proxy (Caddy). Leave blank to serve plain HTTP on :80 (raw IP).
+# Set to your domain to get automatic HTTPS, e.g. SITE_ADDRESS=cineverse.example.com
+SITE_ADDRESS=
 ```
 
 > `NEXT_PUBLIC_*` are compiled into the browser bundle at **build time** — they must be set
-> wherever the build runs (your Mac for Method A; the host for Method B). Change one → rebuild.
+> wherever the build runs (CI / your Mac). Change one → redeploy so it rebuilds.
+
+## Reverse proxy, HTTPS & stable address
+
+A **Caddy** container fronts the app (see `Caddyfile`), so nothing exposes `:3000` directly —
+requests come in on **80/443** and Caddy proxies to the app (WebSockets handled automatically).
+
+- **Raw IP (default):** leave `SITE_ADDRESS` blank → app served at `http://16.16.173.58`.
+- **Domain + auto HTTPS:** point a DNS `A` record at the instance, set
+  `SITE_ADDRESS=yourdomain.com`, redeploy → Caddy fetches a Let's Encrypt cert automatically and
+  serves `https://yourdomain.com`. (Ports 80 **and** 443 must be open, and DNS must resolve first.)
+- **Stable IP (do this early):** the instance's public IP changes on stop/start. Allocate an
+  **Elastic IP** (EC2 → Network & Security → Elastic IPs → Allocate → Associate to
+  `i-0b25d00c70c3517ee`) so the address — and any DNS record — stays put.
+- **Clerk:** add your final origin (`http://16.16.173.58` or `https://yourdomain.com`) to the
+  allowed origins in the Clerk dashboard, or auth will reject it.
 
 ## Notes
 
 - **Runtime memory:** the app image caps V8 heap at 512 MB (`NODE_OPTIONS` in the Dockerfile) to
   fit 1 GB. If you resize the instance, raise it by setting `NODE_OPTIONS` in `.env`.
-- **WebSockets:** Socket.IO serves at `/api/socket` on port 3000. If you add Nginx/ALB in front,
-  enable WebSocket upgrade or realtime features break.
 - **Image size:** multi-stage + Alpine + prod-only deps keeps it small (~150–250 MB gzipped for
   transfer). Inspect with `docker images cineverse` / `docker history cineverse:latest`.
-- **CI:** `.github/workflows/docker-build.yml` validates the image builds on every push.
+- **CI:** `.github/workflows/docker-build.yml` validates the image builds on pull requests;
+  `deploy.yml` builds + ships on push.

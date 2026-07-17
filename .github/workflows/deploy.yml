@@ -61,10 +61,12 @@ jobs:
           ssh -i ~/.ssh/id_deploy "$EC2_USER@$EC2_HOST" "test -f ~/$REMOTE_DIR/.env" \
             || { echo '::error::~/'"$REMOTE_DIR"'/.env missing on host. Create it once (see DEPLOY.md).'; exit 1; }
 
-      - name: Copy compose file
+      - name: Copy compose + proxy config
         run: |
           scp -i ~/.ssh/id_deploy docker-compose.prebuilt.yml \
             "$EC2_USER@$EC2_HOST:~/$REMOTE_DIR/docker-compose.yml"
+          scp -i ~/.ssh/id_deploy Caddyfile \
+            "$EC2_USER@$EC2_HOST:~/$REMOTE_DIR/Caddyfile"
 
       - name: Stream images to host
         run: |
