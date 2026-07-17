@@ -19,11 +19,12 @@ with a multi-stage `Dockerfile` (Alpine, production-only deps, precompiled serve
 
 ---
 
-## Method A (best) — Automated CD: push to deploy (GitHub Actions)
+## Method A (best) — Automated CD via GHCR (GitHub Actions)
 
 `.github/workflows/deploy.yml` runs on every push to `main` / `docker-ec2-deploy`. It builds the
-image on GitHub's runner (native amd64, fast), streams it to EC2 over SSH, migrates, and restarts.
-The host never builds. After the one-time setup below, **deploying = `git push`.**
+image on GitHub's runner (native amd64, fast), **pushes it to GitHub Container Registry (GHCR)**,
+then SSHes to EC2 to **pull + run**. The host never builds. After the one-time setup below,
+**deploying = `git push`.**
 
 ### One-time: add repo secrets (GitHub → Settings → Secrets and variables → Actions)
 
@@ -31,15 +32,25 @@ The host never builds. After the one-time setup below, **deploying = `git push`.
 |---|---|
 | `EC2_HOST` | `16.16.173.58` |
 | `EC2_SSH_KEY` | full contents of your `.pem` private key |
-| `ENV_FILE` | full contents of your `.env` (used for `NEXT_PUBLIC_*` build args) |
+| `GHCR_USERNAME` | your GitHub username (image namespace) |
+| `GHCR_PAT` | a PAT with `write:packages` + `read:packages` scope |
 
 Optional **variable** `EC2_USER` (default `ec2-user`; set `ubuntu` for Ubuntu AMIs).
 
+> **No `ENV_FILE` secret needed.** The build's `NEXT_PUBLIC_*` values are read from the host's
+> `~/cineverse/.env`, which CI fetches over SSH — a single source of truth for env.
+
 ### One-time: on the instance
-- Install Docker (see Method B), create `~/cineverse/.env` with the **runtime** secrets.
+- Install Docker (see Method C), create `~/cineverse/.env` with **all** env (runtime secrets +
+  `NEXT_PUBLIC_*` + `SITE_ADDRESS`). CI pulls this file for build args, so it must be complete.
 - **Security group:** the GitHub runner needs to SSH in. Runner IPs are dynamic, so either open
   inbound `22` to `0.0.0.0/0` (key-only auth — password login is off by default on EC2) or use a
-  self-hosted runner / AWS SSM. Also keep `3000` open for the app.
+  self-hosted runner / AWS SSM. Also open `80`/`443` for Caddy.
+
+### Images
+Pushed to `ghcr.io/<username>/cineverse` — tags `app-<sha>` / `migrate-<sha>` (immutable, for
+rollback) plus `app-latest` / `migrate-latest`. Roll back by re-running an older commit's job, or
+set `APP_IMAGE`/`MIGRATE_IMAGE` to an older `-<sha>` tag on the host and `docker compose up -d`.
 
 Then just `git push` — watch it under the repo's **Actions** tab.
 

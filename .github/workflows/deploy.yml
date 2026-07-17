@@ -1,8 +1,11 @@
 name: Deploy to EC2
 
-# Builds the image on GitHub's runner (native linux/amd64 — fast), streams it to the
-# EC2 host over SSH (no registry), runs DB migrations, and restarts the app.
-# The 1 GB t3.micro only loads + runs the image; it never builds.
+# Builds the image on GitHub's runner (native linux/amd64), pushes it to GHCR, then SSHes to
+# the EC2 host to pull + run. The 1 GB t3.micro only pulls + runs; it never builds.
+#
+# Secrets required: EC2_HOST, EC2_SSH_KEY, GHCR_USERNAME, GHCR_PAT
+# The NEXT_PUBLIC_* build args are read from the host's ~/cineverse/.env (fetched over SSH),
+# so there is no separate ENV_FILE secret to maintain.
 
 on:
   push:
@@ -22,29 +25,20 @@ jobs:
       REMOTE_DIR: cineverse
     steps:
       - uses: actions/checkout@v4
-
       - uses: docker/setup-buildx-action@v3
 
-      # NEXT_PUBLIC_* are inlined at build time. Store the whole .env as one repo secret
-      # (ENV_FILE). It's used only for build args here; the host keeps its own runtime .env.
-      - name: Materialize build-time .env
-        env:
-          ENV_FILE: ${{ secrets.ENV_FILE }}
-        run: printf '%s' "$ENV_FILE" > .env
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_USERNAME }}
+          password: ${{ secrets.GHCR_PAT }}
 
-      - name: Build app + migrator images (linux/amd64)
+      - name: Compute image refs
         run: |
-          set -a; . ./.env; set +a
-          docker buildx build --platform linux/amd64 --target runner \
-            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}" \
-            --build-arg NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:-}" \
-            --build-arg NEXT_PUBLIC_PUSHER_KEY="${NEXT_PUBLIC_PUSHER_KEY:-}" \
-            --build-arg NEXT_PUBLIC_PUSHER_CLUSTER="${NEXT_PUBLIC_PUSHER_CLUSTER:-}" \
-            --build-arg NEXT_PUBLIC_TMDB_API_KEY="${NEXT_PUBLIC_TMDB_API_KEY:-}" \
-            --build-arg DATABASE_URL="${DATABASE_URL:-}" \
-            -t cineverse:latest --load .
-          docker buildx build --platform linux/amd64 --target migrator \
-            -t cineverse:migrate --load .
+          OWNER=$(echo "${{ secrets.GHCR_USERNAME }}" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_BASE=ghcr.io/$OWNER/cineverse" >> "$GITHUB_ENV"
+          echo "TAG=${GITHUB_SHA::12}" >> "$GITHUB_ENV"
 
       - name: Configure SSH
         env:
@@ -55,25 +49,39 @@ jobs:
           chmod 600 ~/.ssh/id_deploy
           ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Ensure remote dir + .env exist
+      - name: Fetch build-time .env from host
         run: |
-          ssh -i ~/.ssh/id_deploy "$EC2_USER@$EC2_HOST" "mkdir -p ~/$REMOTE_DIR"
           ssh -i ~/.ssh/id_deploy "$EC2_USER@$EC2_HOST" "test -f ~/$REMOTE_DIR/.env" \
-            || { echo '::error::~/'"$REMOTE_DIR"'/.env missing on host. Create it once (see DEPLOY.md).'; exit 1; }
+            || { echo "::error::~/$REMOTE_DIR/.env missing on host. Create it once (see DEPLOY.md)."; exit 1; }
+          scp -i ~/.ssh/id_deploy "$EC2_USER@$EC2_HOST:~/$REMOTE_DIR/.env" ./.env
 
-      - name: Copy compose + proxy config
+      - name: Build & push images (linux/amd64)
         run: |
-          scp -i ~/.ssh/id_deploy docker-compose.prebuilt.yml \
-            "$EC2_USER@$EC2_HOST:~/$REMOTE_DIR/docker-compose.yml"
-          scp -i ~/.ssh/id_deploy Caddyfile \
-            "$EC2_USER@$EC2_HOST:~/$REMOTE_DIR/Caddyfile"
+          set -a; . ./.env; set +a
+          docker buildx build --platform linux/amd64 --target runner --push \
+            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}" \
+            --build-arg NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:-}" \
+            --build-arg NEXT_PUBLIC_PUSHER_KEY="${NEXT_PUBLIC_PUSHER_KEY:-}" \
+            --build-arg NEXT_PUBLIC_PUSHER_CLUSTER="${NEXT_PUBLIC_PUSHER_CLUSTER:-}" \
+            --build-arg NEXT_PUBLIC_TMDB_API_KEY="${NEXT_PUBLIC_TMDB_API_KEY:-}" \
+            --build-arg DATABASE_URL="${DATABASE_URL:-}" \
+            -t "$IMAGE_BASE:app-$TAG" -t "$IMAGE_BASE:app-latest" .
+          docker buildx build --platform linux/amd64 --target migrator --push \
+            -t "$IMAGE_BASE:migrate-$TAG" -t "$IMAGE_BASE:migrate-latest" .
+          rm -f ./.env
 
-      - name: Stream images to host
+      - name: Ship compose + proxy config
         run: |
-          docker save cineverse:latest cineverse:migrate | gzip | \
-            ssh -i ~/.ssh/id_deploy "$EC2_USER@$EC2_HOST" "gunzip | docker load"
+          scp -i ~/.ssh/id_deploy docker-compose.ghcr.yml "$EC2_USER@$EC2_HOST:~/$REMOTE_DIR/docker-compose.yml"
+          scp -i ~/.ssh/id_deploy Caddyfile              "$EC2_USER@$EC2_HOST:~/$REMOTE_DIR/Caddyfile"
 
-      - name: Migrate + restart
+      - name: Deploy on host (login, pull, migrate, restart)
+        env:
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
         run: |
           ssh -i ~/.ssh/id_deploy "$EC2_USER@$EC2_HOST" \
-            "cd ~/$REMOTE_DIR && docker compose up -d && docker image prune -f && docker compose ps"
+            "echo '$GHCR_PAT' | docker login ghcr.io -u '$GHCR_USERNAME' --password-stdin && \
+             cd ~/$REMOTE_DIR && \
+             export APP_IMAGE='$IMAGE_BASE:app-$TAG' MIGRATE_IMAGE='$IMAGE_BASE:migrate-$TAG' && \
+             docker compose pull && docker compose up -d && docker image prune -f && docker compose ps"
