@@ -3,6 +3,9 @@ name: Diagnose host
 # On-demand: SSH to the EC2 host and dump container status + logs. No build.
 on:
   workflow_dispatch: {}
+  push:
+    branches: [docker-ec2-deploy]
+    paths: ['.github/workflows/diagnose.yml']
 
 jobs:
   diagnose:
