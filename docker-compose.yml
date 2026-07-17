@@ -7,7 +7,7 @@ services:
   migrate:
     build:
       context: .
-      target: builder          # builder stage has devDeps incl. the Prisma CLI + schema
+      target: migrator         # lightweight Prisma-only stage (no heavy Next build)
     env_file: .env
     command: npx prisma migrate deploy
     restart: "no"

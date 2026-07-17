@@ -1,0 +1,23 @@
+# Run-only compose for the 1 GB EC2 host.
+# Uses images built on your Mac and shipped over SSH (see scripts/deploy.sh).
+# The host NEVER builds — it only loads and runs the images (fits in 1 GB RAM).
+# scripts/deploy.sh copies this file to the host as docker-compose.yml.
+
+services:
+  migrate:
+    image: cineverse:migrate
+    pull_policy: never          # image is loaded via `docker load`, not pulled
+    env_file: .env
+    command: npx prisma migrate deploy
+    restart: "no"
+
+  app:
+    image: cineverse:latest
+    pull_policy: never
+    env_file: .env
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully

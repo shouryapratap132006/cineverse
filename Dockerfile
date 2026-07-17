@@ -41,6 +41,14 @@ RUN npm run build
 # Compile server.ts -> .server-out/server.js so the runtime needs plain node (no ts-node)
 RUN npx tsc --project tsconfig.server.json
 
+# ---- Lightweight migration image (Prisma CLI only; skips the heavy Next build) ----
+FROM base AS migrator
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json package-lock.json ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+CMD ["npx", "prisma", "migrate", "deploy"]
+
 # ---- Install PRODUCTION deps only (drops ts-node, typescript, eslint, tailwind, @types, prisma CLI...) ----
 FROM base AS prod-deps
 COPY package.json package-lock.json ./
@@ -52,6 +60,8 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 FROM base AS runner
 ENV NODE_ENV=production
 ENV PORT=3000
+# Cap the V8 heap so the app fits a 1 GB instance (override via .env if you resize up).
+ENV NODE_OPTIONS=--max-old-space-size=512
 
 # Run as non-root
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
