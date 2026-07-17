@@ -27,6 +27,10 @@ jobs:
           tags: cineverse:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Placeholder DATABASE_URL so `prisma generate` can load prisma.config.ts.
+          # This is only a build-validation check — it never connects to a DB.
+          build-args: |
+            DATABASE_URL=postgresql://user:password@localhost:5432/placeholder
 
   # --- Optional: push to Amazon ECR ---
   # Uncomment and set AWS_ROLE_ARN / AWS_REGION / ECR_REPOSITORY (repo secrets/vars)
