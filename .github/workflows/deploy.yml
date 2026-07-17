@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       EC2_HOST: ${{ secrets.EC2_HOST }}
-      EC2_USER: ${{ vars.EC2_USER || 'ec2-user' }}
+      EC2_USER: ${{ vars.EC2_USER || 'ubuntu' }}
       REMOTE_DIR: cineverse
     steps:
       - uses: actions/checkout@v4
@@ -45,15 +45,21 @@ jobs:
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s' "$EC2_SSH_KEY" > ~/.ssh/id_deploy
+          # Normalize: strip CRLF and guarantee a trailing newline (PEM keys require it)
+          printf '%s\n' "$EC2_SSH_KEY" | tr -d '\r' > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Verify SSH connectivity
+        run: |
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes -o BatchMode=yes \
+            "$EC2_USER@$EC2_HOST" "echo connected as \$(whoami) on \$(hostname)"
 
       - name: Fetch build-time .env from host
         run: |
-          ssh -i ~/.ssh/id_deploy "$EC2_USER@$EC2_HOST" "test -f ~/$REMOTE_DIR/.env" \
-            || { echo "::error::~/$REMOTE_DIR/.env missing on host. Create it once (see DEPLOY.md)."; exit 1; }
-          scp -i ~/.ssh/id_deploy "$EC2_USER@$EC2_HOST:~/$REMOTE_DIR/.env" ./.env
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes "$EC2_USER@$EC2_HOST" "test -f ~/$REMOTE_DIR/.env" \
+            || { echo "::error::~/$REMOTE_DIR/.env not found on host (or SSH failed). Create it once (see DEPLOY.md)."; exit 1; }
+          scp -i ~/.ssh/id_deploy -o IdentitiesOnly=yes "$EC2_USER@$EC2_HOST:~/$REMOTE_DIR/.env" ./.env
 
       - name: Build & push images (linux/amd64)
         run: |
@@ -72,15 +78,15 @@ jobs:
 
       - name: Ship compose + proxy config
         run: |
-          scp -i ~/.ssh/id_deploy docker-compose.ghcr.yml "$EC2_USER@$EC2_HOST:~/$REMOTE_DIR/docker-compose.yml"
-          scp -i ~/.ssh/id_deploy Caddyfile              "$EC2_USER@$EC2_HOST:~/$REMOTE_DIR/Caddyfile"
+          scp -i ~/.ssh/id_deploy -o IdentitiesOnly=yes docker-compose.ghcr.yml "$EC2_USER@$EC2_HOST:~/$REMOTE_DIR/docker-compose.yml"
+          scp -i ~/.ssh/id_deploy -o IdentitiesOnly=yes Caddyfile              "$EC2_USER@$EC2_HOST:~/$REMOTE_DIR/Caddyfile"
 
       - name: Deploy on host (login, pull, migrate, restart)
         env:
           GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
           GHCR_PAT: ${{ secrets.GHCR_PAT }}
         run: |
-          ssh -i ~/.ssh/id_deploy "$EC2_USER@$EC2_HOST" \
+          ssh -i ~/.ssh/id_deploy -o IdentitiesOnly=yes "$EC2_USER@$EC2_HOST" \
             "echo '$GHCR_PAT' | docker login ghcr.io -u '$GHCR_USERNAME' --password-stdin && \
              cd ~/$REMOTE_DIR && \
              export APP_IMAGE='$IMAGE_BASE:app-$TAG' MIGRATE_IMAGE='$IMAGE_BASE:migrate-$TAG' && \

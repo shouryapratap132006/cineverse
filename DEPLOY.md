@@ -35,13 +35,14 @@ then SSHes to EC2 to **pull + run**. The host never builds. After the one-time s
 | `GHCR_USERNAME` | your GitHub username (image namespace) |
 | `GHCR_PAT` | a PAT with `write:packages` + `read:packages` scope |
 
-Optional **variable** `EC2_USER` (default `ec2-user`; set `ubuntu` for Ubuntu AMIs).
+This instance runs **Ubuntu**, so the SSH user is `ubuntu` (the workflow default). Override with
+the repo **variable** `EC2_USER` if you ever change AMI.
 
 > **No `ENV_FILE` secret needed.** The build's `NEXT_PUBLIC_*` values are read from the host's
 > `~/cineverse/.env`, which CI fetches over SSH — a single source of truth for env.
 
 ### One-time: on the instance
-- Install Docker (see Method C), create `~/cineverse/.env` with **all** env (runtime secrets +
+- Install Docker (see Method B for the commands), create `~/cineverse/.env` with **all** env (runtime secrets +
   `NEXT_PUBLIC_*` + `SITE_ADDRESS`). CI pulls this file for build args, so it must be complete.
 - **Security group:** the GitHub runner needs to SSH in. Runner IPs are dynamic, so either open
   inbound `22` to `0.0.0.0/0` (key-only auth — password login is off by default on EC2) or use a
@@ -63,10 +64,10 @@ run migrations, start the app.
 
 ### One-time setup on the instance
 ```bash
-ssh -i ~/path/to/key.pem ec2-user@16.16.173.58
+ssh -i ~/path/to/key.pem ubuntu@16.16.173.58
 
-# Install Docker + compose plugin
-sudo dnf install -y docker            # Amazon Linux 2023  (Ubuntu: sudo apt-get install -y docker.io docker-compose-plugin)
+# Install Docker + compose plugin (Ubuntu)
+sudo apt-get update && sudo apt-get install -y docker.io docker-compose-plugin
 sudo systemctl enable --now docker
 sudo usermod -aG docker $USER         # log out/in for group change
 
@@ -101,7 +102,7 @@ Building on-box needs memory. On 1 GB you **must add swap first** (slow but work
 resize to `t3.small`/`t3.medium`.
 
 ```bash
-ssh -i ~/path/to/key.pem ec2-user@16.16.173.58
+ssh -i ~/path/to/key.pem ubuntu@16.16.173.58
 
 # 4 GB swap so `next build` doesn't get OOM-killed
 sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile

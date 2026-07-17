@@ -8,12 +8,12 @@ set -euo pipefail
 #   EC2_HOST=16.16.173.58 SSH_KEY=~/keys/cineverse.pem ./scripts/deploy.sh
 #
 # Optional env:
-#   SSH_USER    default: ec2-user   (use 'ubuntu' on Ubuntu AMIs)
+#   SSH_USER    default: ubuntu     (use 'ec2-user' on Amazon Linux AMIs)
 #   REMOTE_DIR  default: ~/cineverse
 
 EC2_HOST="${EC2_HOST:?set EC2_HOST, e.g. 16.16.173.58}"
 SSH_KEY="${SSH_KEY:?set SSH_KEY, path to your .pem}"
-SSH_USER="${SSH_USER:-ec2-user}"
+SSH_USER="${SSH_USER:-ubuntu}"
 REMOTE_DIR="${REMOTE_DIR:-~/cineverse}"
 SSH="ssh -i $SSH_KEY $SSH_USER@$EC2_HOST"
 
