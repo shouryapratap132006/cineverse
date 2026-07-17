@@ -6,14 +6,35 @@ server) and run with `docker compose`. Migrations run automatically before the a
 
 ---
 
-## 1. Launch / prepare the EC2 instance
+## Target instance (cineverse-production)
 
-- **AMI:** Amazon Linux 2023 (x86_64) or Ubuntu 22.04+ (x86_64).
-- **Instance size:** `t3.small` or larger — the build compiles Next.js and needs RAM
-  (`NODE_OPTIONS=--max-old-space-size=4096`). `t3.micro` (1 GB) will likely OOM during build.
-- **Security group inbound:** `22` (SSH, your IP), `80`/`443` if you add a reverse proxy,
-  and `3000` (or proxy to it).
+- **Instance ID:** `i-0b25d00c70c3517ee`
+- **Public IP:** `16.16.173.58`
+- **Public DNS:** `ec2-16-16-173-58.eu-north-1.compute.amazonaws.com`
+- **Region/AZ:** `eu-north-1` / `eu-north-1c`
+- **Type:** `t3.micro` (1 GB RAM) — **see the swap step below; the build will OOM without it.**
+
+## 1. Prepare the instance
+
+- **Security group inbound:** `22` (SSH, your IP), `3000` (app), and `80`/`443` if you add a
+  reverse proxy. Check the instance's **Security** tab.
 - **Disk:** at least 20 GB.
+
+### Add swap (required on t3.micro — 1 GB RAM)
+
+`next build` runs with `--max-old-space-size=4096` and will be OOM-killed on 1 GB without swap.
+A 4 GB swap file fixes it (slower builds, but works; the running app is light):
+
+```bash
+sudo fallocate -l 4G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab   # persist across reboots
+free -h   # confirm 4Gi swap
+```
+
+> Alternatively, resize to `t3.small`/`t3.medium` (Stop → Change instance type → Start) and skip swap.
 
 ## 2. Install Docker + Compose
 
@@ -29,6 +50,13 @@ Ubuntu:
 sudo apt-get update && sudo apt-get install -y docker.io docker-compose-plugin git
 sudo systemctl enable --now docker
 sudo usermod -aG docker $USER
+```
+
+## 2. SSH in
+
+```bash
+# user: ec2-user (Amazon Linux) or ubuntu (Ubuntu). Use your key pair's .pem.
+ssh -i ~/path/to/your-key.pem ec2-user@16.16.173.58
 ```
 
 ## 3. Get the code
