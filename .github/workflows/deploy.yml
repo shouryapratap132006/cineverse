@@ -1,0 +1,77 @@
+name: Deploy to EC2
+
+# Builds the image on GitHub's runner (native linux/amd64 — fast), streams it to the
+# EC2 host over SSH (no registry), runs DB migrations, and restarts the app.
+# The 1 GB t3.micro only loads + runs the image; it never builds.
+
+on:
+  push:
+    branches: [main, docker-ec2-deploy]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USER: ${{ vars.EC2_USER || 'ec2-user' }}
+      REMOTE_DIR: cineverse
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # NEXT_PUBLIC_* are inlined at build time. Store the whole .env as one repo secret
+      # (ENV_FILE). It's used only for build args here; the host keeps its own runtime .env.
+      - name: Materialize build-time .env
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: printf '%s' "$ENV_FILE" > .env
+
+      - name: Build app + migrator images (linux/amd64)
+        run: |
+          set -a; . ./.env; set +a
+          docker buildx build --platform linux/amd64 --target runner \
+            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}" \
+            --build-arg NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="${NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:-}" \
+            --build-arg NEXT_PUBLIC_PUSHER_KEY="${NEXT_PUBLIC_PUSHER_KEY:-}" \
+            --build-arg NEXT_PUBLIC_PUSHER_CLUSTER="${NEXT_PUBLIC_PUSHER_CLUSTER:-}" \
+            --build-arg NEXT_PUBLIC_TMDB_API_KEY="${NEXT_PUBLIC_TMDB_API_KEY:-}" \
+            --build-arg DATABASE_URL="${DATABASE_URL:-}" \
+            -t cineverse:latest --load .
+          docker buildx build --platform linux/amd64 --target migrator \
+            -t cineverse:migrate --load .
+
+      - name: Configure SSH
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s' "$EC2_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Ensure remote dir + .env exist
+        run: |
+          ssh -i ~/.ssh/id_deploy "$EC2_USER@$EC2_HOST" "mkdir -p ~/$REMOTE_DIR"
+          ssh -i ~/.ssh/id_deploy "$EC2_USER@$EC2_HOST" "test -f ~/$REMOTE_DIR/.env" \
+            || { echo '::error::~/'"$REMOTE_DIR"'/.env missing on host. Create it once (see DEPLOY.md).'; exit 1; }
+
+      - name: Copy compose file
+        run: |
+          scp -i ~/.ssh/id_deploy docker-compose.prebuilt.yml \
+            "$EC2_USER@$EC2_HOST:~/$REMOTE_DIR/docker-compose.yml"
+
+      - name: Stream images to host
+        run: |
+          docker save cineverse:latest cineverse:migrate | gzip | \
+            ssh -i ~/.ssh/id_deploy "$EC2_USER@$EC2_HOST" "gunzip | docker load"
+
+      - name: Migrate + restart
+        run: |
+          ssh -i ~/.ssh/id_deploy "$EC2_USER@$EC2_HOST" \
+            "cd ~/$REMOTE_DIR && docker compose up -d && docker image prune -f && docker compose ps"

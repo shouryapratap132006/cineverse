@@ -1,12 +1,9 @@
-name: Docker build
+name: Docker build (PR check)
 
 # Validates that the production image builds for the EC2 target arch (linux/amd64)
-# on every push/PR. It does NOT push anywhere — you build on the EC2 host itself.
-# To publish to a registry later, see the commented ECR block at the bottom.
+# on pull requests. Actual deploys happen in deploy.yml (on push to main / docker-ec2-deploy).
 
 on:
-  push:
-    branches: [main, docker-ec2-deploy]
   pull_request:
     branches: [main]
   workflow_dispatch:

@@ -19,7 +19,33 @@ with a multi-stage `Dockerfile` (Alpine, production-only deps, precompiled serve
 
 ---
 
-## Method A — Build on your Mac, ship to EC2 (recommended for 1 GB)
+## Method A (best) — Automated CD: push to deploy (GitHub Actions)
+
+`.github/workflows/deploy.yml` runs on every push to `main` / `docker-ec2-deploy`. It builds the
+image on GitHub's runner (native amd64, fast), streams it to EC2 over SSH, migrates, and restarts.
+The host never builds. After the one-time setup below, **deploying = `git push`.**
+
+### One-time: add repo secrets (GitHub → Settings → Secrets and variables → Actions)
+
+| Secret | Value |
+|---|---|
+| `EC2_HOST` | `16.16.173.58` |
+| `EC2_SSH_KEY` | full contents of your `.pem` private key |
+| `ENV_FILE` | full contents of your `.env` (used for `NEXT_PUBLIC_*` build args) |
+
+Optional **variable** `EC2_USER` (default `ec2-user`; set `ubuntu` for Ubuntu AMIs).
+
+### One-time: on the instance
+- Install Docker (see Method B), create `~/cineverse/.env` with the **runtime** secrets.
+- **Security group:** the GitHub runner needs to SSH in. Runner IPs are dynamic, so either open
+  inbound `22` to `0.0.0.0/0` (key-only auth — password login is off by default on EC2) or use a
+  self-hosted runner / AWS SSM. Also keep `3000` open for the app.
+
+Then just `git push` — watch it under the repo's **Actions** tab.
+
+---
+
+## Method B — Build on your Mac, ship to EC2 (no CI)
 
 The host never builds. One script does everything: build for `linux/amd64`, ship over SSH,
 run migrations, start the app.
@@ -58,7 +84,7 @@ Just re-run the same command. To update only the runtime `.env`, edit it on the 
 
 ---
 
-## Method B — Build on the host (only if you resize the instance, or add swap)
+## Method C — Build on the host (only if you resize the instance, or add swap)
 
 Building on-box needs memory. On 1 GB you **must add swap first** (slow but works); better,
 resize to `t3.small`/`t3.medium`.
@@ -86,7 +112,7 @@ docker compose up -d --build           # builds here, runs migrations, starts ap
    **Security** tab → edit inbound rules. Then browse `http://16.16.173.58:3000`.
 2. **Database reachable:** if Postgres is RDS, its security group must allow inbound from this
    EC2 instance. Migrations (`migrate` service) need the DB reachable.
-3. **`.env` present on the host** at `~/cineverse/.env` (Method A) or repo root (Method B).
+3. **`.env` present on the host** at `~/cineverse/.env` (Methods A & B) or repo root (Method C).
 
 ## `.env` template
 
