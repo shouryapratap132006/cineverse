@@ -10,6 +10,10 @@ name: Deploy to EC2
 on:
   push:
     branches: [main, docker-ec2-deploy]
+    paths-ignore:              # docs/diagnostic-only changes shouldn't trigger a full deploy
+      - '**.md'
+      - '.github/workflows/diagnose.yml'
+      - '.github/workflows/docker-build.yml'
   workflow_dispatch: {}
 
 concurrency:
