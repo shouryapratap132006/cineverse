@@ -8,7 +8,7 @@ WORKDIR /app
 
 # ---- Install ALL deps (needed to build) ----
 FROM base AS deps
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
 RUN npm ci
 
 # ---- Build Next.js + compile the custom Socket.IO server ----
@@ -51,7 +51,7 @@ CMD ["npx", "prisma", "migrate", "deploy"]
 
 # ---- Install PRODUCTION deps only (drops ts-node, typescript, eslint, tailwind, @types, prisma CLI...) ----
 FROM base AS prod-deps
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
 RUN npm ci --omit=dev
 # The generated Prisma client is created by the CLI (a devDep), so copy it over
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
