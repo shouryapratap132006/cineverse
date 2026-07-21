@@ -47,6 +47,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
+RUN npx prisma generate
 CMD ["npx", "prisma", "migrate", "deploy"]
 
 # ---- Install PRODUCTION deps only (drops ts-node, typescript, eslint, tailwind, @types, prisma CLI...) ----
