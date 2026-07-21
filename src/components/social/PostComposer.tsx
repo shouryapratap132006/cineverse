@@ -44,7 +44,7 @@ export default function PostComposer({
     const timeout = window.setTimeout(async () => {
       setMovieSearching(true);
       try {
-        const response = await fetch(`${BASE}/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(movieQuery)}&page=1`);
+        const response = await fetch(`/api/tmdb/proxy?endpoint=${encodeURIComponent("/search/movie")}&query=${encodeURIComponent(movieQuery)}&page=1`);
         const data = await response.json();
         setMovieResults((data.results || []).slice(0, 6));
       } catch {

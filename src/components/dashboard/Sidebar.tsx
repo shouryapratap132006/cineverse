@@ -18,16 +18,6 @@ export default function Sidebar() {
 
   useEffect(() => {
     setMounted(true);
-    const dismissed = sessionStorage.getItem("vpn_banner_dismissed");
-    if (dismissed) return;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000);
-    fetch("https://api.themoviedb.org/3/configuration?api_key=1", {
-      signal: controller.signal, mode: "no-cors",
-    })
-      .then(() => setTmdbBlocked(false))
-      .catch(() => setTmdbBlocked(true))
-      .finally(() => clearTimeout(timeout));
   }, []);
 
   const menuItems = [

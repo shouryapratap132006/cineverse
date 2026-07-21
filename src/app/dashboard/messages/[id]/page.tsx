@@ -20,7 +20,7 @@ import { format, isToday, isYesterday } from "date-fns";
 import data from "@emoji-mart/data";
 
 // Lazy-load emoji picker
-const EmojiPicker = dynamic(() => import("@emoji-mart/react"), { ssr: false });
+const EmojiPicker = dynamic(() => import("@/components/shared/EmojiPicker"), { ssr: false });
 
 /* ─── Types ─────────────────────────────────────────────────── */
 type Attachment = {

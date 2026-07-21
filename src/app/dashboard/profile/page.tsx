@@ -145,7 +145,7 @@ function MoviePickerModal({
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
-      const res = await fetch(`${TMDB_BASE}/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(query)}&page=1`);
+      const res = await fetch(`/api/tmdb/proxy?endpoint=${encodeURIComponent("/search/movie")}&query=${encodeURIComponent(query)}&page=1`);
       const data = await res.json();
       setResults(data.results?.slice(0, 8) || []);
       setSearching(false);
@@ -265,7 +265,7 @@ export default function ProfilePage() {
   useEffect(() => {
     favIds.forEach(id => {
       if (id && !favData[id]) {
-        fetch(`${TMDB_BASE}/movie/${id}?api_key=${TMDB_KEY}`)
+        fetch(`/api/tmdb/proxy?endpoint=${encodeURIComponent(`/movie/${id}`)}`)
           .then(r => r.json())
           .then(data => setFavData(prev => ({ ...prev, [id]: data })))
           .catch(() => {});

@@ -65,15 +65,9 @@ function getLocalPersonMovies(personName: string) {
 }
 
 // Lightweight movie fetcher (poster-only, no deep detail fetch)
-async function fetchRow(url: string): Promise<any[]> {
-  if (!TMDB_KEY) {
-    const queryMatch = url.match(/[?&]query=([^&]+)/i);
-    const query = queryMatch ? decodeURIComponent(queryMatch[1]) : "";
-    return getLocalMovieResults(query);
-  }
-
+async function fetchRow(endpoint: string): Promise<any[]> {
   try {
-    const res = await fetch(url);
+    const res = await fetch(`/api/tmdb/proxy?endpoint=${encodeURIComponent(endpoint)}`);
     if (!res.ok) return getLocalMovieResults();
     const data = await res.json();
     return (data.results || []).slice(0, 20);
@@ -83,14 +77,13 @@ async function fetchRow(url: string): Promise<any[]> {
 }
 
 async function searchPersonMovies(personName: string): Promise<any[]> {
-  if (!TMDB_KEY) return getLocalPersonMovies(personName);
   try {
-    const personRes = await fetch(`${BASE}/search/person?api_key=${TMDB_KEY}&query=${encodeURIComponent(personName)}&page=1`);
+    const personRes = await fetch(`/api/tmdb/proxy?endpoint=${encodeURIComponent("/search/person")}&query=${encodeURIComponent(personName)}&page=1`);
     const personData = await personRes.json();
     const person = personData.results?.[0];
     if (!person?.id) return getLocalPersonMovies(personName);
 
-    const creditsRes = await fetch(`${BASE}/person/${person.id}/movie_credits?api_key=${TMDB_KEY}&language=en-US`);
+    const creditsRes = await fetch(`/api/tmdb/proxy?endpoint=${encodeURIComponent(`/person/${person.id}/movie_credits`)}&language=en-US`);
     const creditsData = await creditsRes.json();
     return (creditsData.cast || []).slice(0, 20);
   } catch {
@@ -106,28 +99,28 @@ const GENRE_IDS: Record<string, number> = {
   Music: 10402, War: 10752, Western: 37,
 };
 
-// Row definitions
+// Row definitions using backend proxy endpoints
 const ROW_CONFIGS = [
-  { id: "trending_day", label: "Trending Today", icon: Flame, color: "from-orange-500/20 to-red-500/20", accent: "text-orange-400", url: () => `${BASE}/trending/movie/day?api_key=${TMDB_KEY}` },
-  { id: "trending_week", label: "This Week's Buzz", icon: TrendingUp, color: "from-brand-blue/20 to-cyan-500/20", accent: "text-cyan-400", url: () => `${BASE}/trending/movie/week?api_key=${TMDB_KEY}` },
-  { id: "now_playing", label: "Now In Cinemas", icon: Film, color: "from-pink-500/20 to-rose-500/20", accent: "text-pink-400", url: () => `${BASE}/movie/now_playing?api_key=${TMDB_KEY}&language=en-US&page=1` },
-  { id: "top_rated", label: "All-Time Classics", icon: Award, color: "from-yellow-500/20 to-amber-500/20", accent: "text-yellow-400", url: () => `${BASE}/movie/top_rated?api_key=${TMDB_KEY}&language=en-US&page=1` },
-  { id: "upcoming", label: "Coming Soon", icon: Clock, color: "from-violet-500/20 to-purple-500/20", accent: "text-violet-400", url: () => `${BASE}/movie/upcoming?api_key=${TMDB_KEY}&language=en-US&page=1` },
-  { id: "popular", label: "Most Popular Right Now", icon: Globe2, color: "from-green-500/20 to-emerald-500/20", accent: "text-green-400", url: () => `${BASE}/movie/popular?api_key=${TMDB_KEY}&language=en-US&page=1` },
-  { id: "action", label: "Action & Adrenaline", icon: Zap, color: "from-red-500/20 to-orange-500/20", accent: "text-red-400", url: () => `${BASE}/discover/movie?api_key=${TMDB_KEY}&with_genres=28&sort_by=popularity.desc` },
-  { id: "scifi", label: "Sci-Fi & Space", icon: Sparkles, color: "from-sky-500/20 to-indigo-500/20", accent: "text-sky-400", url: () => `${BASE}/discover/movie?api_key=${TMDB_KEY}&with_genres=878&sort_by=popularity.desc` },
-  { id: "comedy", label: "Laugh Out Loud", icon: Popcorn, color: "from-yellow-400/20 to-lime-500/20", accent: "text-lime-400", url: () => `${BASE}/discover/movie?api_key=${TMDB_KEY}&with_genres=35&sort_by=popularity.desc` },
-  { id: "horror", label: "Horror & Suspense", icon: Flame, color: "from-slate-700/40 to-red-900/30", accent: "text-red-500", url: () => `${BASE}/discover/movie?api_key=${TMDB_KEY}&with_genres=27&sort_by=popularity.desc` },
-  { id: "romance", label: "Love Stories", icon: Heart, color: "from-pink-500/20 to-rose-400/20", accent: "text-rose-400", url: () => `${BASE}/discover/movie?api_key=${TMDB_KEY}&with_genres=10749&sort_by=popularity.desc` },
-  { id: "drama", label: "Award-Winning Dramas", icon: Clapperboard, color: "from-amber-600/20 to-yellow-500/20", accent: "text-amber-400", url: () => `${BASE}/discover/movie?api_key=${TMDB_KEY}&with_genres=18&sort_by=vote_average.desc&vote_count.gte=1000` },
-  { id: "bollywood", label: "Bollywood Blockbusters", icon: Sparkles, color: "from-orange-400/20 to-amber-400/20", accent: "text-orange-300", url: () => `${BASE}/discover/movie?api_key=${TMDB_KEY}&with_original_language=hi&sort_by=popularity.desc` },
-  { id: "anime", label: "Anime Films", icon: Sparkles, color: "from-violet-600/20 to-pink-500/20", accent: "text-violet-300", url: () => `${BASE}/discover/movie?api_key=${TMDB_KEY}&with_genres=16&with_keywords=210024&sort_by=popularity.desc` },
-  { id: "90s", label: "90s Nostalgia", icon: Film, color: "from-teal-500/20 to-cyan-600/20", accent: "text-teal-400", url: () => `${BASE}/discover/movie?api_key=${TMDB_KEY}&primary_release_date.gte=1990-01-01&primary_release_date.lte=1999-12-31&sort_by=vote_average.desc&vote_count.gte=500` },
-  { id: "2000s", label: "2000s Throwbacks", icon: Film, color: "from-indigo-500/20 to-blue-500/20", accent: "text-indigo-400", url: () => `${BASE}/discover/movie?api_key=${TMDB_KEY}&primary_release_date.gte=2000-01-01&primary_release_date.lte=2009-12-31&sort_by=vote_average.desc&vote_count.gte=500` },
-  { id: "2020s", label: "Fresh From the 2020s", icon: Zap, color: "from-emerald-500/20 to-green-400/20", accent: "text-emerald-400", url: () => `${BASE}/discover/movie?api_key=${TMDB_KEY}&primary_release_date.gte=2020-01-01&sort_by=popularity.desc` },
-  { id: "documentary", label: "Eye-Opening Docs", icon: Globe2, color: "from-slate-600/30 to-zinc-500/20", accent: "text-slate-300", url: () => `${BASE}/discover/movie?api_key=${TMDB_KEY}&with_genres=99&sort_by=vote_average.desc&vote_count.gte=200` },
-  { id: "oscar", label: "Oscar Winners", icon: Award, color: "from-yellow-600/20 to-gold-500/20", accent: "text-yellow-300", url: () => `${BASE}/discover/movie?api_key=${TMDB_KEY}&with_keywords=10945&sort_by=vote_average.desc&vote_count.gte=500` },
-  { id: "thriller", label: "Edge-of-Seat Thrillers", icon: Zap, color: "from-slate-800/50 to-zinc-700/30", accent: "text-slate-300", url: () => `${BASE}/discover/movie?api_key=${TMDB_KEY}&with_genres=53&sort_by=vote_average.desc&vote_count.gte=500` },
+  { id: "trending_day", label: "Trending Today", icon: Flame, color: "from-orange-500/20 to-red-500/20", accent: "text-orange-400", endpoint: "/trending/movie/day" },
+  { id: "trending_week", label: "This Week's Buzz", icon: TrendingUp, color: "from-brand-blue/20 to-cyan-500/20", accent: "text-cyan-400", endpoint: "/trending/movie/week" },
+  { id: "now_playing", label: "Now In Cinemas", icon: Film, color: "from-pink-500/20 to-rose-500/20", accent: "text-pink-400", endpoint: "/movie/now_playing?language=en-US&page=1" },
+  { id: "top_rated", label: "All-Time Classics", icon: Award, color: "from-yellow-500/20 to-amber-500/20", accent: "text-yellow-400", endpoint: "/movie/top_rated?language=en-US&page=1" },
+  { id: "upcoming", label: "Coming Soon", icon: Clock, color: "from-violet-500/20 to-purple-500/20", accent: "text-violet-400", endpoint: "/movie/upcoming?language=en-US&page=1" },
+  { id: "popular", label: "Most Popular Right Now", icon: Globe2, color: "from-green-500/20 to-emerald-500/20", accent: "text-green-400", endpoint: "/movie/popular?language=en-US&page=1" },
+  { id: "action", label: "Action & Adrenaline", icon: Zap, color: "from-red-500/20 to-orange-500/20", accent: "text-red-400", endpoint: "/discover/movie?with_genres=28&sort_by=popularity.desc" },
+  { id: "scifi", label: "Sci-Fi & Space", icon: Sparkles, color: "from-sky-500/20 to-indigo-500/20", accent: "text-sky-400", endpoint: "/discover/movie?with_genres=878&sort_by=popularity.desc" },
+  { id: "comedy", label: "Laugh Out Loud", icon: Popcorn, color: "from-yellow-400/20 to-lime-500/20", accent: "text-lime-400", endpoint: "/discover/movie?with_genres=35&sort_by=popularity.desc" },
+  { id: "horror", label: "Horror & Suspense", icon: Flame, color: "from-slate-700/40 to-red-900/30", accent: "text-red-500", endpoint: "/discover/movie?with_genres=27&sort_by=popularity.desc" },
+  { id: "romance", label: "Love Stories", icon: Heart, color: "from-pink-500/20 to-rose-400/20", accent: "text-rose-400", endpoint: "/discover/movie?with_genres=10749&sort_by=popularity.desc" },
+  { id: "drama", label: "Award-Winning Dramas", icon: Clapperboard, color: "from-amber-600/20 to-yellow-500/20", accent: "text-amber-400", endpoint: "/discover/movie?with_genres=18&sort_by=vote_average.desc&vote_count.gte=1000" },
+  { id: "bollywood", label: "Bollywood Blockbusters", icon: Sparkles, color: "from-orange-400/20 to-amber-400/20", accent: "text-orange-300", endpoint: "/discover/movie?with_original_language=hi&sort_by=popularity.desc" },
+  { id: "anime", label: "Anime Films", icon: Sparkles, color: "from-violet-600/20 to-pink-500/20", accent: "text-violet-300", endpoint: "/discover/movie?with_genres=16&with_keywords=210024&sort_by=popularity.desc" },
+  { id: "90s", label: "90s Nostalgia", icon: Film, color: "from-teal-500/20 to-cyan-600/20", accent: "text-teal-400", endpoint: "/discover/movie?primary_release_date.gte=1990-01-01&primary_release_date.lte=1999-12-31&sort_by=vote_average.desc&vote_count.gte=500" },
+  { id: "2000s", label: "2000s Throwbacks", icon: Film, color: "from-indigo-500/20 to-blue-500/20", accent: "text-indigo-400", endpoint: "/discover/movie?primary_release_date.gte=2000-01-01&primary_release_date.lte=2009-12-31&sort_by=vote_average.desc&vote_count.gte=500" },
+  { id: "2020s", label: "Fresh From the 2020s", icon: Zap, color: "from-emerald-500/20 to-green-400/20", accent: "text-emerald-400", endpoint: "/discover/movie?primary_release_date.gte=2020-01-01&sort_by=popularity.desc" },
+  { id: "documentary", label: "Eye-Opening Docs", icon: Globe2, color: "from-slate-600/30 to-zinc-500/20", accent: "text-slate-300", endpoint: "/discover/movie?with_genres=99&sort_by=vote_average.desc&vote_count.gte=200" },
+  { id: "oscar", label: "Oscar Winners", icon: Award, color: "from-yellow-600/20 to-gold-500/20", accent: "text-yellow-300", endpoint: "/discover/movie?with_keywords=10945&sort_by=vote_average.desc&vote_count.gte=500" },
+  { id: "thriller", label: "Edge-of-Seat Thrillers", icon: Zap, color: "from-slate-800/50 to-zinc-700/30", accent: "text-slate-300", endpoint: "/discover/movie?with_genres=53&sort_by=vote_average.desc&vote_count.gte=500" },
 ];
 
 function MovieCard({ movie, priority = false }: { movie: any; priority?: boolean }) {
@@ -192,12 +185,12 @@ function MovieRow({ config, recommendedFor }: { config: typeof ROW_CONFIGS[0]; r
   const Icon = config.icon;
 
   useEffect(() => {
-    let url = config.url();
+    let endpoint = config.endpoint;
     // If this is a "because you liked" row, append recommendation endpoint
     if (recommendedFor) {
-      url = `${BASE}/movie/${recommendedFor}/recommendations?api_key=${TMDB_KEY}&language=en-US`;
+      endpoint = `/movie/${recommendedFor}/recommendations?language=en-US`;
     }
-    fetchRow(url).then(data => {
+    fetchRow(endpoint).then(data => {
       setMovies(data);
       setLoading(false);
     });
@@ -363,7 +356,7 @@ function DiscoverContent() {
 
   // Fetch hero (first trending movie)
   useEffect(() => {
-    fetchRow(`${BASE}/trending/movie/day?api_key=${TMDB_KEY}`).then(data => {
+    fetchRow("/trending/movie/day").then(data => {
       if (data[0]) setHeroMovie(data[0]);
     });
   }, []);
@@ -372,7 +365,7 @@ function DiscoverContent() {
   useEffect(() => {
     if (user?.favoriteMovies && user.favoriteMovies.length > 0) {
       const favMovie = user.favoriteMovies[0];
-      fetch(`${BASE}/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(favMovie)}&page=1`)
+      fetch(`/api/tmdb/proxy?endpoint=${encodeURIComponent("/search/movie")}&query=${encodeURIComponent(favMovie)}&page=1`)
         .then(res => res.json())
         .then(data => {
           if (data.results && data.results[0]) {
@@ -407,7 +400,7 @@ function DiscoverContent() {
     setSearchMode(true);
     const t = setTimeout(async () => {
       setSearchLoading(true);
-      const data = await fetchRow(`${BASE}/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(query)}&page=1`);
+      const data = await fetchRow(`/search/movie?query=${encodeURIComponent(query)}&page=1`);
       setSearchResults(data);
       setSearchLoading(false);
     }, 450);
@@ -436,10 +429,10 @@ function DiscoverContent() {
     setGenreLoading(true);
     const rowConfig = ROW_CONFIGS.find(r => r.label.toLowerCase().includes(g.toLowerCase()));
     const genreId = GENRE_IDS[g];
-    const url = rowConfig
-      ? rowConfig.url()
-      : `${BASE}/discover/movie?api_key=${TMDB_KEY}&with_genres=${genreId}&sort_by=popularity.desc`;
-    fetchRow(url).then(data => {
+    const endpoint = rowConfig
+      ? rowConfig.endpoint
+      : `/discover/movie?with_genres=${genreId}&sort_by=popularity.desc`;
+    fetchRow(endpoint).then(data => {
       setGenreResults(data);
       setGenreLoading(false);
     });

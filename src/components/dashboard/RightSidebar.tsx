@@ -29,7 +29,7 @@ export default function RightSidebar() {
       if (res.success && res.notifications) setNotifications(res.notifications);
     });
 
-    fetch(`${BASE}/movie/upcoming?api_key=${TMDB_KEY}&language=en-US&page=1`)
+    fetch("/api/tmdb/proxy?endpoint=" + encodeURIComponent("/movie/upcoming?language=en-US&page=1"))
       .then((res) => res.json())
       .then((data) => {
         if (data.results) {
