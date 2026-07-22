@@ -111,7 +111,10 @@ jobs:
              docker system prune -af || true; \
              export APP_IMAGE='$IMAGE_BASE:app-$TAG' MIGRATE_IMAGE='$IMAGE_BASE:migrate-$TAG'; \
              docker compose pull; \
-             docker compose up -d; \
+             echo '=== running db migrations (foreground so errors are visible) ==='; \
+             docker compose run --rm migrate; \
+             echo '=== starting app + proxy ==='; \
+             docker compose up -d --no-deps app caddy; \
              docker image prune -f; \
              echo '=== disk after ==='; df -h /; \
              docker compose ps"

@@ -191,7 +191,7 @@ export async function getUserLibrary() {
           return {
             id: w.movieId,
             title: details?.title || w.movie.title,
-            posterUrl: details?.posterUrl || (w.movie.posterPath ? `https://image.tmdb.org/t/p/w500${w.movie.posterPath}` : ""),
+            posterUrl: details?.posterUrl || (w.movie.posterPath ? `/api/tmdb/img?path=/t/p/w500${w.movie.posterPath}` : ""),
             rating: details?.rating || 0,
             releaseYear: details?.releaseYear || 2024,
             genres: details?.genres || ["Drama"],
@@ -201,7 +201,7 @@ export async function getUserLibrary() {
           return {
             id: w.movieId,
             title: w.movie.title,
-            posterUrl: w.movie.posterPath ? `https://image.tmdb.org/t/p/w500${w.movie.posterPath}` : "",
+            posterUrl: w.movie.posterPath ? `/api/tmdb/img?path=/t/p/w500${w.movie.posterPath}` : "",
             rating: 0,
             releaseYear: 2024,
             genres: ["Drama"],
@@ -218,7 +218,7 @@ export async function getUserLibrary() {
           return {
             id: f.movieId,
             title: details?.title || f.movie.title,
-            posterUrl: details?.posterUrl || (f.movie.posterPath ? `https://image.tmdb.org/t/p/w500${f.movie.posterPath}` : ""),
+            posterUrl: details?.posterUrl || (f.movie.posterPath ? `/api/tmdb/img?path=/t/p/w500${f.movie.posterPath}` : ""),
             rating: details?.rating || 0,
             releaseYear: details?.releaseYear || 2024,
             genres: details?.genres || ["Drama"],
@@ -228,7 +228,7 @@ export async function getUserLibrary() {
           return {
             id: f.movieId,
             title: f.movie.title,
-            posterUrl: f.movie.posterPath ? `https://image.tmdb.org/t/p/w500${f.movie.posterPath}` : "",
+            posterUrl: f.movie.posterPath ? `/api/tmdb/img?path=/t/p/w500${f.movie.posterPath}` : "",
             rating: 0,
             releaseYear: 2024,
             genres: ["Drama"],

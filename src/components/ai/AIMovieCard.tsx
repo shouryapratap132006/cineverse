@@ -25,7 +25,7 @@ export default function AIMovieCard({ movie, onAddToWatchlist }: AIMovieCardProp
   const posterUrl = movie.posterPath
     ? movie.posterPath.startsWith("http")
       ? movie.posterPath
-      : `https://image.tmdb.org/t/p/w342${movie.posterPath}`
+      : `/api/tmdb/img?path=/t/p/w342${movie.posterPath}`
     : "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=300";
 
   return (

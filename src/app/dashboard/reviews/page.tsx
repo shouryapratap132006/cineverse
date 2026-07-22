@@ -205,7 +205,7 @@ function MovieSearchModal({
               >
                 {m.posterPath ? (
                   <img
-                    src={`https://image.tmdb.org/t/p/w92${m.posterPath}`}
+                    src={`/api/tmdb/img?path=/t/p/w92${m.posterPath}`}
                     alt={m.title}
                     className="w-10 h-14 object-cover rounded-lg flex-shrink-0"
                   />
@@ -305,7 +305,7 @@ function WriteReviewTab({ onSuccess }: { onSuccess: () => void }) {
             <>
               {selectedMovie.posterPath ? (
                 <img
-                  src={`https://image.tmdb.org/t/p/w92${selectedMovie.posterPath}`}
+                  src={`/api/tmdb/img?path=/t/p/w92${selectedMovie.posterPath}`}
                   alt={selectedMovie.title}
                   className="w-12 h-16 object-cover rounded-lg flex-shrink-0"
                 />
@@ -879,7 +879,7 @@ function AddDiaryEntryForm({
         {movie ? (
           <>
             {movie.posterPath && (
-              <img src={`https://image.tmdb.org/t/p/w92${movie.posterPath}`} alt={movie.title} className="w-8 h-11 object-cover rounded-md" />
+              <img src={`/api/tmdb/img?path=/t/p/w92${movie.posterPath}`} alt={movie.title} className="w-8 h-11 object-cover rounded-md" />
             )}
             <span className="text-white text-sm font-medium">{movie.title}</span>
             <span className="ml-auto text-xs text-violet-400">Change</span>

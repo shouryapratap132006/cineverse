@@ -85,7 +85,7 @@ export default function SearchPage() {
   }, [query, category, doSearch, searchMode]);
 
   const imgUrl = (path: string | null | undefined, size = "w300") =>
-    path ? `https://image.tmdb.org/t/p/${size}${path}` : null;
+    path ? `/api/tmdb/img?path=/t/p/${size}${path}` : null;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 min-h-screen">

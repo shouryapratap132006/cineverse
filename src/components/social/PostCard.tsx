@@ -132,7 +132,7 @@ export default function PostCard({ post, onUpdate }: PostCardProps) {
           <div className="mt-3 rounded-xl border border-white/5 bg-slate-800/50 p-3">
             <div className="flex items-center space-x-3">
               <div className="h-18 w-12 shrink-0 overflow-hidden rounded-md bg-slate-700">
-                <img src={`https://image.tmdb.org/t/p/w200${post.movie.posterPath}`} alt={post.movie.title} className="h-full w-full object-cover" />
+                <img src={`/api/tmdb/img?path=/t/p/w200${post.movie.posterPath}`} alt={post.movie.title} className="h-full w-full object-cover" />
               </div>
               <div className="flex flex-col justify-center">
                 <span className="mb-1 text-xs font-semibold text-brand-purple">Attached Movie</span>

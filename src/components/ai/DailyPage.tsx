@@ -120,7 +120,7 @@ export default function DailyPage() {
 
             {content.todaysMovie.posterPath && (
               <img
-                src={`https://image.tmdb.org/t/p/w185${content.todaysMovie.posterPath}`}
+                src={`/api/tmdb/img?path=/t/p/w185${content.todaysMovie.posterPath}`}
                 alt={content.todaysMovie.title}
                 className="w-24 sm:w-28 aspect-[2/3] object-cover rounded-xl bg-slate-950 shadow shrink-0 self-start"
               />
@@ -162,7 +162,7 @@ export default function DailyPage() {
           >
             {content.hiddenGem.posterPath && (
               <img
-                src={`https://image.tmdb.org/t/p/w185${content.hiddenGem.posterPath}`}
+                src={`/api/tmdb/img?path=/t/p/w185${content.hiddenGem.posterPath}`}
                 alt={content.hiddenGem.title}
                 className="w-24 sm:w-28 aspect-[2/3] object-cover rounded-xl bg-slate-950 shadow shrink-0 self-start"
               />

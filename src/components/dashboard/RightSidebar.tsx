@@ -176,7 +176,7 @@ export default function RightSidebar() {
                   <div className="flex gap-3 p-3">
                     {aiSuggested.posterPath ? (
                       <img
-                        src={`https://image.tmdb.org/t/p/w92${aiSuggested.posterPath}`}
+                        src={`/api/tmdb/img?path=/t/p/w92${aiSuggested.posterPath}`}
                         alt={aiSuggested.title}
                         className="w-12 h-16 object-cover rounded-lg border border-white/10 shrink-0"
                       />

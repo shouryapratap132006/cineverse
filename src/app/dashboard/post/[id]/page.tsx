@@ -182,7 +182,7 @@ export default function PostDetailPage() {
             <Link href={`/dashboard/movies/${post.movie.id}`} className="mt-4 flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-brand-blue/40 transition group">
               {post.movie.posterPath && (
                 <img
-                  src={`https://image.tmdb.org/t/p/w92${post.movie.posterPath}`}
+                  src={`/api/tmdb/img?path=/t/p/w92${post.movie.posterPath}`}
                   alt={post.movie.title}
                   className="w-10 h-14 object-cover rounded-lg border border-white/10"
                 />

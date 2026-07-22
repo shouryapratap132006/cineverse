@@ -548,7 +548,7 @@ export default function CommunityDetailPage() {
                         <div className="flex items-start gap-4">
                           {rev.movie?.posterPath && (
                             <img
-                              src={`https://image.tmdb.org/t/p/w92${rev.movie.posterPath}`}
+                              src={`/api/tmdb/img?path=/t/p/w92${rev.movie.posterPath}`}
                               alt={rev.movie.title}
                               className="w-12 h-16 object-cover rounded-lg border border-white/10 shrink-0"
                             />
@@ -1049,7 +1049,7 @@ export default function CommunityDetailPage() {
                     {aiSuggested?.posterPath && (
                       <div className="flex gap-3 p-3 border-b border-white/5">
                         <img
-                          src={`https://image.tmdb.org/t/p/w92${aiSuggested.posterPath}`}
+                          src={`/api/tmdb/img?path=/t/p/w92${aiSuggested.posterPath}`}
                           alt={aiSuggested.title}
                           className="w-10 h-14 object-cover rounded-lg border border-white/10 shrink-0"
                         />

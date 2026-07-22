@@ -98,7 +98,7 @@ export async function getUserDiary(options?: { month?: number; year?: number }) 
         movieId: e.movieId,
         movieTitle: e.movie.title,
         moviePoster: e.movie.posterPath
-          ? `https://image.tmdb.org/t/p/w342${e.movie.posterPath}`
+          ? `/api/tmdb/img?path=/t/p/w342${e.movie.posterPath}`
           : null,
         watchedAt: e.watchedAt.toISOString(),
         rating: e.rating,

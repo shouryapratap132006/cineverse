@@ -18,7 +18,7 @@ import { ACTOR_AVATARS } from "@/lib/avatars";
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 const TMDB_BASE = "https://api.themoviedb.org/3";
-const IMG_BASE = "https://image.tmdb.org/t/p";
+const IMG_BASE = "/api/tmdb/img?path=/t/p";
 
 const TABS = [
   { id: "cinema",    label: "Cinema",    icon: Film },
@@ -385,7 +385,7 @@ export default function ProfilePage() {
         <div className="flex items-end justify-between -mt-10 md:-mt-14 px-1">
           <div className="relative shrink-0">
             <img
-              src={profile.avatarUrl || `https://image.tmdb.org/t/p/w185/mkdRcVIQl4WZhDf1vXKWTD7HZrZ.jpg`}
+              src={profile.avatarUrl || `/api/tmdb/img?path=/t/p/w185/mkdRcVIQl4WZhDf1vXKWTD7HZrZ.jpg`}
               alt={profile.username}
               className="w-20 h-20 md:w-28 md:h-28 rounded-full object-cover border-4 border-brand-dark shadow-2xl"
             />

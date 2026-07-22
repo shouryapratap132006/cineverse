@@ -266,7 +266,7 @@ export default function WatchlistBuilder() {
           <div className="space-y-4">
             {watchlist.movies.map((movie, idx) => {
               const posterUrl = movie.posterPath
-                ? `https://image.tmdb.org/t/p/w185${movie.posterPath}`
+                ? `/api/tmdb/img?path=/t/p/w185${movie.posterPath}`
                 : "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=200";
               const isSelected = !!selections[movie.tmdbId];
 

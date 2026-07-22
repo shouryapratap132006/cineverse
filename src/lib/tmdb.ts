@@ -6,7 +6,7 @@ import path from "path";
 
 const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
-const IMAGE_BASE_URL = "https://image.tmdb.org/t/p";
+const IMAGE_BASE_URL = "/api/tmdb/img?path=/t/p";
 
 // Utility helper to fetch with a network timeout to prevent page loading hangs
 async function fetchWithTimeout(url: string, options: any = {}, timeoutMs = 3000) {

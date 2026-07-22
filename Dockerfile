@@ -47,7 +47,10 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
-RUN npx prisma generate
+# NOTE: do NOT run `prisma generate` here. It loads prisma.config.ts, which requires
+# DATABASE_URL at load time — that var isn't available at build time, so it crashes the
+# build (PrismaConfigEnvError). `migrate deploy` doesn't need the generated client anyway;
+# DATABASE_URL is provided at runtime via docker-compose env_file.
 CMD ["npx", "prisma", "migrate", "deploy"]
 
 # ---- Install PRODUCTION deps only (drops ts-node, typescript, eslint, tailwind, @types, prisma CLI...) ----

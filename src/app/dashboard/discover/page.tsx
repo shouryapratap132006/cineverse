@@ -13,7 +13,7 @@ import { MOCK_MOVIES } from "@/lib/mockData";
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 const BASE = "https://api.themoviedb.org/3";
-const IMG = "https://image.tmdb.org/t/p";
+const IMG = "/api/tmdb/img?path=/t/p";
 
 function mapMockMovieToUi(movie: any) {
   return {

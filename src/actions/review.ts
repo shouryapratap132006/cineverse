@@ -114,7 +114,7 @@ export async function getUserReviews(userId?: string) {
         movieId: r.movieId,
         movieTitle: r.movie.title,
         moviePoster: r.movie.posterPath
-          ? `https://image.tmdb.org/t/p/w342${r.movie.posterPath}`
+          ? `/api/tmdb/img?path=/t/p/w342${r.movie.posterPath}`
           : null,
         rating: r.rating,
         content: r.content,

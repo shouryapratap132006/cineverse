@@ -70,7 +70,7 @@ export async function getUserLists(userId?: string) {
         updatedAt: l.updatedAt.toISOString(),
         coverPosters: l.entries.slice(0, 4).map((e) =>
           e.movie.posterPath
-            ? `https://image.tmdb.org/t/p/w342${e.movie.posterPath}`
+            ? `/api/tmdb/img?path=/t/p/w342${e.movie.posterPath}`
             : null
         ),
       })),
@@ -109,7 +109,7 @@ export async function getListDetails(listId: string) {
           movieId: e.movieId,
           movieTitle: e.movie.title,
           moviePoster: e.movie.posterPath
-            ? `https://image.tmdb.org/t/p/w342${e.movie.posterPath}`
+            ? `/api/tmdb/img?path=/t/p/w342${e.movie.posterPath}`
             : null,
           rank: e.rank,
           notes: e.notes,
