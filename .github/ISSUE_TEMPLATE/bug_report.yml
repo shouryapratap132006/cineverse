@@ -1,0 +1,57 @@
+name: 🐛 Bug Report
+description: Create a report to help us fix a bug or issue in CineVerse
+title: "[BUG]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please fill out the form below as completely as possible.
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: Provide a clear and concise description of what the bug is.
+      placeholder: When I click on the AI Recommendation generate button...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: List exact steps to reproduce the behavior.
+      placeholder: |
+        1. Go to '/dashboard'
+        2. Click on 'Movie DNA'
+        3. Scroll down to 'Generate Radar'
+        4. See error in console
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: Describe what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / Console Logs
+      description: Drag and drop screenshots or paste browser/server error logs here.
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Where did you encounter this bug?
+      options:
+        - Local Node.js Development Server (`npm run dev`)
+        - Local Docker Container (`docker-compose`)
+        - Production Server (AWS EC2 / Live Site)
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser / OS Information
+      description: e.g. Chrome 120 / macOS Sonoma

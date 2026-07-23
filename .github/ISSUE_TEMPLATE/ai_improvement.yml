@@ -1,0 +1,33 @@
+name: 🤖 AI / LangGraph / RAG Improvement
+description: Suggest improvements for Groq LLM prompts, agent workflows, or taste profiling algorithms
+title: "[AI]: "
+labels: ["AI", "LangGraph"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: AI Pipeline Improvement Goal
+      description: What aspect of the AI intelligence layer needs enhancement?
+      placeholder: Expand movie assistant prompt to include film trivia grounding...
+    validations:
+      required: true
+  - type: dropdown
+    id: ai_component
+    attributes:
+      label: Target AI Component
+      options:
+        - Groq LLM Gateway & Prompt System (`src/ai/gateway.ts`)
+        - LangGraph Multi-Agent Orchestrator (`src/ai/orchestrator.ts`)
+        - Recommendation Engine (`src/ai/services/recommendation.service.ts`)
+        - Movie DNA & Taste Radar (`src/ai/services/taste.service.ts`)
+        - Semantic Search Expander (`src/ai/services/semanticSearch.service.ts`)
+        - RAG Pipeline & Embedding Index (`docs/RAG_PIPELINE.md`)
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Proposed Implementation & Expected Metrics
+      description: Explain the prompt changes, agent node topology updates, or scoring math adjustments.
+    validations:
+      required: true

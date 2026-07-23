@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 GitHub Discussions
+    url: https://github.com/shouryapratap132006/cineverse/discussions
+    about: Ask questions, share ideas, and chat with the community.
+  - name: 🔒 Security Vulnerabilities
+    url: https://github.com/shouryapratap132006/cineverse/security/advisories/new
+    about: Report sensitive security vulnerabilities confidentially.
