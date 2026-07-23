@@ -4,9 +4,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-
+import { semanticSearchService } from "@/ai/services/semanticSearch.service";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,23 +23,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Query must be at least 2 characters" }, { status: 400 });
     }
 
-        const aiServiceUrl = process.env.AI_SERVICE_URL || "http://localhost:8000";
-    const response = await fetch(`${aiServiceUrl}/ai/search`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-User-Id": userId,
-      },
-      body: JSON.stringify({query: query.trim(), limit}),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`AI Service error: ${response.status} ${errorText}`);
-    }
-
-    const result = await response.json();
-    return NextResponse.json(result);
+    // Run the search in-process via Groq (the previous external AI microservice
+    // at AI_SERVICE_URL is not deployed, so this route used to 500).
+    const result = await semanticSearchService.search({ query: query.trim(), limit });
     return NextResponse.json(result);
   } catch (error) {
     console.error("[/api/ai/search]", error);
