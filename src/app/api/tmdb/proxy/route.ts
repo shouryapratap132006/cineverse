@@ -20,11 +20,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid endpoint format" }, { status: 400 });
   }
 
-  const queryParams = new URLSearchParams(searchParams);
-  queryParams.delete("endpoint");
+  // The endpoint may itself carry a query string, e.g. "/discover/movie?with_genres=28&sort_by=...".
+  // Split path from its inline query so we don't emit a malformed URL with two "?" — that was
+  // stripping the api_key and making TMDB return 401 for every row/filter that used /discover etc.
+  const queryIndex = endpoint.indexOf("?");
+  const path = queryIndex === -1 ? endpoint : endpoint.slice(0, queryIndex);
+  const inlineQuery = queryIndex === -1 ? "" : endpoint.slice(queryIndex + 1);
+
+  const queryParams = new URLSearchParams(inlineQuery);
+  // Merge any params passed alongside endpoint (e.g. &query=...&page=...).
+  for (const [key, value] of searchParams.entries()) {
+    if (key === "endpoint") continue;
+    queryParams.set(key, value);
+  }
   queryParams.set("api_key", apiKey);
 
-  const targetUrl = `${TMDB_BASE}${endpoint}?${queryParams.toString()}`;
+  const targetUrl = `${TMDB_BASE}${path}?${queryParams.toString()}`;
 
   try {
     const res = await fetch(targetUrl, { next: { revalidate: 1800 } });
