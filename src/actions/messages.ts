@@ -1,34 +1,77 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { getAuthUserId } from "@/lib/auth";
 import { pusherServer } from "@/lib/pusher";
 
-async function getUserId() {
-  const hasClerkKey = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  if (hasClerkKey) {
-    try {
-      const { auth } = await import("@clerk/nextjs/server");
-      const session = await auth();
-      return session.userId;
-    } catch (e) {}
-  } else {
-    const { cookies } = await import("next/headers");
-    const cookieStore = await cookies();
-    const mockSession = cookieStore.get("cineverse_session");
-    if (mockSession) {
-      try {
-        return JSON.parse(mockSession.value).id;
-      } catch (e) {}
+/**
+ * Ensures user and profile exist in PostgreSQL database before executing message/conversation queries.
+ */
+async function ensureUserExists(userId: string) {
+  if (!userId) return null;
+  try {
+    let user = await db.user.findUnique({
+      where: { id: userId },
+      include: { profile: true },
+    });
+
+    if (!user) {
+      let email = `${userId}@cineverse.app`;
+      let username = `cinephile_${userId.slice(-4)}`;
+
+      const hasClerkKey = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+      if (hasClerkKey) {
+        try {
+          const { currentUser } = await import("@clerk/nextjs/server");
+          const clerkUser = await currentUser();
+          if (clerkUser && clerkUser.id === userId) {
+            email = clerkUser.emailAddresses[0]?.emailAddress || email;
+            username = clerkUser.username || email.split("@")[0] || username;
+          }
+        } catch (e) {
+          console.warn("[ensureUserExists] Clerk fetch warning:", e);
+        }
+      }
+
+      const existingProfile = await db.profile.findUnique({ where: { username } });
+      if (existingProfile) {
+        username = `${username}_${Math.floor(Math.random() * 1000)}`;
+      }
+
+      user = await db.user.create({
+        data: {
+          id: userId,
+          email,
+          profile: {
+            create: {
+              username,
+              bio: "Cinephile reviewing the classics.",
+              avatarUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100",
+              bannerUrl: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600",
+              favoriteGenres: [],
+              favoriteMovies: [],
+              favoriteActors: [],
+              favoriteDirectors: [],
+            },
+          },
+        },
+        include: { profile: true },
+      });
     }
+    return user;
+  } catch (e) {
+    console.error("[ensureUserExists] Error ensuring user:", e);
+    return null;
   }
-  return null;
 }
 
 export async function getConversations() {
-  const userId = await getUserId();
+  const userId = await getAuthUserId();
   if (!userId) return { success: false, conversations: [] };
 
   try {
+    await ensureUserExists(userId);
+
     const conversations = await db.conversation.findMany({
       where: {
         users: { some: { id: userId } }
@@ -45,16 +88,18 @@ export async function getConversations() {
 
     return { success: true, conversations };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    console.error("[getConversations] Error:", error);
+    return { success: false, error: error.message, conversations: [] };
   }
 }
 
 export async function getMessages(conversationId: string) {
-  const userId = await getUserId();
+  const userId = await getAuthUserId();
   if (!userId) return { success: false, messages: [], otherUser: null };
 
   try {
-    // Fetch messages AND the conversation participants in one query
+    await ensureUserExists(userId);
+
     const [messages, conversation] = await Promise.all([
       db.message.findMany({
         where: { conversationId },
@@ -67,20 +112,22 @@ export async function getMessages(conversationId: string) {
       })
     ]);
 
-    // Find the other participant (not the current user)
     const otherUser = conversation?.users?.find((u: any) => u.id !== userId) ?? null;
 
     return { success: true, messages, otherUser };
   } catch (error: any) {
-    return { success: false, error: error.message, otherUser: null };
+    console.error("[getMessages] Error:", error);
+    return { success: false, error: error.message, messages: [], otherUser: null };
   }
 }
 
 export async function sendMessage(conversationId: string, content: string) {
-  const userId = await getUserId();
+  const userId = await getAuthUserId();
   if (!userId) return { success: false, error: "Unauthorized" };
 
   try {
+    await ensureUserExists(userId);
+
     const message = await db.message.create({
       data: {
         conversationId,
@@ -96,22 +143,28 @@ export async function sendMessage(conversationId: string, content: string) {
       data: { updatedAt: new Date() }
     });
 
-    // Trigger pusher event
     if (process.env.PUSHER_APP_ID) {
-      await pusherServer.trigger(`chat-${conversationId}`, "new-message", message);
+      try {
+        await pusherServer.trigger(`chat-${conversationId}`, "new-message", message);
+      } catch (pusherErr) {
+        console.warn("[sendMessage] Pusher trigger warning (message saved successfully):", pusherErr);
+      }
     }
 
     return { success: true, message };
   } catch (error: any) {
+    console.error("[sendMessage] Error:", error);
     return { success: false, error: error.message };
   }
 }
 
 export async function searchUsers(query: string) {
-  const userId = await getUserId();
+  const userId = await getAuthUserId();
   if (!userId || query.trim().length < 1) return { success: false, users: [] };
 
   try {
+    await ensureUserExists(userId);
+
     const users = await db.user.findMany({
       where: {
         id: { not: userId },
@@ -124,15 +177,21 @@ export async function searchUsers(query: string) {
     });
     return { success: true, users };
   } catch (error: any) {
+    console.error("[searchUsers] Error:", error);
     return { success: false, users: [] };
   }
 }
 
 export async function getOrCreateConversation(targetUserId: string) {
-  const userId = await getUserId();
+  const userId = await getAuthUserId();
   if (!userId) return { success: false, error: "Unauthorized" };
 
   try {
+    await Promise.all([
+      ensureUserExists(userId),
+      ensureUserExists(targetUserId),
+    ]);
+
     const existing = await db.conversation.findFirst({
       where: {
         isGroup: false,
@@ -161,15 +220,18 @@ export async function getOrCreateConversation(targetUserId: string) {
 
     return { success: true, conversation };
   } catch (error: any) {
+    console.error("[getOrCreateConversation] Error:", error);
     return { success: false, error: error.message };
   }
 }
 
 export async function editMessage(messageId: string, newContent: string) {
-  const userId = await getUserId();
+  const userId = await getAuthUserId();
   if (!userId) return { success: false, error: "Unauthorized" };
 
   try {
+    await ensureUserExists(userId);
+
     const existing = await db.message.findUnique({
       where: { id: messageId }
     });
@@ -184,20 +246,27 @@ export async function editMessage(messageId: string, newContent: string) {
     });
 
     if (process.env.PUSHER_APP_ID) {
-      await pusherServer.trigger(`chat-${updated.conversationId}`, "edit-message", updated);
+      try {
+        await pusherServer.trigger(`chat-${updated.conversationId}`, "edit-message", updated);
+      } catch (pusherErr) {
+        console.warn("[editMessage] Pusher warning:", pusherErr);
+      }
     }
 
     return { success: true, message: updated };
   } catch (error: any) {
+    console.error("[editMessage] Error:", error);
     return { success: false, error: error.message };
   }
 }
 
 export async function deleteMessage(messageId: string) {
-  const userId = await getUserId();
+  const userId = await getAuthUserId();
   if (!userId) return { success: false, error: "Unauthorized" };
 
   try {
+    await ensureUserExists(userId);
+
     const existing = await db.message.findUnique({
       where: { id: messageId }
     });
@@ -210,20 +279,27 @@ export async function deleteMessage(messageId: string) {
     });
 
     if (process.env.PUSHER_APP_ID) {
-      await pusherServer.trigger(`chat-${existing.conversationId}`, "delete-message", { messageId });
+      try {
+        await pusherServer.trigger(`chat-${existing.conversationId}`, "delete-message", { messageId });
+      } catch (pusherErr) {
+        console.warn("[deleteMessage] Pusher warning:", pusherErr);
+      }
     }
 
     return { success: true, messageId };
   } catch (error: any) {
+    console.error("[deleteMessage] Error:", error);
     return { success: false, error: error.message };
   }
 }
 
 export async function togglePinMessage(messageId: string) {
-  const userId = await getUserId();
+  const userId = await getAuthUserId();
   if (!userId) return { success: false, error: "Unauthorized" };
 
   try {
+    await ensureUserExists(userId);
+
     const existing = await db.message.findUnique({
       where: { id: messageId }
     });
@@ -237,20 +313,27 @@ export async function togglePinMessage(messageId: string) {
     });
 
     if (process.env.PUSHER_APP_ID) {
-      await pusherServer.trigger(`chat-${updated.conversationId}`, "pin-message", updated);
+      try {
+        await pusherServer.trigger(`chat-${updated.conversationId}`, "pin-message", updated);
+      } catch (pusherErr) {
+        console.warn("[togglePinMessage] Pusher warning:", pusherErr);
+      }
     }
 
     return { success: true, message: updated };
   } catch (error: any) {
+    console.error("[togglePinMessage] Error:", error);
     return { success: false, error: error.message };
   }
 }
 
 export async function markMessagesAsSeen(conversationId: string) {
-  const userId = await getUserId();
+  const userId = await getAuthUserId();
   if (!userId) return { success: false, error: "Unauthorized" };
 
   try {
+    await ensureUserExists(userId);
+
     const unreadMessages = await db.message.findMany({
       where: {
         conversationId,
@@ -273,11 +356,16 @@ export async function markMessagesAsSeen(conversationId: string) {
     );
 
     if (process.env.PUSHER_APP_ID) {
-      await pusherServer.trigger(`chat-${conversationId}`, "messages-seen", { userId, conversationId });
+      try {
+        await pusherServer.trigger(`chat-${conversationId}`, "messages-seen", { userId, conversationId });
+      } catch (pusherErr) {
+        console.warn("[markMessagesAsSeen] Pusher warning:", pusherErr);
+      }
     }
 
     return { success: true };
   } catch (error: any) {
+    console.error("[markMessagesAsSeen] Error:", error);
     return { success: false, error: error.message };
   }
 }
