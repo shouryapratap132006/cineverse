@@ -1,435 +1,295 @@
+<div align="center">
+
 # 🎬 CineVerse
 
-> **The social network for cinephiles** — powered by AI, real-time collaboration, and the full TMDB database.
+### Production-Grade AI-Powered Cinematic Intelligence Platform
 
-CineVerse is a full-stack, production-grade web application that blends the best of Letterboxd, Reddit, and an AI film critic into one premium dark-mode platform. Users can discover movies, track what they've watched, post reviews, react to each other's content, join themed film communities, message friends in real time, and interact with a suite of AI features — all backed by a live TMDB integration.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.2-black?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-blue?logo=react)](https://react.dev/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue?logo=postgresql)](https://www.postgresql.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-7.8-2D3748?logo=prisma)](https://www.prisma.io/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)](https://www.docker.com/)
+[![AWS](https://img.shields.io/badge/AWS-EC2%20%7C%20RDS-FF9900?logo=amazon-aws)](https://aws.amazon.com/)
+[![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-CI%2FCD-2088FF?logo=github-actions)](https://github.com/features/actions)
+[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Stars](https://img.shields.io/github/stars/shouryapratap132006/cineverse?style=social)](https://github.com/shouryapratap132006/cineverse/stargazers)
+[![Forks](https://img.shields.io/github/forks/shouryapratap132006/cineverse?style=social)](https://github.com/shouryapratap132006/cineverse/network/members)
+[![Issues](https://img.shields.io/github/issues/shouryapratap132006/cineverse)](https://github.com/shouryapratap132006/cineverse/issues)
 
----
+<p align="center">
+  <b>CineVerse</b> is an open-source, full-stack cinematic platform leveraging multi-agent AI orchestrators (Groq LLaMA 3.3 70B & LangGraph), real-time interactive watch parties, vector taste profiling ("Movie DNA"), and semantic movie discovery.
+</p>
 
-## ✨ Feature Overview
+[Explore Features](#-features) • [AI Architecture](#-ai-features) • [Local Setup](#-local-setup) • [Documentation](docs/ARCHITECTURE.md) • [Contributing](CONTRIBUTING.md)
 
-### 🏠 Dashboard & Feed
-- **Social Feed** with toggleable **Following** and **Trending** modes
-  - *Following* — shows posts only from users you follow (+ your own)
-  - *Trending* — globally sorted by most reactions
-- **Trending Cinema Carousel** — horizontal scroll of top movies from TMDB with ratings
-- **Post composer** — create text, image, movie-tagged, review, or poll posts
-- **Post Cards** with emoji reactions (❤️ 🔥 🎬 😂 😲 😭 👏), comments, bookmarks, reposts, and a functioning three-dot context menu (Copy Link, Share, Report)
-
-### 👤 Profile Page
-Full cinephile identity system:
-
-| Tab | Content |
-|-----|---------|
-| **Cinema** | Top 5 Favourite Films picker + Recently Watched grid |
-| **Activity** | Chronological activity stream |
-| **Posts** | All posts you've published |
-| **Reviews** | All movie reviews with ratings |
-| **Liked** | Posts you've reacted to |
-| **Commented** | Posts you've commented on |
-| **Saved** | Bookmarked posts |
-| **Taste** | AI-generated Movie DNA / genre taste profile |
-
-- **Top 5 Favourite Films** — live TMDB search picker. Click any slot, search, pick, save. Publicly visible to everyone.
-- **Recently Watched** — poster grid pulled from your diary entries
-- **Edit Profile** modal — username, bio, avatar (from actor photo gallery), banner, language, country, favorite genres
-- **Stats** — Followers, Following, Reviews, Posts, Watched count, Liked count
-
-### 🎥 Movie Pages (`/dashboard/movies/[id]`)
-- Full TMDB movie details: synopsis, cast, crew, genres, runtime, release date
-- User reviews with star ratings and spoiler tagging
-- Add to Watchlist / Mark as Watched
-- Share to Feed
-
-### 🔍 Discover & Search (`/dashboard/discover`, `/dashboard/search`)
-- Browse movies by genre, popularity, or new releases
-- Real-time TMDB search with debouncing
-- AI semantic search (optional)
-
-### 📋 Watchlist (`/dashboard/watchlist`)
-- **Want to Watch** and **Watched** queues
-- Mark individual movies as watched
-- Remove movies from lists
-- Track watch history across your diary
-
-### ✍️ Reviews (`/dashboard/reviews`)
-- Write long-form reviews (text editor)
-- Rating out of 10
-- Spoiler flag, visibility settings (Public / Friends / Private)
-- Rewatch flag
-- Comments and reactions on reviews
-
-### 📔 Film Diary
-- Log every viewing with date, rating, notes
-- Rewatch flag
-- Powers the "Recently Watched" section on your profile
-
-### 📝 Curated Lists
-- Create ranked or unranked public/private lists
-- Add movies via TMDB search
-- Share lists to your feed
-
-### 👥 Social Graph
-- **Follow / Unfollow** users
-- **Friend Requests** (PENDING → ACCEPTED / REJECTED)
-- **Suggested Users** in the sidebar
-- Follower / Following counts on profiles
-
-### 💬 Messages (`/dashboard/messages`)
-- Real-time direct messaging powered by **Socket.IO** and **Pusher**
-- 1-on-1 and group conversations
-- Message seen receipts
-- Pin messages
-- WhatsApp-style UI with conversation list sidebar
-
-### 🏘️ Communities (`/dashboard/community`)
-- Browse and join film communities (movie-specific, genre-specific, user-created)
-- Community types: MOVIE, GENRE, STUDIO, ACTOR, DIRECTOR, USER_CREATED
-- Role system: OWNER, ADMIN, MODERATOR, VERIFIED_CREATOR, MEMBER, MUTED, BANNED
-- Community rules, events, pinned posts
-- **Events** with RSVP (Going / Interested / Not Going)
-- **AI Companion** in community sidebar — ask anything about films relevant to that community, get a real AI response with TMDB poster and link
-
-### 🎞️ Film Clubs
-- Private or public group watches
-- Club members share a watchlist of movies
-- Owner and member roles
-
-### 🔔 Notifications
-- Real-time notifications for: Likes, Comments, Replies, Mentions, Friend Requests, Accepted Requests, Messages, Community Invites
-- Mark as read / unread
-- Notification bell with unread count badge
-
-### 📖 Stories
-- Ephemeral movie-tagged stories
-
-### 🏆 Achievements & Badges
-- Badge system with earned achievements
-- Reputation levels (Bronze Star, etc.)
+</div>
 
 ---
 
-## 🤖 AI Features (`/dashboard/ai`)
+## 📌 Introduction
 
-CineVerse has a full AI layer powered by **Groq** (`llama-3.3-70b-versatile`) and a custom AI orchestrator with retry logic, caching, and provider swapping:
+**CineVerse** bridges high-performance streaming UI with cutting-edge artificial intelligence. Designed for movie enthusiasts, film critics, and developer communities, CineVerse offers an immersive experience where AI doesn't just recommend movies—it understands taste profiles, generates visual genome radar charts, conducts multi-agent movie assistant conversations, and coordinates synchronized live watch parties with real-time WebSocket communication.
 
-### 🗣️ AI Companion (Sidebar — always available)
-Available on every page in the right sidebar and on community pages. Ask anything and get:
-- A real AI-generated movie recommendation with reasoning
-- Live TMDB poster, rating, and release year
-- Topic tags (e.g. `mind-bending`, `atmospheric`, `feel-good`)
-- Direct link to the movie's detail page
+Built using **Next.js 16 (App Router)**, **React 19**, **Prisma ORM**, **Neon PostgreSQL**, **Clerk Auth**, **Groq AI**, **Socket.IO**, **Stripe**, and containerized with **Docker** for **AWS EC2/Caddy** deployment.
 
-### 💬 AI Chat (`/dashboard/ai/chat`)
-Full persistent conversation history with the CineVerse AI movie companion:
-- Multi-turn conversations with streaming responses (Server-Sent Events)
-- Movie-context mode (chat about a specific movie)
-- History stored in database (`AIConversation` / `AIMessage` tables)
-- Conversation folders and pinning
+---
 
-### 📅 Daily Pick (`/dashboard/ai/daily`)
-AI-curated personalised "Movie of the Day" based on your taste profile, watch history, and favourite genres.
+## ✨ Features
 
-### 🧬 Movie DNA (`/dashboard/ai/dna`)
-Analyses your reviews, diary, watchlist, and favourites to generate a **Cinematic DNA** profile:
-- Genre percentage breakdown (visual chart)
-- Directors / actors / themes inferred from your history
-- Taste personality archetype (e.g. "The Cerebral Auteur Fan")
-- Pacing preference and favourite decade
+- 🎭 **Movie DNA Taste Profiling**: Multi-dimensional radar matrix analyzing user affinity across mood, pacing, narrative complexity, visual style, and thematic elements.
+- 💬 **Real-Time Watch Parties & Chat**: Multi-user sync room rooms powered by custom HTTP + Socket.IO server & Pusher channels fallback.
+- 💳 **Stripe Subscription Tier Management**: Seamless Free vs. CineVerse Pro tier upgrades, usage quotas, and billing management.
+- 🔐 **Clerk Enterprise Authentication**: Webhook-driven user syncing to Prisma PostgreSQL with protected server action guards.
+- 🖼️ **Cloudinary Media Assets**: Optimized image storage, poster rendering, and user profile avatar processing.
+- ⚡ **TMDB Proxy Caching**: High-throughput proxy layer wrapping TMDB v3 API with rate-limit protection and fallback data.
 
-### 🎓 Film Professor (`/dashboard/ai/professor`)
-Deep-dive AI analysis of any movie:
-- Themes and symbolism
-- Cinematographic style breakdown
-- Director's recurring motifs
-- Narrative structure analysis
-- Ending / twist explanation
+---
 
-### 🔭 Knowledge Graph
-Visual connection graph between movies, directors, actors, and genres — AI-generated and cached.
+## 🧠 AI Features
 
-### 🔎 AI Search (`/dashboard/ai/search`)
-Semantic search — describe a feeling or concept ("a movie about loneliness in a big city") and get matching film recommendations.
+CineVerse embeds a sophisticated multi-agent intelligence pipeline:
 
-### 📋 AI Watchlist Builder (`/dashboard/ai/watchlist`)
-Describe a theme, mood, or prompt and the AI generates a complete watchlist of 5–10 films with per-film reasoning. Save the generated list directly to your watchlist with one click.
+```mermaid
+graph TD
+    A[User Natural Language Query / Interaction] --> B[AI Gateway & Router]
+    B --> C{Agent Selector}
+    C -->|Taste Vectors| D[Taste & Movie DNA Engine]
+    C -->|Semantic Search| E[Groq LLaMA 3.3 Prompt Expander]
+    C -->|Conversational| F[LangGraph Multi-Agent Assistant]
+    C -->|Moderation| G[Content Moderation Guardrail]
+    D --> H[Structured Score & Radar JSON]
+    E --> I[Vector Similarity & Keyword Hybrid Match]
+    F --> J[Contextual Movie Advice & Trivia]
+    G --> K[Safe Response Dispatch]
+```
 
-### 🎬 Scene Analysis
-AI deep-dives into specific scenes: cinematography, symbolism, direction, and emotional impact.
+1. **LangGraph Multi-Agent Orchestration**: Agent state machine handling multi-turn conversational inquiries, context persistence, and intent routing.
+2. **Groq LLaMA 3.3 70B Acceleration**: Ultra-low latency LLM inference producing sub-second recommendations and movie summaries.
+3. **Semantic Query Expander**: Translates natural language prompts like *"Moody cyberpunk thrillers with melancholic electronic synth scores"* into precise filter parameters.
+4. **Interactive AI Movie Assistant**: Real-time film recommendations with explanations of *why* a film matches your profile.
+5. **AI Content Moderation**: Guardrails filtering community reviews and public chat channels.
 
-### 📝 AI Review Helper
-AI assists in writing a review — suggests insights, themes, and comparisons to help structure your critique.
+---
 
-### 🛡️ AI Content Moderation
-AI-powered community moderation to detect harmful content in posts and comments.
+## 🏗️ Architecture
 
-### 📊 Community AI Summary
-Generates daily/weekly AI summaries of community activity, top discussions, and trending topics within a community.
+```mermaid
+graph TB
+    subgraph Client Layer
+        Web[Next.js 16 Web Application / React 19 UI]
+        SocketClient[Socket.IO Client]
+    end
+
+    subgraph Server & Proxy Layer
+        Caddy[Caddy Reverse Proxy / HTTPS]
+        Server[Custom Express + Socket.IO + Next Server]
+    end
+
+    subgraph Business Logic & AI Layer
+        Auth[Clerk Authentication Middleware]
+        AIGateway[Groq & LangGraph AI Orchestrator]
+        TMDB[TMDB Proxy & Cache]
+    end
+
+    subgraph Data & Storage Layer
+        DB[(Neon PostgreSQL / AWS RDS)]
+        Prisma[Prisma ORM 7]
+        Cloudinary[Cloudinary Media CDN]
+    end
+
+    Client Layer --> Caddy
+    Caddy --> Server
+    Server --> Auth
+    Server --> AIGateway
+    Server --> TMDB
+    Server --> Prisma
+    Prisma --> DB
+    Server --> Cloudinary
+```
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Framework** | Next.js 16 (App Router) |
-| **Language** | TypeScript 5 |
-| **Styling** | Tailwind CSS 4 |
-| **Database** | PostgreSQL via Prisma ORM 7 |
-| **Auth** | Clerk (with cookie-based fallback for dev) |
-| **AI Provider** | Groq — `llama-3.3-70b-versatile` |
-| **Real-time** | Socket.IO + Pusher |
-| **Movie Data** | TMDB API v3 |
-| **Image Upload** | Cloudinary |
-| **State Management** | React 19 + TanStack Query v5 |
-| **Animations** | Framer Motion |
-| **Forms** | React Hook Form + Zod |
-| **Icons** | Lucide React |
-| **Emoji Picker** | emoji-mart |
-| **Date Utilities** | date-fns |
+| Domain | Technologies |
+| ------ | ------------ |
+| **Frontend Framework** | [Next.js 16](https://nextjs.org/) (App Router), [React 19](https://react.dev/), [TypeScript 5](https://www.typescriptlang.org/) |
+| **Styling & UI** | [Tailwind CSS v4](https://tailwindcss.com/), [Framer Motion 12](https://framer.com/motion), [Lucide React](https://lucide.dev/), [Radix UI](https://www.radix-ui.com/) |
+| **AI & LLM** | [Groq SDK](https://groq.com/) (LLaMA 3.3 70B), [LangGraph](https://langchain-ai.github.io/langgraph/), [Zod Schema Validation](https://zod.dev/) |
+| **Database & ORM** | [Prisma 7](https://www.prisma.io/), [PostgreSQL](https://www.postgresql.org/) (Neon / AWS RDS) |
+| **Authentication** | [Clerk Auth](https://clerk.com/) |
+| **Real-Time Websockets** | [Socket.IO 4](https://socket.io/), [Pusher Channels](https://pusher.com/) |
+| **Payments** | [Stripe SDK](https://stripe.com/) |
+| **Infrastructure & CI/CD** | [Docker](https://www.docker.com/), [AWS EC2](https://aws.amazon.com/), [Caddy Server](https://caddyserver.com/), [GitHub Actions](https://github.com/features/actions) |
 
 ---
 
-## 🗄️ Database Schema
+## 📸 Screenshots & Demo
 
-**43 Prisma models** across three logical layers:
+*(Add your high-resolution UI screenshots here)*
 
-**Core Social**
-```
-User  Profile  Movie  Watchlist  Favorite  Review  DiaryEntry
-CineverseList  ListEntry  Post  Comment  Like  Reaction  Follow
-FriendRequest  Bookmark  Report  Notification  Activity
-Badge  Achievement  Story
-```
-
-**Communities & Clubs**
-```
-Community  CommunityMember  CommunityPost  Poll  Vote
-Event  EventRSVP  FilmClub  FilmClubMember  FilmClubMovie
-Conversation  Message
-```
-
-**AI Layer**
-```
-AIConversation  AIMessage  TasteProfile  RecommendationHistory
-GeneratedWatchlist  CommunitySummary  PromptTemplate  SceneAnalysis
-KnowledgeGraphCache  MovieInsight  AIUsage
-```
+- **Discover & AI Recommendations Dashboard**: Dynamic film carousels with AI confidence ratings.
+- **Movie DNA Radar Chart**: Visual breakdown of mood, tempo, and complexity metrics.
+- **Live Watch Party & Real-Time Chat**: Synchronized viewing lounge with interactive chat controls.
 
 ---
 
-## 🚀 Getting Started
+## ⚡ Deployment
+
+CineVerse is pre-configured for automated continuous deployment to **AWS EC2** using **Docker** and **GitHub Actions**:
+
+- **CI/CD Pipeline**: `.github/workflows/deploy.yml` builds production multi-stage Docker images and pushes to **GHCR**.
+- **Server Deployment**: Automated SSH deployment triggering zero-downtime updates with `docker-compose.ghcr.yml` and **Caddy** auto-TLS SSL management.
+
+Read full deployment details in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+---
+
+## 🚀 Local Setup
+
+Follow these steps to get CineVerse running locally in under 15 minutes:
 
 ### Prerequisites
-- Node.js >= 20.9
-- PostgreSQL database
-- API keys for: TMDB, Clerk, Groq, Cloudinary, Pusher
+- Node.js v20+
+- npm v10+
+- PostgreSQL database instance (or local Docker container)
 
-### 1. Clone the repository
+### Step 1: Clone Repository
 ```bash
 git clone https://github.com/shouryapratap132006/cineverse.git
 cd cineverse
 ```
 
-### 2. Install dependencies
+### Step 2: Install Dependencies
 ```bash
-npm ci
+npm install
 ```
 
-### 3. Configure environment variables
-
-Create a `.env` file at the root:
-
-```env
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/cineverse"
-
-# Clerk Authentication
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/auth/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/auth/sign-up
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding
-
-# TMDB
-NEXT_PUBLIC_TMDB_API_KEY=your_tmdb_api_key
-
-# AI (Groq)
-GROQ_API_KEY=gsk_...
-AI_PROVIDER=groq
-GROQ_MODEL=llama-3.3-70b-versatile
-
-# Real-time (Pusher)
-PUSHER_APP_ID=...
-PUSHER_KEY=...
-PUSHER_SECRET=...
-PUSHER_CLUSTER=...
-NEXT_PUBLIC_PUSHER_KEY=...
-NEXT_PUBLIC_PUSHER_CLUSTER=...
-
-# Image Upload (Cloudinary)
-CLOUDINARY_CLOUD_NAME=...
-CLOUDINARY_API_KEY=...
-CLOUDINARY_API_SECRET=...
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=...
-```
-
-### 4. Set up the database
+### Step 3: Configure Environment Variables
 ```bash
-npx prisma generate
-npx prisma migrate dev
+cp .env.example .env
+```
+Edit `.env` and fill in your keys (Database URL, Clerk Auth, Groq API key, TMDB key).
+
+### Step 4: Run Database Migrations
+```bash
+npm run prisma:generate
+npm run prisma:migrate
 ```
 
-### 5. Run the development server
+### Step 5: Start Local Development Server
 ```bash
 npm run dev
 ```
-
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 🚀 Production workflow
+## 🔑 Environment Variables
 
-Before releasing schema changes, apply committed migrations to the production database:
+| Variable | Description | Required |
+| -------- | ----------- | -------- |
+| `DATABASE_URL` | PostgreSQL connection string | Yes |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk Auth public publishable key | Yes |
+| `CLERK_SECRET_KEY` | Clerk Auth server secret key | Yes |
+| `NEXT_PUBLIC_TMDB_API_KEY` | TMDB API v3 key | Yes |
+| `GROQ_API_KEY` | Groq AI platform secret key | Yes |
+| `NEXT_PUBLIC_APP_URL` | Canonical app URL (e.g. `http://localhost:3000`) | Yes |
+| `STRIPE_SECRET_KEY` | Stripe billing API key | Optional |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary storage tenant | Optional |
 
-```bash
-npx prisma migrate deploy
-npm run build
-npm run start
-```
-
-Use production environment variables for Clerk, Neon/PostgreSQL, TMDB, Groq, Cloudinary, and Pusher. Never commit `.env` files or service credentials.
+See [.env.example](.env.example) for the full annotated specification.
 
 ---
 
-## 📁 Project Structure
+## 📂 Folder Structure
 
 ```
 cineverse/
-├── prisma/
-│   └── schema.prisma           # 34-model database schema
+├── .github/              # Issue/PR templates, CI/CD workflows
+├── prisma/               # Schema definitions, migrations, seed scripts
+├── public/               # Static web assets & icons
+├── scripts/              # Infrastructure and deployment automation
 ├── src/
-│   ├── app/
-│   │   ├── api/ai/             # 14 AI API route handlers
-│   │   │   ├── companion/      # General-purpose AI companion
-│   │   │   ├── chat/           # Streaming movie chat
-│   │   │   ├── daily/          # Daily movie pick
-│   │   │   ├── recommend/      # Personalised recommendations
-│   │   │   ├── watchlist/      # AI watchlist builder
-│   │   │   ├── film-professor/ # Deep movie analysis
-│   │   │   ├── knowledge-graph/# Movie connection graph
-│   │   │   ├── search/         # Semantic search
-│   │   │   ├── scene/          # Scene analysis
-│   │   │   ├── review/         # AI review assistant
-│   │   │   ├── moderation/     # Content moderation
-│   │   │   ├── community/      # Community AI summaries
-│   │   │   ├── profile/        # Movie DNA generation
-│   │   │   └── conversations/  # Chat history management
-│   │   ├── auth/               # Sign-in / Sign-up pages
-│   │   ├── onboarding/         # New user onboarding
-│   │   └── dashboard/
-│   │       ├── page.tsx        # Main social feed
-│   │       ├── ai/             # All AI feature pages
-│   │       ├── community/      # Community pages & events
-│   │       ├── discover/       # Browse movies
-│   │       ├── messages/       # Real-time chat UI
-│   │       ├── movies/[id]/    # Movie detail pages
-│   │       ├── post/[id]/      # Single post view
-│   │       ├── profile/        # Own profile page
-│   │       ├── reviews/        # Review browser
-│   │       ├── search/         # Search
-│   │       └── watchlist/      # Watchlist manager
-│   ├── actions/                # 13 Next.js Server Actions
-│   │   ├── social.ts           # Feed, posts, reactions, comments
-│   │   ├── profile.ts          # User profile + activity
-│   │   ├── user.ts             # Account management
-│   │   ├── watchlist.ts        # Watchlist CRUD
-│   │   ├── review.ts           # Reviews CRUD
-│   │   ├── diary.ts            # Film diary
-│   │   ├── lists.ts            # Curated lists
-│   │   ├── community.ts        # Communities + events
-│   │   ├── messages.ts         # Conversations + messages
-│   │   ├── friends.ts          # Follow / friend requests
-│   │   ├── notifications.ts    # Notification system
-│   │   ├── search.ts           # Search
-│   │   └── upload.ts           # Cloudinary uploads
-│   ├── ai/
-│   │   ├── orchestrator.ts     # Retry + caching layer
-│   │   ├── gateway.ts          # AI provider factory (swap Groq/OpenAI/Claude)
-│   │   ├── providers/
-│   │   │   └── groq.provider.ts
-│   │   ├── services/           # Domain-specific AI services
-│   │   ├── prompts/            # System prompt templates
-│   │   └── utils/cache.ts      # In-memory TTL cache
-│   ├── components/
-│   │   ├── dashboard/
-│   │   │   ├── Sidebar.tsx     # Left navigation
-│   │   │   └── RightSidebar.tsx# AI companion + release calendar + suggestions
-│   │   ├── social/
-│   │   │   ├── PostCard.tsx    # Full post component with reactions + menu
-│   │   │   └── PostComposer.tsx
-│   │   ├── ai/                 # All AI UI components
-│   │   └── shared/             # GlassCard, skeletons, etc.
-│   ├── lib/
-│   │   ├── db.ts               # Prisma client singleton
-│   │   └── avatars.ts          # Actor avatar gallery
-│   └── middleware.ts           # Clerk auth + route protection
-└── server.ts                   # Custom Next.js + Socket.IO server
+│   ├── actions/          # Server Actions (Auth, Watchlist, Ratings)
+│   ├── ai/               # Groq & LangGraph multi-agent services
+│   ├── app/              # Next.js 16 App Router pages & API routes
+│   ├── components/       # Reusable UI component design system
+│   ├── hooks/            # Custom React hooks & state
+│   └── lib/              # Database clients, utilities, TMDB proxy
+├── docs/                 # Enterprise documentation hub
+├── wiki/                 # GitHub Wiki documentation modules
+├── Dockerfile            # Multi-stage production container build
+├── docker-compose.yml    # Orchestration configuration
+├── server.ts             # Custom Express + Socket.IO + Next server
+└── package.json          # Dependency manifest & dev scripts
 ```
 
 ---
 
-## 🔌 AI API Reference
+## 🔌 API Overview
 
-All AI endpoints live under `/api/ai/`:
+CineVerse exposes clean Next.js Server Actions and REST API routes:
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/ai/companion` | `POST` | General AI companion — returns movie + reasoning + TMDB data |
-| `/api/ai/chat` | `POST` | Streaming movie chat (SSE) |
-| `/api/ai/chat` | `GET` | Get suggested conversation prompts |
-| `/api/ai/daily` | `GET` | Today's personalised movie pick |
-| `/api/ai/recommend` | `POST` | Personalised recommendations by type |
-| `/api/ai/watchlist` | `POST` | Generate watchlist from prompt |
-| `/api/ai/film-professor` | `POST` | Deep movie analysis |
-| `/api/ai/knowledge-graph` | `POST` | Movie knowledge graph |
-| `/api/ai/search` | `POST` | Semantic AI search |
-| `/api/ai/scene` | `POST` | Scene-level analysis |
-| `/api/ai/review` | `POST` | AI review writing assistant |
-| `/api/ai/moderation` | `POST` | Content moderation |
-| `/api/ai/community` | `POST` | Community AI summary |
-| `/api/ai/profile` | `GET` | Generate Movie DNA |
-| `/api/ai/conversations` | `GET/POST/DELETE` | Chat history management |
+- `POST /api/webhooks/clerk` - Clerk user creation and update synchronization.
+- `POST /api/webhooks/stripe` - Stripe subscription event handling.
+- `GET /api/tmdb/[...path]` - Cached proxy client for TMDB metadata.
+- `POST /api/ai/recommend` - Groq AI streaming recommendation endpoint.
+- `POST /api/ai/chat` - LangGraph multi-agent conversational interface.
+
+Detailed documentation: [docs/API_REFERENCE.md](docs/ARCHITECTURE.md).
 
 ---
 
-## 🎨 Design System
+## 🗄️ Database Schema
 
-- **Dark-first** premium glassmorphism aesthetic
-- **Color Palette**: Deep slate backgrounds, brand blue/purple gradients (`from-brand-blue to-brand-purple`), gold star accents (`brand-gold`)
-- **Typography**: Display font for headings, clean system sans-serif for body text
-- **Animations**: Framer Motion page transitions, CSS `animate-in` micro-animations, hover scale effects
-- **Components**: `GlassCard` base component with optional glow, custom `no-scrollbar` utilities, pill badges
+The database model is defined via Prisma in `prisma/schema.prisma`. Key tables include:
+
+- `User` - Primary user identity synced with Clerk auth.
+- `TasteProfile` - Quantitative movie preference vector & radar scores.
+- `Watchlist` & `WatchlistItem` - User movie collections.
+- `Review` & `Rating` - Community reviews with AI moderation status.
+- `WatchParty` & `WatchPartyParticipant` - Real-time sync room states.
+- `Subscription` - Stripe billing subscription status.
+
+Full ER diagram and details: [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md).
 
 ---
 
-## 🔐 Authentication
+## 🤝 Contributing
 
-CineVerse uses **Clerk** for production authentication with a built-in development fallback:
+We ❤️ open source contributors! Whether you want to fix a bug, enhance the AI engine, improve UI accessibility, or add tests:
 
-- **Production**: Full Clerk session management, JWT tokens, OAuth providers
-- **Development fallback**: Cookie-based mock session (`cineverse_session`) if no Clerk keys are present
-- **Protected routes**: `/dashboard/*` and `/onboarding` require authentication via middleware
-- **Graceful fallback**: Middleware catches Clerk errors and falls back to cookie-based auth, preventing crashes
+1. Read our [Contributing Guide](CONTRIBUTING.md).
+2. Check out [Good First Issues](docs/issues/GOOD_FIRST_ISSUES.md) or [Help Wanted Issues](docs/issues/HELP_WANTED_ISSUES.md).
+3. Follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+---
+
+## 🗺️ Roadmap
+
+See our detailed [ROADMAP.md](ROADMAP.md) for upcoming milestones, in-progress tasks, and community feature votes.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License**.
+CineVerse is open-source software licensed under the **[MIT License](LICENSE)**.
 
 ---
 
-<p align="center">Built with ❤️ for cinephiles everywhere</p>
+## 👥 Contributors
+
+Thank you to all our amazing contributors!
+
+<a href="https://github.com/shouryapratap132006/cineverse/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=shouryapratap132006/cineverse" alt="Contributors" />
+</a>
+
+---
+
+<div align="center">
+  Made with ❤️ by the CineVerse Open Source Community.
+</div>

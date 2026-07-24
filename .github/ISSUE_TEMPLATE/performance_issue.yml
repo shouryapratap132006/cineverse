@@ -1,0 +1,27 @@
+name: ⚡ Performance Issue
+description: Report a slow endpoint, heavy database query, memory leak, or UI lag
+title: "[PERF]: "
+labels: ["performance"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Performance Bottleneck Description
+      description: Describe where the latency, high CPU, or memory consumption occurs.
+    validations:
+      required: true
+  - type: input
+    id: metric
+    attributes:
+      label: Measured Metric (Latency, Memory, Bundle Size)
+      placeholder: e.g., TMDB Proxy latency > 1800ms under 50 concurrent requests
+  - type: textarea
+    id: profile
+    attributes:
+      label: Profiling Logs / Flamegraph / Network Trace
+      description: Paste Chrome DevTools / server log traces if available.
+  - type: textarea
+    id: proposed_fix
+    attributes:
+      label: Suggested Optimization Strategy
+      description: e.g. Add Redis caching, optimize Prisma query joins, defer heavy client component rendering.

@@ -1,0 +1,43 @@
+name: ✨ Feature Request
+description: Suggest an idea or new capability for CineVerse
+title: "[FEAT]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a feature! Please describe your proposed capability below.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem or limitation? Please describe.
+      placeholder: I am frustrated when trying to filter movies by director and mood simultaneously...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the feature, UI flow, or technical solution you would like to see.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or workarounds you've considered.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Primary Component Affected
+      options:
+        - Frontend UI / React 19 Components
+        - AI Engine / Groq / LangGraph
+        - Real-Time Watch Parties / Socket.IO
+        - Database Schema / Prisma
+        - Auth / User Management
+        - Billing & Subscriptions / Stripe
+        - Deployment / Docker / AWS
+    validations:
+      required: true

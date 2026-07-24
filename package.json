@@ -6,7 +6,19 @@
     "dev": "NODE_OPTIONS='--max-old-space-size=4096' ts-node --project tsconfig.server.json server.ts",
     "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
     "start": "NODE_ENV=production NODE_OPTIONS='--max-old-space-size=4096' ts-node --project tsconfig.server.json server.ts",
-    "lint": "eslint"
+    "lint": "eslint .",
+    "format": "prettier --check \"src/**/*.{ts,tsx,md,json}\"",
+    "format:fix": "prettier --write \"src/**/*.{ts,tsx,md,json}\"",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test",
+    "docker": "docker-compose up -d",
+    "docker:build": "docker build -t cineverse:latest .",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.5.12",

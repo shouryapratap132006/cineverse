@@ -1,0 +1,24 @@
+name: 📚 Documentation Improvement
+description: Propose updates or fixes to CineVerse documentation
+title: "[DOCS]: "
+labels: ["documentation"]
+body:
+  - type: textarea
+    id: issue
+    attributes:
+      label: Documentation Issue / Gap
+      description: Describe what documentation is missing, inaccurate, or needs improvement.
+    validations:
+      required: true
+  - type: textarea
+    id: path
+    attributes:
+      label: Target File / Page
+      description: Specify the document (e.g. `docs/ARCHITECTURE.md`, `README.md`, `wiki/Getting-Started.md`).
+    validations:
+      required: true
+  - type: textarea
+    id: proposed_changes
+    attributes:
+      label: Proposed Content Update
+      description: Outline the changes or add code snippets you plan to introduce.
