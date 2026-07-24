@@ -245,3 +245,39 @@ export async function togglePinMessage(messageId: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function markMessagesAsSeen(conversationId: string) {
+  const userId = await getUserId();
+  if (!userId) return { success: false, error: "Unauthorized" };
+
+  try {
+    const unreadMessages = await db.message.findMany({
+      where: {
+        conversationId,
+        NOT: { seenBy: { has: userId } },
+      },
+      select: { id: true, seenBy: true },
+    });
+
+    if (unreadMessages.length === 0) return { success: true };
+
+    await Promise.all(
+      unreadMessages.map((msg) =>
+        db.message.update({
+          where: { id: msg.id },
+          data: {
+            seenBy: { push: userId },
+          },
+        })
+      )
+    );
+
+    if (process.env.PUSHER_APP_ID) {
+      await pusherServer.trigger(`chat-${conversationId}`, "messages-seen", { userId, conversationId });
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

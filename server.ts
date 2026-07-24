@@ -26,14 +26,31 @@ app.prepare().then(() => {
     },
   });
 
-  // Store socket id → userId mapping
-  const userSockets = new Map<string, string>(); // socketId → userId
+  // Store userId → Set of socketIds
+  const userSockets = new Map<string, Set<string>>();
+
+  const getOnlineUserIds = () => Array.from(userSockets.keys());
 
   io.on("connection", (socket) => {
+    let currentUserId: string | null = null;
+
     // Client sends their userId on connect
     socket.on("register", (userId: string) => {
-      userSockets.set(socket.id, userId);
+      if (!userId) return;
+      currentUserId = userId;
+      if (!userSockets.has(userId)) {
+        userSockets.set(userId, new Set());
+      }
+      userSockets.get(userId)!.add(socket.id);
       socket.join(`user:${userId}`);
+
+      // Broadcast updated online users to all clients
+      io.emit("online-users", getOnlineUserIds());
+    });
+
+    // Request active online users list
+    socket.on("get-online-users", () => {
+      socket.emit("online-users", getOnlineUserIds());
     });
 
     // Join a conversation room
@@ -52,6 +69,11 @@ app.prepare().then(() => {
       message: any;
     }) => {
       io.to(`conv:${data.conversationId}`).emit("new-message", data.message);
+    });
+
+    // Read receipt / message seen event
+    socket.on("mark-seen", (data: { conversationId: string; userId: string }) => {
+      io.to(`conv:${data.conversationId}`).emit("messages-seen", data);
     });
 
     // Typing indicator
@@ -79,7 +101,14 @@ app.prepare().then(() => {
     });
 
     socket.on("disconnect", () => {
-      userSockets.delete(socket.id);
+      if (currentUserId && userSockets.has(currentUserId)) {
+        const sockets = userSockets.get(currentUserId)!;
+        sockets.delete(socket.id);
+        if (sockets.size === 0) {
+          userSockets.delete(currentUserId);
+          io.emit("online-users", getOnlineUserIds());
+        }
+      }
     });
   });
 

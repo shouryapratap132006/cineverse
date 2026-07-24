@@ -2,10 +2,11 @@
 
 import React, { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Heart, MessageSquare, Repeat, Bookmark, MoreHorizontal, Smile, Send, Sparkles } from "lucide-react";
+import { Heart, MessageSquare, Repeat, Bookmark, MoreHorizontal, Smile, Send, Sparkles, Check } from "lucide-react";
 import { toggleReaction, toggleBookmark, voteOnPoll, createComment } from "@/actions/social";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useCineverseAuth } from "@/components/provider";
 
 interface PostCardProps {
   post: any;
@@ -23,6 +24,7 @@ const REACTIONS = [
 ];
 
 export default function PostCard({ post, onUpdate }: PostCardProps) {
+  const { user } = useCineverseAuth();
   const [showReactions, setShowReactions] = useState(false);
   const [isLiking, setIsLiking] = useState(false);
   const [commentText, setCommentText] = useState("");
@@ -141,24 +143,67 @@ export default function PostCard({ post, onUpdate }: PostCardProps) {
             </div>
           </div>
         )}
-        {post.poll && (
-          <div className="mt-3 rounded-xl border border-white/5 bg-slate-800/40 p-3">
-            <p className="text-sm font-semibold text-white">{post.poll.question}</p>
-            <div className="mt-3 space-y-2">
-              {post.poll.options.map((option: string, index: number) => (
-                <button
-                  key={`${post.poll.id}-${index}`}
-                  type="button"
-                  onClick={() => handlePollVote(post.poll.id, index)}
-                  className="flex w-full items-center justify-between rounded-lg border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-slate-200 transition hover:bg-slate-900"
-                >
-                  <span>{option}</span>
-                  <span className="text-[10px] text-slate-500">Vote</span>
-                </button>
-              ))}
+        {post.poll && (() => {
+          const votes = post.poll.votes || [];
+          const totalVotes = votes.length;
+          const userVote = user ? votes.find((v: any) => v.userId === user.id) : null;
+          const hasVoted = !!userVote;
+
+          return (
+            <div className="mt-3 rounded-xl border border-white/10 bg-slate-800/40 p-4">
+              <p className="text-sm font-semibold text-white mb-3">{post.poll.question}</p>
+              <div className="space-y-2">
+                {post.poll.options.map((option: string, index: number) => {
+                  const optionVotes = votes.filter((v: any) => v.optionIndex === index).length;
+                  const percentage = totalVotes > 0 ? Math.round((optionVotes / totalVotes) * 100) : 0;
+                  const isSelected = userVote?.optionIndex === index;
+
+                  return (
+                    <button
+                      key={`${post.poll.id}-${index}`}
+                      type="button"
+                      onClick={() => handlePollVote(post.poll.id, index)}
+                      className={cn(
+                        "relative overflow-hidden flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-sm transition text-left group",
+                        isSelected
+                          ? "border-brand-purple/60 text-white font-medium bg-slate-900/90"
+                          : "border-white/10 text-slate-200 hover:border-white/25 bg-slate-900/70"
+                      )}
+                    >
+                      {/* Background Percentage Fill */}
+                      {(hasVoted || totalVotes > 0) && (
+                        <div
+                          className={cn(
+                            "absolute left-0 top-0 bottom-0 transition-all duration-500 rounded-xl",
+                            isSelected ? "bg-brand-purple/35" : "bg-white/10"
+                          )}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      )}
+                      <span className="relative z-10 flex items-center gap-2 font-medium">
+                        {isSelected && <Check className="w-4 h-4 text-brand-purple shrink-0" />}
+                        {option}
+                      </span>
+                      {(hasVoted || totalVotes > 0) ? (
+                        <span className="relative z-10 text-xs font-bold text-slate-300 ml-2">
+                          {percentage}%
+                        </span>
+                      ) : (
+                        <span className="relative z-10 text-[10px] uppercase font-bold tracking-wider text-slate-400 group-hover:text-white bg-white/5 px-2 py-0.5 rounded-md transition">
+                          Vote
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-400 px-1">
+                <span>{totalVotes} {totalVotes === 1 ? "vote" : "votes"}</span>
+                {hasVoted && <span className="text-brand-purple font-semibold">Voted</span>}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       <div className="flex items-center space-x-6 border-t border-white/5 pt-3 relative">

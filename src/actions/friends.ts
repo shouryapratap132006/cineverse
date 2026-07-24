@@ -161,3 +161,81 @@ export async function removeFriend(targetUserId: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function getUserFollowers(targetUserId: string) {
+  try {
+    const follows = await db.follow.findMany({
+      where: { followingId: targetUserId },
+      include: {
+        follower: {
+          include: { profile: true }
+        }
+      }
+    });
+    return { success: true, users: follows.map(f => f.follower) };
+  } catch (error: any) {
+    return { success: false, error: error.message, users: [] };
+  }
+}
+
+export async function getUserFollowing(targetUserId: string) {
+  try {
+    const follows = await db.follow.findMany({
+      where: { followerId: targetUserId },
+      include: {
+        following: {
+          include: { profile: true }
+        }
+      }
+    });
+    return { success: true, users: follows.map(f => f.following) };
+  } catch (error: any) {
+    return { success: false, error: error.message, users: [] };
+  }
+}
+
+export async function getUserFriends(targetUserId: string) {
+  try {
+    const friendRequests = await db.friendRequest.findMany({
+      where: {
+        status: "ACCEPTED",
+        OR: [
+          { senderId: targetUserId },
+          { receiverId: targetUserId }
+        ]
+      },
+      include: {
+        sender: { include: { profile: true } },
+        receiver: { include: { profile: true } }
+      }
+    });
+
+    const friends = friendRequests.map(fr =>
+      fr.senderId === targetUserId ? fr.receiver : fr.sender
+    );
+
+    return { success: true, users: friends };
+  } catch (error: any) {
+    return { success: false, error: error.message, users: [] };
+  }
+}
+
+export async function getPendingFriendRequests() {
+  const userId = await getUserId();
+  if (!userId) return { success: false, requests: [] };
+
+  try {
+    const requests = await db.friendRequest.findMany({
+      where: {
+        receiverId: userId,
+        status: "PENDING"
+      },
+      include: {
+        sender: { include: { profile: true } }
+      }
+    });
+    return { success: true, requests };
+  } catch (error: any) {
+    return { success: false, requests: [] };
+  }
+}

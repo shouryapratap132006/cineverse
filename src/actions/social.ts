@@ -267,7 +267,15 @@ export async function voteOnPoll(pollId: string, optionIndex: number) {
     });
 
     if (existingVote) {
-      return { success: false, error: "You have already voted" };
+      if (existingVote.optionIndex === optionIndex) {
+        return { success: true, vote: existingVote };
+      }
+      const updatedVote = await db.vote.update({
+        where: { id: existingVote.id },
+        data: { optionIndex }
+      });
+      revalidatePath("/dashboard");
+      return { success: true, vote: updatedVote };
     }
 
     const vote = await db.vote.create({

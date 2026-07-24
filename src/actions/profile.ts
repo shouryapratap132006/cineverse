@@ -134,7 +134,10 @@ export async function getUserProfile(targetId?: string) {
       if (friendReq) {
         if (friendReq.status === "ACCEPTED") connection.isFriend = true;
         else if (friendReq.status === "PENDING" && friendReq.senderId === currentUserId) connection.friendRequestSent = true;
-        else if (friendReq.status === "PENDING" && friendReq.receiverId === currentUserId) connection.friendRequestReceived = true;
+        else if (friendReq.status === "PENDING" && friendReq.receiverId === currentUserId) {
+          connection.friendRequestReceived = true;
+          (connection as any).requestId = friendReq.id;
+        }
       }
     }
 
