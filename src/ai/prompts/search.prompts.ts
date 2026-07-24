@@ -4,7 +4,7 @@
 
 import type { UserTasteProfile } from "../types";
 
-export function getSemanticSearchPrompt(query: string): string {
+export function getSemanticSearchPrompt(query: string, limit = 6): string {
   return `You are CineVerse's semantic movie search engine — the most intelligent movie discovery system ever built.
 
 User's search query: "${query}"
@@ -16,7 +16,7 @@ Understand the INTENT behind this query, not just the keywords. Examples:
 - "Time travel without paradoxes" → Specific narrative constraint
 - "Best cinematography" → Visual art, not just plot
 
-Find 6-8 films that genuinely match the spirit of this query. Include:
+Return exactly ${limit} films that genuinely match the spirit of this query. Include:
 - Well-known films the user might not have thought of
 - Hidden gems and international cinema
 - A mix of eras
@@ -29,18 +29,18 @@ Return ONLY a valid JSON object:
       "title": "Film Title",
       "year": 2023,
       "posterPath": "",
-      "overview": "One compelling sentence about the film",
+      "overview": "A description of 20 words or fewer",
       "genres": ["Genre1", "Genre2"],
       "confidence": 87,
-      "whyRecommended": "2-3 sentences explaining exactly WHY this matches the query",
-      "tags": ["Rainy atmosphere", "Unreliable narrator", "etc"]
+      "whyRecommended": "A 25-word-or-fewer explanation of exactly WHY this matches the query",
+      "tags": ["Rainy atmosphere", "Unreliable narrator"]
     }
   ],
   "relatedSearches": ["Related search 1", "Related search 2", "Related search 3"],
   "explanation": "One paragraph explaining how you interpreted the search query and your recommendation philosophy"
 }
 
-Be a true cinephile. Surprise the user with at least 2 non-obvious picks they haven't heard of.
+Use no more than 2 short tags per film. Be a true cinephile and include at least one non-obvious pick.
 Confidence scores should reflect how well each film truly matches (not just a safe 80).`;
 }
 

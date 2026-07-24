@@ -29,10 +29,12 @@ export default function SemanticSearchPage() {
   const [results, setResults] = useState<SemanticSearchResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [lastQuery, setLastQuery] = useState("");
+  const [error, setError] = useState("");
 
   const handleSearch = async (query: string, mode: "traditional" | "ai") => {
     setIsLoading(true);
     setResults(null);
+    setError("");
     setLastQuery(query);
 
     try {
@@ -45,12 +47,15 @@ export default function SemanticSearchPage() {
         body: JSON.stringify({ query })
       });
 
+      const data = await res.json().catch(() => null);
       if (res.ok) {
-        const data = await res.json();
         setResults(data);
+      } else {
+        setError(data?.error || "Semantic search is temporarily unavailable. Please try again.");
       }
     } catch (e) {
       console.error(e);
+      setError("Could not connect to semantic search. Check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -80,6 +85,12 @@ export default function SemanticSearchPage() {
 
       {/* AISearchBar Container */}
       <AISearchBar onSearch={handleSearch} isLoading={isLoading} />
+
+      {error && (
+        <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {error}
+        </p>
+      )}
 
       {/* Results grid */}
       <AnimatePresence mode="wait">

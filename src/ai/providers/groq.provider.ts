@@ -8,7 +8,13 @@ import type { AIProvider } from "./provider.interface";
 import type { AIMessage, AICompletionResponse } from "../types";
 
 const PRIMARY_MODEL = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
-const FALLBACK_MODEL = process.env.AI_FALLBACK_MODEL ?? "llama-3.1-8b-instant";
+// Keep the fallback within Groq's fast chat models. A generic AI_FALLBACK_MODEL
+// can point at a reasoning model whose short visible output is often truncated
+// before it completes the JSON used by semantic search.
+const FALLBACK_MODEL =
+  process.env.GROQ_FALLBACK_MODEL ??
+  process.env.GROQ_FAST_MODEL ??
+  "llama-3.1-8b-instant";
 
 function createClient(): Groq {
   const apiKey = process.env.GROQ_API_KEY;

@@ -35,6 +35,7 @@ export default function SearchPage() {
   const [searchMode, setSearchMode] = useState<"traditional" | "ai">("ai");
   const [aiResults, setAiResults] = useState<any>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
 
   const doSearch = useCallback(async (q: string, cat: string) => {
     if (q.trim().length < 2) {
@@ -59,18 +60,22 @@ export default function SearchPage() {
     } else {
       setAiLoading(true);
       setAiResults(null);
+      setAiError("");
       try {
         const res = await fetch("/api/ai/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: q })
         });
+        const data = await res.json().catch(() => null);
         if (res.ok) {
-          const data = await res.json();
           setAiResults(data);
+        } else {
+          setAiError(data?.error || "Semantic search is temporarily unavailable. Please try again.");
         }
       } catch (err) {
         console.error(err);
+        setAiError("Could not connect to semantic search. Check your connection and try again.");
       } finally {
         setAiLoading(false);
       }
@@ -105,6 +110,12 @@ export default function SearchPage() {
       <div className="mb-8">
         <AISearchBar onSearch={handleSearchSubmit} isLoading={aiLoading || loading} />
       </div>
+
+      {aiError && (
+        <p role="alert" className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {aiError}
+        </p>
+      )}
 
       {/* Category Tabs (only for Traditional search) */}
       {searchMode === "traditional" && (

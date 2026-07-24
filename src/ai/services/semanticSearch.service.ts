@@ -10,12 +10,13 @@ import { resolveMovieMetadata } from "@/lib/tmdb";
 
 export class SemanticSearchService {
   async search(request: SemanticSearchRequest): Promise<SemanticSearchResult> {
-    const cacheKey = aiCache.key("semantic_search_v2", request.query);
+    const limit = Math.min(Math.max(request.limit ?? 3, 1), 3);
+    const cacheKey = aiCache.key("semantic_search_v4", request.query, limit);
     
     const cached = await aiCache.get<SemanticSearchResult>(cacheKey);
     if (cached) return cached;
 
-    const prompt = getSemanticSearchPrompt(request.query);
+    const prompt = getSemanticSearchPrompt(request.query, limit);
 
     const response = await orchestrateCompletion({
       messages: [
@@ -27,7 +28,9 @@ export class SemanticSearchService {
         { role: "user", content: prompt },
       ],
       temperature: 0.6,
-      maxTokens: 2048,
+      // Semantic results are deliberately concise. Keeping this bounded avoids
+      // exhausting the primary provider's daily token allowance on a few searches.
+      maxTokens: 1400,
     });
 
     const result = parseAIJson<SemanticSearchResult>(response.content);
@@ -35,7 +38,7 @@ export class SemanticSearchService {
     // Resolve real TMDB movie details to prevent empty poster path or wrong IDs
     if (result && result.movies && result.movies.length > 0) {
       const resolvedMovies = await Promise.all(
-        result.movies.map(async (movie) => {
+        result.movies.slice(0, limit).map(async (movie) => {
           const resolved = await resolveMovieMetadata(movie.title, movie.year);
           if (resolved) {
             return {
