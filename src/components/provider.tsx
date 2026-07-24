@@ -30,6 +30,16 @@ export interface UnifiedUser {
   isOnboarded?: boolean;
 }
 
+type DatabaseProfile = Omit<Partial<UnifiedUser>, "avatarUrl" | "bannerUrl" | "bio"> & {
+  avatarUrl?: string | null;
+  bannerUrl?: string | null;
+  bio?: string | null;
+};
+
+type DatabaseUser = {
+  profile?: DatabaseProfile | null;
+};
+
 interface CineverseAuthContextType {
   isClerk: boolean;
   isLoaded: boolean;
@@ -58,7 +68,7 @@ function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
   const { isLoaded: authLoaded, isSignedIn, userId } = useAuth();
   const { user: clerkUser, isLoaded: userLoaded } = useUser();
   const { signOut } = useClerk();
-  const [dbUser, setDbUser] = useState<any>(null);
+  const [dbUser, setDbUser] = useState<DatabaseUser | null>(null);
   const [loadingDb, setLoadingDb] = useState(true);
 
   useEffect(() => {
@@ -90,8 +100,8 @@ function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
       username: dbUser?.profile?.username || clerkUser.username || clerkUser.firstName || "cinephile",
       email: clerkUser.primaryEmailAddress?.emailAddress || "",
       avatarUrl: dbUser?.profile?.avatarUrl || clerkUser.imageUrl,
-      bannerUrl: dbUser?.profile?.bannerUrl,
-      bio: dbUser?.profile?.bio,
+      bannerUrl: dbUser?.profile?.bannerUrl || undefined,
+      bio: dbUser?.profile?.bio || undefined,
       favoriteGenres: dbUser?.profile?.favoriteGenres,
       favoriteMovies: dbUser?.profile?.favoriteMovies,
       isOnboarded: !!(dbUser?.profile?.favoriteGenres?.length),
@@ -102,15 +112,15 @@ function ClerkAuthProvider({ children }: { children: React.ReactNode }) {
       signOut();
     },
     updateUser: (data) => {
-      if (dbUser) {
-        setDbUser({
-          ...dbUser,
-          profile: {
-            ...dbUser.profile,
-            ...data
-          }
-        });
-      }
+      // Keep the dashboard in sync immediately after onboarding, including
+      // the short window before the initial database fetch has completed.
+      setDbUser((current) => ({
+        ...(current || {}),
+        profile: {
+          ...(current?.profile || {}),
+          ...data,
+        },
+      }));
     }
   };
 

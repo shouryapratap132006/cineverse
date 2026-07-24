@@ -105,6 +105,16 @@ export async function syncUserAccount(mockUserData?: { id: string; email: string
 
     return { success: true, user: userRecord, isNewUser };
   } catch (error: any) {
+    // The app shell and onboarding can both sync a newly signed-in user. If the
+    // other request created the account first, use that account instead of
+    // treating the profile setup as a failure.
+    const existingUser = await db.user.findUnique({
+      where: { id: userId },
+      include: { profile: true },
+    });
+    if (existingUser) {
+      return { success: true, user: existingUser, isNewUser: false };
+    }
     console.error("Database sync user error:", error);
     return { success: false, error: error.message };
   }
@@ -133,6 +143,13 @@ export async function updateProfile(data: UserProfileData) {
   }
 
   try {
+    // On first login the account creation request may still be in flight when
+    // onboarding is submitted. Ensure its profile exists before updating it.
+    const account = await syncUserAccount();
+    if (!account.success) {
+      return { success: false, error: account.error || "Could not create user profile" };
+    }
+
     // Verify username uniqueness if it changed
     const currentProfile = await db.profile.findUnique({ where: { id: userId } });
     if (currentProfile && currentProfile.username !== data.username) {

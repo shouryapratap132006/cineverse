@@ -45,6 +45,7 @@ function OnboardingForm() {
   
   const [moviesCatalog, setMoviesCatalog] = useState<Movie[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProfileSyncing, setIsProfileSyncing] = useState(true);
 
   useEffect(() => {
     // Wait for Clerk to load if keys are present
@@ -89,7 +90,8 @@ function OnboardingForm() {
               window.location.href = "/dashboard";
             }
           }
-        });
+        })
+        .finally(() => setIsProfileSyncing(false));
       
       // Load Movies for Step 3
       getTrendingMovies().then((m) => setMoviesCatalog(m));
@@ -111,6 +113,8 @@ function OnboardingForm() {
   };
 
   const handleNext = async () => {
+    if (isProfileSyncing) return;
+
     if (step < 3) {
       setStep(step + 1);
     } else {
@@ -130,12 +134,12 @@ function OnboardingForm() {
       
       if (res.success) {
         updateUser({
-          username,
-          avatarUrl,
-          bannerUrl,
-          bio,
-          favoriteGenres: selectedGenres,
-          favoriteMovies: selectedMovies,
+          username: res.profile?.username ?? username,
+          avatarUrl: res.profile?.avatarUrl ?? avatarUrl,
+          bannerUrl: res.profile?.bannerUrl ?? bannerUrl,
+          bio: res.profile?.bio ?? bio,
+          favoriteGenres: res.profile?.favoriteGenres ?? selectedGenres,
+          favoriteMovies: res.profile?.favoriteMovies ?? selectedMovies,
           isOnboarded: true,
         });
         window.location.href = isEditMode ? "/dashboard/profile" : "/dashboard";
@@ -149,6 +153,16 @@ function OnboardingForm() {
   const handlePrev = () => {
     if (step > 1) setStep(step - 1);
   };
+
+  // Do not let the default profile returned by the first account sync overwrite
+  // choices the user has already made in the onboarding form.
+  if (isProfileSyncing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-brand-dark">
+        <div className="w-8 h-8 border-4 border-brand-purple border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center relative p-6 bg-brand-dark overflow-hidden">
