@@ -1,0 +1,35 @@
+-- AlterTable
+ALTER TABLE "Message" ADD COLUMN IF NOT EXISTS "pinned" BOOLEAN NOT NULL DEFAULT false;
+
+-- AlterTable
+ALTER TABLE "Event" ADD COLUMN IF NOT EXISTS "creatorId" TEXT,
+ADD COLUMN IF NOT EXISTS "movieId" TEXT,
+ADD COLUMN IF NOT EXISTS "movieTitle" TEXT,
+ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+-- AlterTable
+ALTER TABLE "FilmClub" ADD COLUMN IF NOT EXISTS "bannerUrl" TEXT,
+ADD COLUMN IF NOT EXISTS "ownerId" TEXT;
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "EventRSVP" (
+    "id" TEXT NOT NULL,
+    "eventId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'GOING',
+
+    CONSTRAINT "EventRSVP_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE IF NOT EXISTS "FilmClubMovie" (
+    "id" TEXT NOT NULL,
+    "clubId" TEXT NOT NULL,
+    "tmdbId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "posterPath" TEXT,
+    "addedById" TEXT,
+    "addedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "FilmClubMovie_pkey" PRIMARY KEY ("id")
+);

@@ -7,7 +7,7 @@ services:
     image: ${MIGRATE_IMAGE:?set MIGRATE_IMAGE}
     pull_policy: always
     env_file: .env
-    command: npx prisma migrate deploy
+    command: npx prisma db push --accept-data-loss
     restart: "no"
 
   app:

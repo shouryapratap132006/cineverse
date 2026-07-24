@@ -8,7 +8,7 @@ services:
     image: cineverse:migrate
     pull_policy: never          # image is loaded via `docker load`, not pulled
     env_file: .env
-    command: npx prisma migrate deploy
+    command: npx prisma db push --accept-data-loss
     restart: "no"
 
   app:
