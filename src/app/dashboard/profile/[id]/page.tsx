@@ -7,7 +7,8 @@ import { Star, MapPin, Globe, Award, Clock, Users, UserPlus, UserCheck, MessageS
 import GlassCard from "@/components/shared/GlassCard";
 import { getUserProfile } from "@/actions/profile";
 import { toggleFollow } from "@/actions/social";
-import { sendFriendRequest } from "@/actions/friends";
+import { sendFriendRequest, acceptFriendRequest } from "@/actions/friends";
+import UserConnectionsModal from "@/components/profile/UserConnectionsModal";
 
 export default function OtherProfilePage() {
   const { id } = useParams() as { id: string };
@@ -16,6 +17,8 @@ export default function OtherProfilePage() {
   const [profileData, setProfileData] = useState<any>(null);
   const [connection, setConnection] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [connectionsModalOpen, setConnectionsModalOpen] = useState(false);
+  const [modalTab, setModalTab] = useState<"followers" | "following" | "friends">("followers");
 
   useEffect(() => {
     getUserProfile(id).then((res) => {
@@ -25,7 +28,6 @@ export default function OtherProfilePage() {
         setLoading(false);
       } else {
         setLoading(false);
-        // It will just be null and handled below
       }
     });
   }, [id, user]);
@@ -54,10 +56,20 @@ export default function OtherProfilePage() {
     }
   };
 
-  const handleFriendRequest = async () => {
-    const res = await sendFriendRequest(id);
-    if (res.success) {
-      setConnection({ ...connection, friendRequestSent: true });
+  const handleFriendAction = async () => {
+    if (connection?.friendRequestReceived && connection?.requestId) {
+      const res = await acceptFriendRequest(connection.requestId);
+      if (res.success) {
+        setConnection({ ...connection, isFriend: true, friendRequestReceived: false });
+      }
+      return;
+    }
+
+    if (!connection?.isFriend && !connection?.friendRequestSent) {
+      const res = await sendFriendRequest(id);
+      if (res.success) {
+        setConnection({ ...connection, friendRequestSent: true });
+      }
     }
   };
 
@@ -94,7 +106,7 @@ export default function OtherProfilePage() {
                   </span>
                   {connection?.isFriend && (
                     <span className="px-2 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/20 text-[9px] font-bold uppercase tracking-wider">
-                      Mutual
+                      Mutual Friends
                     </span>
                   )}
                 </div>
@@ -139,17 +151,18 @@ export default function OtherProfilePage() {
               </button>
 
               <button
-                onClick={handleFriendRequest}
-                disabled={connection?.isFriend || connection?.friendRequestSent || connection?.friendRequestReceived}
+                onClick={handleFriendAction}
+                disabled={connection?.isFriend || connection?.friendRequestSent}
                 className={`py-2 px-4 rounded-xl border text-sm font-bold transition flex items-center space-x-2 ${
                   connection?.isFriend ? "bg-green-500/20 border-green-500/30 text-green-400"
-                  : connection?.friendRequestSent ? "bg-slate-800 border-white/10 text-slate-400"
+                  : connection?.friendRequestSent ? "bg-slate-800 border-white/10 text-slate-400 opacity-80"
+                  : connection?.friendRequestReceived ? "bg-gradient-to-r from-emerald-600 to-green-600 border-emerald-500 text-white hover:brightness-110"
                   : "bg-white/5 border-white/10 text-white hover:bg-white/10"
                 }`}
               >
                 {connection?.isFriend ? "Friends" 
                  : connection?.friendRequestSent ? "Request Sent" 
-                 : connection?.friendRequestReceived ? "Pending Request"
+                 : connection?.friendRequestReceived ? "Accept Request"
                  : "Add Friend"}
               </button>
             </div>
@@ -157,28 +170,45 @@ export default function OtherProfilePage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 border-t border-white/5 pt-6 mt-8">
-            <div className="text-center md:text-left space-y-1">
+            <button
+              onClick={() => { setModalTab("followers"); setConnectionsModalOpen(true); }}
+              className="text-center md:text-left space-y-1 rounded-xl p-1 hover:bg-white/5 transition cursor-pointer"
+            >
               <span className="text-[9px] uppercase tracking-wider font-bold text-slate-500 block">Followers</span>
               <span className="text-lg font-extrabold text-white">{profileData._count.followers}</span>
-            </div>
-            <div className="text-center md:text-left space-y-1">
+            </button>
+            <button
+              onClick={() => { setModalTab("following"); setConnectionsModalOpen(true); }}
+              className="text-center md:text-left space-y-1 rounded-xl p-1 hover:bg-white/5 transition cursor-pointer"
+            >
               <span className="text-[9px] uppercase tracking-wider font-bold text-slate-500 block">Following</span>
               <span className="text-lg font-extrabold text-white">{profileData._count.following}</span>
-            </div>
-            <div className="text-center md:text-left space-y-1">
+            </button>
+            <button
+              onClick={() => { setModalTab("friends"); setConnectionsModalOpen(true); }}
+              className="text-center md:text-left space-y-1 rounded-xl p-1 hover:bg-white/5 transition cursor-pointer"
+            >
+              <span className="text-[9px] uppercase tracking-wider font-bold text-slate-500 block">Friends</span>
+              <span className="text-lg font-extrabold text-brand-purple">View</span>
+            </button>
+            <div className="text-center md:text-left space-y-1 p-1">
               <span className="text-[9px] uppercase tracking-wider font-bold text-slate-500 block">Reviews</span>
               <span className="text-lg font-extrabold text-white">{profileData._count.reviews}</span>
             </div>
-            <div className="text-center md:text-left space-y-1">
-              <span className="text-[9px] uppercase tracking-wider font-bold text-slate-500 block">Lists</span>
-              <span className="text-lg font-extrabold text-white">{profileData._count.lists}</span>
-            </div>
-            <div className="text-center md:text-left space-y-1">
+            <div className="text-center md:text-left space-y-1 p-1">
               <span className="text-[9px] uppercase tracking-wider font-bold text-slate-500 block">Posts</span>
               <span className="text-lg font-extrabold text-white">{profileData._count.posts}</span>
             </div>
           </div>
         </GlassCard>
+
+        <UserConnectionsModal
+          isOpen={connectionsModalOpen}
+          onClose={() => setConnectionsModalOpen(false)}
+          targetUserId={id}
+          initialTab={modalTab}
+          isSelf={false}
+        />
 
         {/* ... Rest of profile layout matches the main profile page ... */}
         

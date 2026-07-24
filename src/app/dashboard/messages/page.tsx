@@ -123,7 +123,6 @@ export default function MessagesIndex() {
                         alt={other?.profile?.username}
                         className="w-12 h-12 rounded-full object-cover border border-white/10 group-hover:border-brand-purple/30 transition"
                       />
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-slate-950 rounded-full" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">

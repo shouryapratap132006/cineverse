@@ -15,6 +15,7 @@ import { updateProfile, updateTopFavoriteMovies } from "@/actions/user";
 import { formatDistanceToNow, format } from "date-fns";
 import MovieDNACard from "@/components/ai/MovieDNACard";
 import { ACTOR_AVATARS } from "@/lib/avatars";
+import UserConnectionsModal from "@/components/profile/UserConnectionsModal";
 
 const TMDB_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 const TMDB_BASE = "https://api.themoviedb.org/3";
@@ -237,6 +238,10 @@ export default function ProfilePage() {
   // Guard so favIds are only seeded from DB on the FIRST load, never overwritten by re-renders
   const favsInitialized = useRef(false);
 
+  // Connections modal
+  const [connectionsModalOpen, setConnectionsModalOpen] = useState(false);
+  const [connectionsTab, setConnectionsTab] = useState<"followers" | "following" | "friends" | "requests">("followers");
+
   // DNA
   const [dnaData, setDnaData] = useState<any | null>(null);
   const [loadingDna, setLoadingDna] = useState(false);
@@ -423,20 +428,52 @@ export default function ProfilePage() {
           {/* Stats Grid */}
           <div className="grid grid-cols-3 md:grid-cols-6 gap-3 border-t border-white/5 pt-4 mt-4">
             {[
-              { label: "Followers",   value: profileData._count?.followers || 0 },
-              { label: "Following",   value: profileData._count?.following  || 0 },
+              { label: "Followers",   value: profileData._count?.followers || 0, tab: "followers" as const },
+              { label: "Following",   value: profileData._count?.following  || 0, tab: "following" as const },
+              { label: "Friends",     value: null, tab: "friends" as const },
+            ].map(stat => (
+              <button
+                key={stat.label}
+                onClick={() => { setConnectionsTab(stat.tab); setConnectionsModalOpen(true); }}
+                className="text-center space-y-0.5 rounded-xl py-1 hover:bg-white/5 transition cursor-pointer"
+              >
+                <span className="text-[9px] uppercase tracking-wider font-bold text-slate-500 block">{stat.label}</span>
+                <span className="text-xl font-extrabold text-white">
+                  {stat.value !== null ? stat.value : "View"}
+                </span>
+              </button>
+            ))}
+            {[
               { label: "Reviews",     value: profileData._count?.reviews    || 0 },
               { label: "Posts",       value: profileData._count?.posts      || 0 },
-              { label: "Watched",     value: diaryEntries.length },
-              { label: "Liked",       value: likedPosts.length },
+              { label: "Requests",    value: null, tab: "requests" as const },
             ].map(stat => (
-              <div key={stat.label} className="text-center space-y-0.5">
-                <span className="text-[9px] uppercase tracking-wider font-bold text-slate-500 block">{stat.label}</span>
-                <span className="text-xl font-extrabold text-white">{stat.value}</span>
-              </div>
+              "tab" in stat ? (
+                <button
+                  key={stat.label}
+                  onClick={() => { setConnectionsTab("requests"); setConnectionsModalOpen(true); }}
+                  className="text-center space-y-0.5 rounded-xl py-1 hover:bg-amber-500/5 transition cursor-pointer"
+                >
+                  <span className="text-[9px] uppercase tracking-wider font-bold text-amber-500/70 block">{stat.label}</span>
+                  <span className="text-xl font-extrabold text-amber-400">View</span>
+                </button>
+              ) : (
+                <div key={stat.label} className="text-center space-y-0.5">
+                  <span className="text-[9px] uppercase tracking-wider font-bold text-slate-500 block">{stat.label}</span>
+                  <span className="text-xl font-extrabold text-white">{(stat as any).value}</span>
+                </div>
+              )
             ))}
           </div>
         </GlassCard>
+
+        <UserConnectionsModal
+          isOpen={connectionsModalOpen}
+          onClose={() => setConnectionsModalOpen(false)}
+          targetUserId={profileData.id}
+          initialTab={connectionsTab}
+          isSelf={true}
+        />
 
         {/* ─── Tabs ─────────────────────────────────────────────────────────── */}
         <div className="flex items-center gap-1 bg-slate-900/60 border border-white/5 p-1 rounded-2xl overflow-x-auto no-scrollbar">

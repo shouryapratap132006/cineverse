@@ -9,7 +9,7 @@ name: Deploy to EC2
 
 on:
   push:
-    branches: [main,open_source_ready]
+    branches: [main,message_page_resolve]
     paths-ignore:              # docs/diagnostic-only changes shouldn't trigger a full deploy
       - '**.md'
       - '.github/workflows/diagnose.yml'

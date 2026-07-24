@@ -29,11 +29,16 @@ interface KnowledgeGraphData {
 interface KnowledgeGraphProps {
   movieId: string;
   movieTitle: string;
+  year?: number;
+  director?: string;
+  cast?: string[];
+  genres?: string[];
 }
 
-export default function KnowledgeGraph({ movieId, movieTitle }: KnowledgeGraphProps) {
+export default function KnowledgeGraph({ movieId, movieTitle, year, director, cast, genres }: KnowledgeGraphProps) {
   const [graphData, setGraphData] = useState<KnowledgeGraphData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
   useEffect(() => {
@@ -44,20 +49,24 @@ export default function KnowledgeGraph({ movieId, movieTitle }: KnowledgeGraphPr
     setIsLoading(true);
     setGraphData(null);
     setSelectedNode(null);
+    setHasError(false);
 
     try {
       const res = await fetch("/api/ai/knowledge-graph", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ movieId, movieTitle })
+        body: JSON.stringify({ movieId, movieTitle, year, director, cast, genres })
       });
-      if (res.ok) {
-        const data = await res.json();
+      const data = await res.json();
+      if (data?.nodes || data?.centerNode) {
         setGraphData(data);
-        setSelectedNode(data.centerNode);
+        setSelectedNode(data.centerNode ?? data.nodes?.[0] ?? null);
+      } else {
+        setHasError(true);
       }
     } catch (e) {
       console.error(e);
+      setHasError(true);
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +86,21 @@ export default function KnowledgeGraph({ movieId, movieTitle }: KnowledgeGraphPr
     );
   }
 
-  if (!graphData) return null;
+  if (hasError || !graphData) {
+    return (
+      <div className="py-16 flex flex-col items-center justify-center gap-4 bg-slate-900/20 rounded-3xl border border-white/5">
+        <Network className="w-8 h-8 text-slate-600" />
+        <p className="text-slate-500 text-sm font-semibold">Knowledge graph unavailable</p>
+        <button
+          onClick={fetchGraph}
+          className="px-4 py-2 rounded-xl bg-brand-purple/10 border border-brand-purple/20 text-brand-purple text-xs font-bold hover:bg-brand-purple/20 transition"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
 
   // Orbit node coordinates generator
   const getCoordinates = (index: number, total: number, radius = 100) => {

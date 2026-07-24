@@ -12,7 +12,7 @@ import {
   Camera, Pencil, Trash2, Pin, PinOff
 } from "lucide-react";
 import { useCineverseAuth } from "@/components/provider";
-import { getMessages, sendMessage, editMessage, deleteMessage, togglePinMessage } from "@/actions/messages";
+import { getMessages, sendMessage, editMessage, deleteMessage, togglePinMessage, markMessagesAsSeen } from "@/actions/messages";
 import { uploadToCloudinary } from "@/actions/upload";
 import { getSocket } from "@/lib/socket";
 import { DEFAULT_AVATAR } from "@/lib/avatars";
@@ -44,6 +44,7 @@ type Msg = {
   reactions?: Reaction[];
   attachments?: Attachment[];
   pinned?: boolean;
+  seenBy?: string[];
 };
 
 /* ─── Gradient background themes ─────────────────────────────── */
@@ -116,6 +117,7 @@ export default function ChatThread() {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [typingUser, setTypingUser] = useState<string | null>(null);
+  const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
 
   // Feature state
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -172,6 +174,10 @@ export default function ChatThread() {
         }
       }
       setLoading(false);
+      markMessagesAsSeen(id);
+      if (user?.id) {
+        socketRef.current?.emit("mark-seen", { conversationId: id, userId: user.id });
+      }
     });
   }, [id, user?.id]);
 
@@ -182,6 +188,19 @@ export default function ChatThread() {
     socketRef.current = socket;
     socket.emit("register", user.id);
     socket.emit("join-conversation", id);
+    socket.emit("get-online-users");
+
+    socket.on("online-users", (onlineIds: string[]) => {
+      setOnlineUserIds(onlineIds);
+    });
+
+    socket.on("messages-seen", ({ conversationId: cId, userId: seenUserId }: { conversationId: string; userId: string }) => {
+      if (cId === id) {
+        setMessages(prev =>
+          prev.map(m => (!m.seenBy?.includes(seenUserId) ? { ...m, seenBy: [...(m.seenBy || []), seenUserId] } : m))
+        );
+      }
+    });
 
     socket.on("new-message", (msg: any) => {
       setMessages(prev => {
@@ -197,6 +216,8 @@ export default function ChatThread() {
         return [...prev, msg];
       });
       if (msg.senderId !== user.id && !otherUser) setOtherUser(msg.sender);
+      markMessagesAsSeen(id);
+      socket.emit("mark-seen", { conversationId: id, userId: user.id });
     });
 
     socket.on("message-edited", (editedMsg: any) => {
@@ -220,6 +241,8 @@ export default function ChatThread() {
 
     return () => {
       socket.emit("leave-conversation", id);
+      socket.off("online-users");
+      socket.off("messages-seen");
       socket.off("new-message");
       socket.off("message-edited");
       socket.off("message-deleted");
@@ -556,31 +579,41 @@ export default function ChatThread() {
         </button>
 
         {/* User info */}
-        {otherUser ? (
-          <Link href={`/dashboard/profile/${otherUser.id ?? ""}`} className="flex items-center gap-3 group flex-1 min-w-0">
-            <div className="relative shrink-0">
-              <img
-                src={otherUser.profile?.avatarUrl ?? DEFAULT_AVATAR}
-                alt={otherUser.profile?.username}
-                className="w-9 h-9 rounded-full object-cover border border-white/10"
-              />
-              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-[#030712] rounded-full" />
+        {(() => {
+          const isOnline = otherUser ? onlineUserIds.includes(otherUser.id) : false;
+          return otherUser ? (
+            <Link href={`/dashboard/profile/${otherUser.id ?? ""}`} className="flex items-center gap-3 group flex-1 min-w-0">
+              <div className="relative shrink-0">
+                <img
+                  src={otherUser.profile?.avatarUrl ?? DEFAULT_AVATAR}
+                  alt={otherUser.profile?.username}
+                  className="w-9 h-9 rounded-full object-cover border border-white/10"
+                />
+                <div
+                  className={`absolute bottom-0 right-0 w-2.5 h-2.5 border-2 border-[#030712] rounded-full ${
+                    isOnline ? "bg-green-500" : "bg-slate-500"
+                  }`}
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-white group-hover:text-brand-purple transition leading-none truncate">
+                  {otherUser.profile?.username ?? "User"}
+                </p>
+                <span
+                  className="text-[10px] font-semibold"
+                  style={{ color: typingUser ? "#a78bfa" : isOnline ? "#4ade80" : "#94a3b8" }}
+                >
+                  {typingUser ? `${typingUser} is typing…` : isOnline ? "Online" : "Offline"}
+                </span>
+              </div>
+            </Link>
+          ) : (
+            <div className="flex items-center gap-3 flex-1">
+              <div className="w-9 h-9 rounded-full bg-slate-800 border border-white/10 shrink-0" />
+              <p className="text-sm font-bold text-white">Conversation</p>
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-white group-hover:text-brand-purple transition leading-none truncate">
-                {otherUser.profile?.username ?? "User"}
-              </p>
-              <span className="text-[10px] font-semibold" style={{ color: typingUser ? "#a78bfa" : "#4ade80" }}>
-                {typingUser ? `${typingUser} is typing…` : "Online"}
-              </span>
-            </div>
-          </Link>
-        ) : (
-          <div className="flex items-center gap-3 flex-1">
-            <div className="w-9 h-9 rounded-full bg-slate-800 border border-white/10 shrink-0" />
-            <p className="text-sm font-bold text-white">Conversation</p>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Background change button */}
         <button
@@ -1002,7 +1035,14 @@ export default function ChatThread() {
                         <span className="text-[9px] text-slate-600">
                           {format(new Date(msg.sentAt as string | Date), "h:mm a")}
                         </span>
-                        {isMe && !isTemp && <CheckCheck className="w-3 h-3 text-brand-blue" />}
+                        {isMe && !isTemp && (() => {
+                          const isSeen = otherUser && msg.seenBy && msg.seenBy.includes(otherUser.id);
+                          return isSeen ? (
+                            <CheckCheck className="w-3.5 h-3.5 text-sky-400" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5 text-slate-500" />
+                          );
+                        })()}
                       </div>
                     )}
                   </div>
