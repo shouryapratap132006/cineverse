@@ -459,6 +459,10 @@ export default function ChatThread() {
       setMessages(prev =>
         prev.map(m => m.id === tempMsg.id ? (res.message as unknown as Msg) : m)
       );
+    } else {
+      console.error("[handleSend] Message delivery failed:", res.error);
+      setMessages(prev => prev.filter(m => m.id !== tempMsg.id));
+      alert(res.error || "Failed to send message. Please try again.");
     }
     setSending(false);
   }, [text, sending, id, user, replyTo, attachments, editingMessageId]);
