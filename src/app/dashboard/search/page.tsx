@@ -150,7 +150,10 @@ export default function SearchPage() {
             return (
               <button
                 key={cat.id}
-                onClick={() => setCategory(cat.id)}
+                onClick={() => {
+                  setCategory(cat.id);
+                  updateURL(query, cat.id, searchMode);
+                }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap border transition-all ${
                   active
                     ? "bg-gradient-to-r from-brand-blue/20 to-brand-purple/20 border-brand-purple/50 text-white shadow"
