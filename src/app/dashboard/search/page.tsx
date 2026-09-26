@@ -25,17 +25,30 @@ const CATEGORIES = [
 ];
 
 export default function SearchPage() {
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("all");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const [query, setQuery] = useState(searchParams.get("q") || "");
+  const [category, setCategory] = useState(searchParams.get("category") || "all");
+  const [searchMode, setSearchMode] = useState<"traditional" | "ai">((searchParams.get("mode") as "traditional" | "ai") || "ai");
+  
   const [results, setResults] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
   // AI Semantic Search states
-  const [searchMode, setSearchMode] = useState<"traditional" | "ai">("ai");
   const [aiResults, setAiResults] = useState<any>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
+
+  const updateURL = (q: string, cat: string, mode: "traditional" | "ai") => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (cat) params.set("category", cat);
+    if (mode) params.set("mode", mode);
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   const doSearch = useCallback(async (q: string, cat: string) => {
     if (q.trim().length < 2) {
@@ -52,42 +65,53 @@ export default function SearchPage() {
     setLoading(false);
   }, []);
 
-  const handleSearchSubmit = async (q: string, mode: "traditional" | "ai") => {
-    setSearchMode(mode);
-    setQuery(q);
-    if (mode === "traditional") {
-      doSearch(q, category);
-    } else {
-      setAiLoading(true);
-      setAiResults(null);
-      setAiError("");
-      try {
-        const res = await fetch("/api/ai/search", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: q })
-        });
-        const data = await res.json().catch(() => null);
-        if (res.ok) {
-          setAiResults(data);
-        } else {
-          setAiError(data?.error || "Semantic search is temporarily unavailable. Please try again.");
-        }
-      } catch (err) {
-        console.error(err);
-        setAiError("Could not connect to semantic search. Check your connection and try again.");
-      } finally {
-        setAiLoading(false);
+  const doAISearch = useCallback(async (q: string) => {
+    setAiLoading(true);
+    setAiResults(null);
+    setAiError("");
+    try {
+      const res = await fetch("/api/ai/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: q })
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok) {
+        setAiResults(data);
+      } else {
+        setAiError(data?.error || "Semantic search is temporarily unavailable. Please try again.");
       }
+    } catch (err) {
+      console.error(err);
+      setAiError("Could not connect to semantic search. Check your connection and try again.");
+    } finally {
+      setAiLoading(false);
     }
+  }, []);
+
+  const handleSearchSubmit = async (q: string, mode: "traditional" | "ai") => {
+    setQuery(q);
+    setSearchMode(mode);
+    updateURL(q, category, mode);
   };
 
   useEffect(() => {
-    if (searchMode === "traditional") {
-      const timer = setTimeout(() => doSearch(query, category), 500);
-      return () => clearTimeout(timer);
+    const q = searchParams.get("q") || "";
+    const cat = searchParams.get("category") || "all";
+    const mode = (searchParams.get("mode") as "traditional" | "ai") || "ai";
+
+    setQuery(q);
+    setCategory(cat);
+    setSearchMode(mode);
+
+    if (q.trim().length >= 2) {
+      if (mode === "traditional") {
+        doSearch(q, cat);
+      } else {
+        doAISearch(q);
+      }
     }
-  }, [query, category, doSearch, searchMode]);
+  }, [searchParams, doSearch, doAISearch]);
 
   const imgUrl = (path: string | null | undefined, size = "w300") =>
     path ? `/api/tmdb/img?path=/t/p/${size}${path}` : null;
