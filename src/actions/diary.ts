@@ -37,26 +37,31 @@ export async function addDiaryEntry(data: {
   if (!userId) return { success: false, error: "Unauthorized" };
 
   try {
-    await db.movie.upsert({
-      where: { id: data.movieId },
-      update: { title: data.title, posterPath: data.posterPath },
-      create: { id: data.movieId, title: data.title, posterPath: data.posterPath },
-    });
-
-    const entry = await db.diaryEntry.create({
-      data: {
-        userId,
-        movieId: data.movieId,
-        watchedAt: new Date(data.watchedAt),
-        rating: data.rating ?? null,
-        notes: data.notes ?? null,
-        isRewatch: data.isRewatch ?? false,
-      },
-      include: { movie: true },
-    });
+    await db.$transaction([
+      db.movie.upsert({
+        where: { id: data.movieId },
+        update: { title: data.title, posterPath: data.posterPath },
+        create: { id: data.movieId, title: data.title, posterPath: data.posterPath },
+      }),
+      db.diaryEntry.create({
+        data: {
+          userId,
+          movieId: data.movieId,
+          watchedAt: new Date(data.watchedAt),
+          rating: data.rating ?? null,
+          notes: data.notes ?? null,
+          isRewatch: data.isRewatch ?? false,
+        },
+      }),
+      db.watchlist.upsert({
+        where: { userId_movieId: { userId, movieId: data.movieId } },
+        update: { status: "WATCHED" },
+        create: { userId, movieId: data.movieId, status: "WATCHED" },
+      }),
+    ]);
 
     revalidatePath("/dashboard/reviews");
-    return { success: true, entry };
+    return { success: true };
   } catch (error: any) {
     console.error("Add diary entry error:", error);
     return { success: false, error: error.message };
