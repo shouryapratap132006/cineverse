@@ -55,6 +55,23 @@ export async function addDiaryEntry(data: {
       include: { movie: true },
     });
 
+    await db.watchlist.upsert({
+      where: {
+        userId_movieId: {
+          userId,
+          movieId: data.movieId,
+        },
+      },
+      update: {
+        status: "WATCHED",
+      },
+      create: {
+        userId,
+        movieId: data.movieId,
+        status: "WATCHED",
+      },
+    });
+
     revalidatePath("/dashboard/reviews");
     return { success: true, entry };
   } catch (error: any) {
