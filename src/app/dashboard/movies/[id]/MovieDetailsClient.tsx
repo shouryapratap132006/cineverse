@@ -24,6 +24,7 @@ export default function MovieDetailsClient({ id }: { id: string }) {
 
   const [watchlistStatus, setWatchlistStatus] = useState<string>("none");
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [reviewsList, setReviewsList] = useState<any[]>([]);
   const [similarMovies, setSimilarMovies] = useState<any[]>([]);
   
@@ -77,25 +78,36 @@ export default function MovieDetailsClient({ id }: { id: string }) {
   }
 
   const handleWatchlistChange = async (status: string) => {
-    const posterPath = movie.posterUrl ? movie.posterUrl.split("/p/w500")[1] || "" : "";
+    if (isUpdating) return;
     
-    if (status === "none") {
-      const res = await removeFromAllLists(id);
-      if (res.success) {
+    const posterPath = movie.posterUrl ? movie.posterUrl.split("/p/w500")[1] || "" : "";
+    const prevStatus = watchlistStatus;
+    const prevFavorite = isFavorite;
+
+    setIsUpdating(true);
+
+    try {
+      if (status === "none") {
         setWatchlistStatus("none");
         setIsFavorite(false);
-      }
-    } else if (status === "favorite") {
-      const res = await toggleFavorite(id, movie.title, posterPath);
-      if (res.success) {
+        const res = await removeFromAllLists(id);
+        if (!res.success) throw new Error("Failed to remove");
+      } else if (status === "favorite") {
         setIsFavorite(!isFavorite);
-      }
-    } else {
-      const dbStatus = status === "want-to-watch" ? "WANT_TO_WATCH" : "WATCHED";
-      const res = await toggleWatchlist(id, movie.title, posterPath, dbStatus);
-      if (res.success) {
+        const res = await toggleFavorite(id, movie.title, posterPath);
+        if (!res.success) throw new Error("Failed to toggle favorite");
+      } else {
+        const dbStatus = status === "want-to-watch" ? "WANT_TO_WATCH" : "WATCHED";
         setWatchlistStatus(status);
+        const res = await toggleWatchlist(id, movie.title, posterPath, dbStatus);
+        if (!res.success) throw new Error("Failed to toggle watchlist");
       }
+    } catch (error) {
+      setWatchlistStatus(prevStatus);
+      setIsFavorite(prevFavorite);
+      alert("Failed to update watchlist. Please try again.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -200,31 +212,34 @@ export default function MovieDetailsClient({ id }: { id: string }) {
             <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
               <button
                 onClick={() => handleWatchlistChange("want-to-watch")}
+                disabled={isUpdating}
                 className={`py-2 px-3 rounded-lg border text-center transition cursor-pointer ${
                   watchlistStatus === "want-to-watch"
                     ? "bg-brand-blue/20 border-brand-blue text-white"
                     : "bg-white/3 border-white/5 text-slate-400 hover:border-white/10"
-                }`}
+                } ${isUpdating ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 Want to Watch
               </button>
               <button
                 onClick={() => handleWatchlistChange("watched")}
+                disabled={isUpdating}
                 className={`py-2 px-3 rounded-lg border text-center transition cursor-pointer ${
                   watchlistStatus === "watched"
                     ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
                     : "bg-white/3 border-white/5 text-slate-400 hover:border-white/10"
-                }`}
+                } ${isUpdating ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 Watched
               </button>
               <button
                 onClick={() => handleWatchlistChange("favorite")}
+                disabled={isUpdating}
                 className={`col-span-2 py-2 px-3 rounded-lg border text-center transition cursor-pointer flex items-center justify-center space-x-1.5 ${
                   isFavorite
                     ? "bg-brand-purple/20 border-brand-purple text-white"
                     : "bg-white/3 border-white/5 text-slate-400 hover:border-white/10"
-                }`}
+                } ${isUpdating ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <Heart className={`w-3.5 h-3.5 ${isFavorite ? "fill-brand-purple text-brand-purple" : ""}`} />
                 <span>Add as Favorite</span>
@@ -234,7 +249,8 @@ export default function MovieDetailsClient({ id }: { id: string }) {
             {(watchlistStatus !== "none" || isFavorite) && (
               <button
                 onClick={() => handleWatchlistChange("none")}
-                className="w-full text-center text-[10px] text-slate-500 hover:text-slate-300 font-bold uppercase pt-1"
+                disabled={isUpdating}
+                className={`w-full text-center text-[10px] text-slate-500 hover:text-slate-300 font-bold uppercase pt-1 ${isUpdating ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 Remove from lists
               </button>
