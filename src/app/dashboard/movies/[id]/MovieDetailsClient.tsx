@@ -212,31 +212,34 @@ export default function MovieDetailsClient({ id }: { id: string }) {
             <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
               <button
                 onClick={() => handleWatchlistChange("want-to-watch")}
+                disabled={isUpdating}
                 className={`py-2 px-3 rounded-lg border text-center transition cursor-pointer ${
                   watchlistStatus === "want-to-watch"
                     ? "bg-brand-blue/20 border-brand-blue text-white"
                     : "bg-white/3 border-white/5 text-slate-400 hover:border-white/10"
-                }`}
+                } ${isUpdating ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 Want to Watch
               </button>
               <button
                 onClick={() => handleWatchlistChange("watched")}
+                disabled={isUpdating}
                 className={`py-2 px-3 rounded-lg border text-center transition cursor-pointer ${
                   watchlistStatus === "watched"
                     ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
                     : "bg-white/3 border-white/5 text-slate-400 hover:border-white/10"
-                }`}
+                } ${isUpdating ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 Watched
               </button>
               <button
                 onClick={() => handleWatchlistChange("favorite")}
+                disabled={isUpdating}
                 className={`col-span-2 py-2 px-3 rounded-lg border text-center transition cursor-pointer flex items-center justify-center space-x-1.5 ${
                   isFavorite
                     ? "bg-brand-purple/20 border-brand-purple text-white"
                     : "bg-white/3 border-white/5 text-slate-400 hover:border-white/10"
-                }`}
+                } ${isUpdating ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <Heart className={`w-3.5 h-3.5 ${isFavorite ? "fill-brand-purple text-brand-purple" : ""}`} />
                 <span>Add as Favorite</span>
@@ -246,7 +249,8 @@ export default function MovieDetailsClient({ id }: { id: string }) {
             {(watchlistStatus !== "none" || isFavorite) && (
               <button
                 onClick={() => handleWatchlistChange("none")}
-                className="w-full text-center text-[10px] text-slate-500 hover:text-slate-300 font-bold uppercase pt-1"
+                disabled={isUpdating}
+                className={`w-full text-center text-[10px] text-slate-500 hover:text-slate-300 font-bold uppercase pt-1 ${isUpdating ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 Remove from lists
               </button>
