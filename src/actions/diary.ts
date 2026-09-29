@@ -55,7 +55,21 @@ export async function addDiaryEntry(data: {
       include: { movie: true },
     });
 
+    // Automatically mark as watched
+    await db.watchlist.upsert({
+      where: {
+        userId_movieId: { userId, movieId: data.movieId }
+      },
+      update: { status: "WATCHED" },
+      create: {
+        userId,
+        movieId: data.movieId,
+        status: "WATCHED"
+      }
+    });
+
     revalidatePath("/dashboard/reviews");
+    revalidatePath("/dashboard/watchlist");
     return { success: true, entry };
   } catch (error: any) {
     console.error("Add diary entry error:", error);
