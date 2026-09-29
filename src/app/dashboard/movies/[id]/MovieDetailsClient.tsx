@@ -78,25 +78,36 @@ export default function MovieDetailsClient({ id }: { id: string }) {
   }
 
   const handleWatchlistChange = async (status: string) => {
-    const posterPath = movie.posterUrl ? movie.posterUrl.split("/p/w500")[1] || "" : "";
+    if (isUpdating) return;
     
-    if (status === "none") {
-      const res = await removeFromAllLists(id);
-      if (res.success) {
+    const posterPath = movie.posterUrl ? movie.posterUrl.split("/p/w500")[1] || "" : "";
+    const prevStatus = watchlistStatus;
+    const prevFavorite = isFavorite;
+
+    setIsUpdating(true);
+
+    try {
+      if (status === "none") {
         setWatchlistStatus("none");
         setIsFavorite(false);
-      }
-    } else if (status === "favorite") {
-      const res = await toggleFavorite(id, movie.title, posterPath);
-      if (res.success) {
+        const res = await removeFromAllLists(id);
+        if (!res.success) throw new Error("Failed to remove");
+      } else if (status === "favorite") {
         setIsFavorite(!isFavorite);
-      }
-    } else {
-      const dbStatus = status === "want-to-watch" ? "WANT_TO_WATCH" : "WATCHED";
-      const res = await toggleWatchlist(id, movie.title, posterPath, dbStatus);
-      if (res.success) {
+        const res = await toggleFavorite(id, movie.title, posterPath);
+        if (!res.success) throw new Error("Failed to toggle favorite");
+      } else {
+        const dbStatus = status === "want-to-watch" ? "WANT_TO_WATCH" : "WATCHED";
         setWatchlistStatus(status);
+        const res = await toggleWatchlist(id, movie.title, posterPath, dbStatus);
+        if (!res.success) throw new Error("Failed to toggle watchlist");
       }
+    } catch (error) {
+      setWatchlistStatus(prevStatus);
+      setIsFavorite(prevFavorite);
+      alert("Failed to update watchlist. Please try again.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
