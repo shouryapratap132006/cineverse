@@ -24,6 +24,7 @@ export default function MovieDetailsClient({ id }: { id: string }) {
 
   const [watchlistStatus, setWatchlistStatus] = useState<string>("none");
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [reviewsList, setReviewsList] = useState<any[]>([]);
   const [similarMovies, setSimilarMovies] = useState<any[]>([]);
   
