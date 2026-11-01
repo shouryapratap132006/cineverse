@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMovieDetails } from "@/hooks/useMovies";
@@ -8,7 +8,8 @@ import { useCineverseAuth } from "@/components/provider";
 import { toggleWatchlist, toggleFavorite, removeFromAllLists, getMovieLibraryState } from "@/actions/watchlist";
 import { createReview, getMovieReviews } from "@/actions/review";
 import { getRecommendations } from "@/lib/tmdb";
-import { ArrowLeft, Star, Clock, Calendar, Bookmark, Flame, Heart, Sparkles, Send } from "lucide-react";
+import { runLibraryAction, toDbStatus, type LibraryAction, type LibraryState } from "@/lib/watchlist-state";
+import { ArrowLeft, Star, Clock, Calendar, Bookmark, Flame, Heart, Sparkles, Send, Loader2 } from "lucide-react";
 import GlassCard from "@/components/shared/GlassCard";
 import MovieCompanion from "@/components/ai/MovieCompanion";
 import SceneExplorer from "@/components/ai/SceneExplorer";
@@ -22,8 +23,12 @@ export default function MovieDetailsClient({ id }: { id: string }) {
   // Fetch details (API or Fallback)
   const { data: movie, isLoading, error } = useMovieDetails(id);
 
-  const [watchlistStatus, setWatchlistStatus] = useState<string>("none");
-  const [isFavorite, setIsFavorite] = useState<boolean>(false);
+  const [library, setLibrary] = useState<LibraryState>({ watchlistStatus: "none", isFavorite: false });
+  const [pendingAction, setPendingAction] = useState<LibraryAction | null>(null);
+  const [libraryError, setLibraryError] = useState<string | null>(null);
+  // Once the user has clicked, a slower initial load must not overwrite what they chose.
+  const userChangedLibrary = useRef(false);
+  const { watchlistStatus, isFavorite } = library;
   const [reviewsList, setReviewsList] = useState<any[]>([]);
   const [similarMovies, setSimilarMovies] = useState<any[]>([]);
   
@@ -35,11 +40,12 @@ export default function MovieDetailsClient({ id }: { id: string }) {
   // Sync state with storage on load
   useEffect(() => {
     if (!movie) return;
+    let cancelled = false;
 
     // 1. Get database watchlist/favorite state
     getMovieLibraryState(id).then((state) => {
-      setWatchlistStatus(state.watchlistStatus);
-      setIsFavorite(state.isFavorite);
+      if (cancelled || userChangedLibrary.current) return;
+      setLibrary({ watchlistStatus: state.watchlistStatus, isFavorite: state.isFavorite });
     });
 
     // 2. Fetch database critiques
@@ -54,6 +60,10 @@ export default function MovieDetailsClient({ id }: { id: string }) {
     getRecommendations(id).then((recs) => {
       setSimilarMovies(recs.slice(0, 4));
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [id, movie]);
 
   if (isLoading) {
@@ -76,27 +86,24 @@ export default function MovieDetailsClient({ id }: { id: string }) {
     );
   }
 
-  const handleWatchlistChange = async (status: string) => {
+  const handleWatchlistChange = async (action: LibraryAction) => {
+    if (pendingAction) return; // one request at a time, so double clicks cannot race
     const posterPath = movie.posterUrl ? movie.posterUrl.split("/p/w500")[1] || "" : "";
-    
-    if (status === "none") {
-      const res = await removeFromAllLists(id);
-      if (res.success) {
-        setWatchlistStatus("none");
-        setIsFavorite(false);
-      }
-    } else if (status === "favorite") {
-      const res = await toggleFavorite(id, movie.title, posterPath);
-      if (res.success) {
-        setIsFavorite(!isFavorite);
-      }
-    } else {
-      const dbStatus = status === "want-to-watch" ? "WANT_TO_WATCH" : "WATCHED";
-      const res = await toggleWatchlist(id, movie.title, posterPath, dbStatus);
-      if (res.success) {
-        setWatchlistStatus(status);
-      }
-    }
+
+    userChangedLibrary.current = true;
+    setPendingAction(action);
+    setLibraryError(null);
+
+    const send = () =>
+      action === "none"
+        ? removeFromAllLists(id)
+        : action === "favorite"
+          ? toggleFavorite(id, movie.title, posterPath)
+          : toggleWatchlist(id, movie.title, posterPath, toDbStatus(action));
+    const { error } = await runLibraryAction(library, action, send, setLibrary);
+
+    setLibraryError(error);
+    setPendingAction(null);
   };
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
@@ -197,46 +204,68 @@ export default function MovieDetailsClient({ id }: { id: string }) {
               <h3 className="text-xs font-bold uppercase tracking-wider">Watchlist Status</h3>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
+            <div className="grid grid-cols-2 gap-2 text-xs font-semibold" aria-busy={pendingAction !== null}>
               <button
                 onClick={() => handleWatchlistChange("want-to-watch")}
-                className={`py-2 px-3 rounded-lg border text-center transition cursor-pointer ${
+                disabled={pendingAction !== null}
+                aria-pressed={watchlistStatus === "want-to-watch"}
+                className={`py-2 px-3 rounded-lg border text-center transition cursor-pointer disabled:cursor-wait disabled:opacity-70 flex items-center justify-center gap-1.5 ${
                   watchlistStatus === "want-to-watch"
                     ? "bg-brand-blue/20 border-brand-blue text-white"
                     : "bg-white/3 border-white/5 text-slate-400 hover:border-white/10"
                 }`}
               >
-                Want to Watch
+                {pendingAction === "want-to-watch" && <Loader2 className="w-3 h-3 animate-spin" />}
+                <span>Want to Watch</span>
               </button>
               <button
                 onClick={() => handleWatchlistChange("watched")}
-                className={`py-2 px-3 rounded-lg border text-center transition cursor-pointer ${
+                disabled={pendingAction !== null}
+                aria-pressed={watchlistStatus === "watched"}
+                className={`py-2 px-3 rounded-lg border text-center transition cursor-pointer disabled:cursor-wait disabled:opacity-70 flex items-center justify-center gap-1.5 ${
                   watchlistStatus === "watched"
                     ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
                     : "bg-white/3 border-white/5 text-slate-400 hover:border-white/10"
                 }`}
               >
-                Watched
+                {pendingAction === "watched" && <Loader2 className="w-3 h-3 animate-spin" />}
+                <span>Watched</span>
               </button>
               <button
                 onClick={() => handleWatchlistChange("favorite")}
-                className={`col-span-2 py-2 px-3 rounded-lg border text-center transition cursor-pointer flex items-center justify-center space-x-1.5 ${
+                disabled={pendingAction !== null}
+                aria-pressed={isFavorite}
+                className={`col-span-2 py-2 px-3 rounded-lg border text-center transition cursor-pointer disabled:cursor-wait disabled:opacity-70 flex items-center justify-center space-x-1.5 ${
                   isFavorite
                     ? "bg-brand-purple/20 border-brand-purple text-white"
                     : "bg-white/3 border-white/5 text-slate-400 hover:border-white/10"
                 }`}
               >
-                <Heart className={`w-3.5 h-3.5 ${isFavorite ? "fill-brand-purple text-brand-purple" : ""}`} />
+                {pendingAction === "favorite" ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Heart className={`w-3.5 h-3.5 ${isFavorite ? "fill-brand-purple text-brand-purple" : ""}`} />
+                )}
                 <span>Add as Favorite</span>
               </button>
             </div>
-            
+
+            <p className="sr-only" aria-live="polite">
+              {pendingAction ? "Saving your lists…" : ""}
+            </p>
+            {libraryError && (
+              <p role="alert" className="text-[11px] text-rose-400 leading-snug">
+                {libraryError}
+              </p>
+            )}
+
             {(watchlistStatus !== "none" || isFavorite) && (
               <button
                 onClick={() => handleWatchlistChange("none")}
-                className="w-full text-center text-[10px] text-slate-500 hover:text-slate-300 font-bold uppercase pt-1"
+                disabled={pendingAction !== null}
+                className="w-full text-center text-[10px] text-slate-500 hover:text-slate-300 font-bold uppercase pt-1 disabled:cursor-wait disabled:opacity-70"
               >
-                Remove from lists
+                {pendingAction === "none" ? "Removing…" : "Remove from lists"}
               </button>
             )}
           </GlassCard>
