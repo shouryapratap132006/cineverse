@@ -77,29 +77,30 @@ graph TD
 
 ```mermaid
 graph TB
-    subgraph Client Layer
-        Web[Next.js 16 Web Application / React 19 UI]
-        SocketClient[Socket.IO Client]
+    subgraph ClientLayer["Client Layer"]
+        Web["Next.js 16 Web App / React 19 UI"]
+        SocketClient["Socket.IO Client"]
     end
 
-    subgraph Server & Proxy Layer
-        Caddy[Caddy Reverse Proxy / HTTPS]
-        Server[Custom Express + Socket.IO + Next Server]
+    subgraph ServerLayer["Server & Proxy Layer"]
+        Caddy["Caddy Reverse Proxy / HTTPS"]
+        Server["Custom Express + Socket.IO + Next Server"]
     end
 
-    subgraph Business Logic & AI Layer
-        Auth[Clerk Authentication Middleware]
-        AIGateway[Groq & LangGraph AI Orchestrator]
-        TMDB[TMDB Proxy & Cache]
+    subgraph AILayer["Business Logic & AI Layer"]
+        Auth["Clerk Authentication Middleware"]
+        AIGateway["Groq & LangGraph AI Orchestrator"]
+        TMDB["TMDB Proxy & Cache"]
     end
 
-    subgraph Data & Storage Layer
-        DB[(Neon PostgreSQL / AWS RDS)]
-        Prisma[Prisma ORM 7]
-        Cloudinary[Cloudinary Media CDN]
+    subgraph DataLayer["Data & Storage Layer"]
+        DB[("Neon PostgreSQL / AWS RDS")]
+        Prisma["Prisma ORM 7"]
+        Cloudinary["Cloudinary Media CDN"]
     end
 
-    Client Layer --> Caddy
+    Web --> Caddy
+    SocketClient --> Caddy
     Caddy --> Server
     Server --> Auth
     Server --> AIGateway
