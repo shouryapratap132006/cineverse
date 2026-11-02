@@ -3,6 +3,11 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getMovieDetails } from "@/lib/tmdb";
+import { fromDbStatus, type LibraryState, type WatchlistStatus } from "@/lib/watchlist-state";
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Something went wrong. Please try again.";
+}
 
 // Helper to get authenticated user ID
 async function getUserId() {
@@ -61,7 +66,16 @@ export async function addMoviesToWatchlist(movies: { id: string; title: string; 
   }
 }
 
-export async function toggleWatchlist(movieId: string, title: string, posterPath: string, status: "WANT_TO_WATCH" | "WATCHED") {
+/**
+ * Adds, moves or removes a movie on the watchlist and returns the status it ended up with,
+ * so the caller can show exactly what the database holds. Clicking the current status removes it.
+ */
+export async function toggleWatchlist(
+  movieId: string,
+  title: string,
+  posterPath: string,
+  status: "WANT_TO_WATCH" | "WATCHED",
+): Promise<{ success: true; watchlistStatus: WatchlistStatus } | { success: false; error: string }> {
   const userId = await getUserId();
   if (!userId) return { success: false, error: "Unauthorized" };
 
@@ -73,46 +87,39 @@ export async function toggleWatchlist(movieId: string, title: string, posterPath
       create: { id: movieId, title, posterPath },
     });
 
-    // 2. Check if it's already in the watchlist
+    // 2. Same status again means remove; anything else is an upsert on the (userId, movieId)
+    //    unique key, so a repeated or concurrent request never creates a second row.
     const existing = await db.watchlist.findUnique({
-      where: {
-        userId_movieId: { userId, movieId }
-      }
+      where: { userId_movieId: { userId, movieId } },
     });
 
-    if (existing) {
-      if (existing.status === status) {
-        // Remove it if clicking the same status
-        await db.watchlist.delete({
-          where: { id: existing.id }
-        });
-      } else {
-        // Update status
-        await db.watchlist.update({
-          where: { id: existing.id },
-          data: { status }
-        });
-      }
+    let watchlistStatus: WatchlistStatus;
+    if (existing?.status === status) {
+      await db.watchlist.deleteMany({ where: { userId, movieId } });
+      watchlistStatus = "none";
     } else {
-      // Create new
-      await db.watchlist.create({
-        data: {
-          userId,
-          movieId,
-          status
-        }
+      const saved = await db.watchlist.upsert({
+        where: { userId_movieId: { userId, movieId } },
+        update: { status },
+        create: { userId, movieId, status },
       });
+      watchlistStatus = fromDbStatus(saved.status);
     }
 
     revalidatePath("/dashboard/watchlist");
-    return { success: true };
-  } catch (error: any) {
+    return { success: true, watchlistStatus };
+  } catch (error: unknown) {
     console.error("Watchlist toggle error:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: errorMessage(error) };
   }
 }
 
-export async function toggleFavorite(movieId: string, title: string, posterPath: string) {
+/** Adds or removes a favorite and returns whether the movie is a favorite afterwards. */
+export async function toggleFavorite(
+  movieId: string,
+  title: string,
+  posterPath: string,
+): Promise<{ success: true; isFavorite: boolean } | { success: false; error: string }> {
   const userId = await getUserId();
   if (!userId) return { success: false, error: "Unauthorized" };
 
@@ -125,33 +132,30 @@ export async function toggleFavorite(movieId: string, title: string, posterPath:
     });
 
     const existing = await db.favorite.findUnique({
-      where: {
-        userId_movieId: { userId, movieId }
-      }
+      where: { userId_movieId: { userId, movieId } },
     });
 
     if (existing) {
-      await db.favorite.delete({
-        where: { id: existing.id }
-      });
+      await db.favorite.deleteMany({ where: { userId, movieId } });
     } else {
-      await db.favorite.create({
-        data: {
-          userId,
-          movieId
-        }
+      await db.favorite.upsert({
+        where: { userId_movieId: { userId, movieId } },
+        update: {},
+        create: { userId, movieId },
       });
     }
 
     revalidatePath("/dashboard/watchlist");
-    return { success: true };
-  } catch (error: any) {
+    return { success: true, isFavorite: !existing };
+  } catch (error: unknown) {
     console.error("Favorite toggle error:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: errorMessage(error) };
   }
 }
 
-export async function removeFromAllLists(movieId: string) {
+export async function removeFromAllLists(
+  movieId: string,
+): Promise<{ success: true } | { success: false; error: string }> {
   const userId = await getUserId();
   if (!userId) return { success: false, error: "Unauthorized" };
 
@@ -164,8 +168,8 @@ export async function removeFromAllLists(movieId: string) {
     });
     revalidatePath("/dashboard/watchlist");
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    return { success: false, error: errorMessage(error) };
   }
 }
 
@@ -249,7 +253,7 @@ export async function getUserLibrary() {
   }
 }
 
-export async function getMovieLibraryState(movieId: string) {
+export async function getMovieLibraryState(movieId: string): Promise<LibraryState> {
   const userId = await getUserId();
   if (!userId) return { watchlistStatus: "none", isFavorite: false };
 
@@ -262,7 +266,7 @@ export async function getMovieLibraryState(movieId: string) {
     });
 
     return {
-      watchlistStatus: wl ? (wl.status === "WANT_TO_WATCH" ? "want-to-watch" : "watched") : "none",
+      watchlistStatus: fromDbStatus(wl?.status),
       isFavorite: !!fav
     };
   } catch (e) {
